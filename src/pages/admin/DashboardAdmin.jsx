@@ -14,6 +14,7 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE } from '@/utils/api';
 import {
   Bar,
   BarChart,
@@ -57,31 +58,31 @@ const DashboardAdmin = () => {
     const fetchDashboard = async () => {
       setLoading(true);
       try {
-        const statsRes = await axios.get('/api/dashboard/summary');
+        const statsRes = await axios.get(`${API_BASE}/dashboard/summary`);
         setStats(statsRes.data);
       } catch (e) {}
       try {
-        const res = await axios.get('/api/dashboard/return-status');
+        const res = await axios.get(`${API_BASE}/dashboard/return-status`);
         setEquipmentStatusData(res.data);
       } catch (e) { setEquipmentStatusData([]); }
       try {
-        const res = await axios.get('/api/dashboard/monthly-borrow');
+        const res = await axios.get(`${API_BASE}/dashboard/monthly-borrow`);
         setBorrowReturnData(res.data);
       } catch (e) { setBorrowReturnData([]); }
       try {
-        const res = await axios.get('/api/dashboard/top-borrowed-equipment');
+        const res = await axios.get(`${API_BASE}/dashboard/top-borrowed-equipment`);
         setTopBorrowedItems(res.data);
       } catch (e) { setTopBorrowedItems([]); }
       try {
-        const res = await axios.get('/api/dashboard/top-risk-users');
+        const res = await axios.get(`${API_BASE}/dashboard/top-risk-users`);
         setTopRiskUsers(res.data);
       } catch (e) { setTopRiskUsers([]); }
       try {
-        const res = await axios.get('/api/dashboard/frequent-damage-users');
+        const res = await axios.get(`${API_BASE}/dashboard/frequent-damage-users`);
         setFrequentDamageUsers(res.data);
       } catch (e) { setFrequentDamageUsers([]); }
       try {
-        const res = await axios.get('/api/dashboard/branch-borrow-summary');
+        const res = await axios.get(`${API_BASE}/dashboard/branch-borrow-summary`);
         setBranchBorrowSummary(res.data);
       } catch (e) { setBranchBorrowSummary([]); }
       setLoading(false);

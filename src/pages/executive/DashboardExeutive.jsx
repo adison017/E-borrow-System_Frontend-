@@ -3,8 +3,9 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { FaChartBar, FaChartLine, FaExclamationTriangle, FaTools } from 'react-icons/fa';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { API_BASE } from '@/utils/api';
 
-const API = (endpoint) => `/api/dashboard/${endpoint}`;
+const API = (endpoint) => `${API_BASE}/dashboard/${endpoint}`;
 
 const widgetConfigs = [
   { key: 'monthlyBorrow', title: 'ยอดการยืมรายเดือน', type: 'line', endpoint: 'monthly-borrow' },
