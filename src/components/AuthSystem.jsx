@@ -374,12 +374,6 @@ const AuthSystem = (props) => {
       setIsLoading(false);
       
       if (response.data && response.data.token) {
-        // Debug log เพื่อตรวจสอบข้อมูลที่ได้รับจาก backend
-        console.log('=== Debug: Login response from backend ===');
-        console.log('Full response data:', response.data);
-        console.log('User data from response:', response.data.user);
-        console.log('branch_name from response:', response.data.user.branch_name);
-        console.log('position_name from response:', response.data.user.position_name);
 
         // รีเซ็ต login attempts เมื่อ login สำเร็จ
         setLoginAttempts({
