@@ -1,0 +1,171 @@
+@import "tailwindcss";
+@import 'flowbite';
+@plugin "daisyui" {
+    themes: light --default, dark --prefersdark;
+  }
+@layer components {
+  .e-borrow-table {
+    @apply w-full overflow-x-auto rounded-lg shadow-md;
+  }
+
+  .e-borrow-table thead {
+    @apply bg-blue-50 sticky top-0 z-10;
+  }
+
+  .e-borrow-table th {
+    @apply px-4 py-3 text-sm font-medium text-gray-700 tracking-wider text-left border-b border-blue-100 whitespace-nowrap;
+  }
+
+  .e-borrow-table tbody tr {
+    @apply hover:bg-gray-50 transition-colors duration-150;
+  }
+
+  .e-borrow-table tbody tr:nth-child(even) {
+    @apply bg-gray-50/50;
+  }
+
+  .e-borrow-table td {
+    @apply px-4 py-3 text-sm text-gray-700 border-b border-gray-200 align-middle;
+  }
+
+  /* Responsive styles for smaller screens */
+  @media (max-width: 768px) {
+    .e-borrow-table {
+      @apply text-xs;
+    }
+
+    .e-borrow-table th,
+    .e-borrow-table td {
+      @apply px-2 py-2;
+    }
+  }
+}
+
+/* กำหนดสีสำหรับแต่ละประเภทของ alert */
+.alert-success {
+    background-color: #4CAF50; /* สีเขียวสำหรับ success */
+    color: white;
+  }
+
+  .alert-error {
+    background-color: #f44336; /* สีแดงสำหรับ error */
+    color: white;
+  }
+
+  .alert-warning {
+    background-color: #ff9800; /* สีส้มสำหรับ warning */
+    color: white;
+  }
+
+/* Custom animations for notifications */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Animation utilities */
+.animate-slideDown {
+  animation: slideDown 0.3s ease-out;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.2s ease-out;
+}
+
+/* Smooth scrollbar for notification list */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+  border-radius: 10px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
+/* Hover effects for notification items */
+.notification-item-hover {
+  transition: all 0.2s ease;
+}
+
+.notification-item-hover:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Tailwind animation classes */
+@layer utilities {
+  .animate-in {
+    animation-duration: 0.3s;
+    animation-fill-mode: both;
+  }
+  
+  .fade-in {
+    animation-name: fadeIn;
+  }
+  
+  .slide-in-from-top-1 {
+    animation-name: slideDown;
+  }
+  
+  .zoom-in-95 {
+    animation-name: scaleIn;
+  }
+}
+
+/* Notification badge pulse animation */
+.notification-badge-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth transitions for all interactive elements */
+.notification-menu * {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
