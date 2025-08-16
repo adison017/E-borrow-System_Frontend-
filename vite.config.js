@@ -14,5 +14,21 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'), // 👉 เพิ่ม alias
     },
   },
+  server: {
+    allowedHosts: [
+      'localhost',
+      '9661019a77ca.ngrok-free.app',
+    ],
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+      '/uploads': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+      },
+    },
+  },
  
 });
