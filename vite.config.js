@@ -13,15 +13,5 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, 'src'), // 👉 เพิ่ม alias
     },
-  },
-  server: {
-    allowedHosts: [
-      'localhost',
-      '9661019a77ca.ngrok-free.app', // เพิ่ม host นี้เพื่อให้ ngrok เข้าถึงได้
-    ],
-    proxy: {
-      '/api': 'http://localhost:5000',
-      '/uploads': 'http://localhost:5000',
-    },
-  },
+  }
 });
