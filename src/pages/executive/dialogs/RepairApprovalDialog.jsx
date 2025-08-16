@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fa';
 import { MdAssignment, MdClose } from "react-icons/md";
 import { RiCoinsFill } from "react-icons/ri";
+import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
 
 export default function RepairApprovalDialog({
   open,
@@ -99,7 +100,7 @@ export default function RepairApprovalDialog({
               filename: repairRequest.pic_filename,
               original_name: repairRequest.pic_filename,
               file_path: `uploads/repair/${repairRequest.pic_filename}`,
-              url: `http://localhost:5000/uploads/repair/${repairRequest.pic_filename}`,
+              url: `${UPLOAD_BASE}/uploads/repair/${repairRequest.pic_filename}`,
               repair_code: repairRequest.repair_code,
               index: 0
             };
@@ -119,7 +120,7 @@ export default function RepairApprovalDialog({
       setRepairImages(
         repairRequest.images.map((img, idx) => ({
           ...img,
-          url: img.url || (img.file_path ? `http://localhost:5000/${img.file_path}` : undefined),
+          url: img.url || (img.file_path ? `${UPLOAD_BASE}/${img.file_path}` : undefined),
           index: idx,
           repair_code: repairRequest.repair_code
         }))
@@ -148,7 +149,7 @@ export default function RepairApprovalDialog({
     try {
       setLoadingAdmins(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get('http://localhost:5000/api/users/role/admin', {
+      const response = await axios.get(`${API_BASE}/users/role/admin`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -247,11 +248,11 @@ export default function RepairApprovalDialog({
       console.log('Approval payload:', payload);
 
       // Update repair request status to approved
-      await axios.put(`http://localhost:5000/api/repair-requests/${normalizedRepairRequest.requestId}`, payload);
+      await axios.put(`${API_BASE}/repair-requests/${normalizedRepairRequest.requestId}`, payload);
 
       // Update equipment status to 'กำลังซ่อม'
       if (normalizedRepairRequest.equipment_code) {
-        await axios.put(`http://localhost:5000/api/equipment/${normalizedRepairRequest.equipment_code}/status`, { status: "กำลังซ่อม" });
+        await axios.put(`${API_BASE}/equipment/${normalizedRepairRequest.equipment_code}/status`, { status: "กำลังซ่อม" });
       }
 
       onApprove(payload);
@@ -341,13 +342,13 @@ export default function RepairApprovalDialog({
       console.log('Rejection payload:', payload);
 
       // Update repair request status to rejected
-      await axios.put(`http://localhost:5000/api/repair-requests/${normalizedRepairRequest.requestId}`, payload);
+      await axios.put(`${API_BASE}/repair-requests/${normalizedRepairRequest.requestId}`, payload);
 
       // Update equipment status to 'ชำรุด'
       if (normalizedRepairRequest.equipment_code) {
         const token = localStorage.getItem('token');
         await axios.put(
-          `http://localhost:5000/api/equipment/${normalizedRepairRequest.equipment_code}/status`,
+          `${API_BASE}/equipment/${normalizedRepairRequest.equipment_code}/status`,
           { status: "ชำรุด" },
           {
             headers: {
@@ -468,7 +469,7 @@ export default function RepairApprovalDialog({
               </div>
               <div className="relative rounded-lg flex items-center justify-center overflow-hidden" style={{height: '200px'}}>
                 <img
-                  src={repairRequest.equipment_pic || `http://localhost:5000/uploads/${repairRequest.equipment_pic_filename}`}
+                  src={repairRequest.equipment_pic || `${UPLOAD_BASE}/uploads/${repairRequest.equipment_pic_filename}`}
                   alt="รูปภาพอุปกรณ์"
                   className="object-contain max-h-full max-w-full"
                   onError={(e) => {
@@ -518,7 +519,7 @@ export default function RepairApprovalDialog({
                   {repairImages.map((image, index) => (
                     <div key={image.filename || index} className="relative group cursor-pointer">
                       <img
-                        src={image.url || `http://localhost:5000/${image.file_path}`}
+                        src={image.url || `${UPLOAD_BASE}/${image.file_path}`}
                         alt={`รูปภาพความเสียหาย ${index + 1}`}
                         className="w-full h-32 object-cover rounded-lg shadow-lg hover:opacity-80 transition-opacity"
                         onClick={e => {
@@ -538,7 +539,7 @@ export default function RepairApprovalDialog({
                   {repairImages.map((image, index) => (
                     <div key={image.filename || index} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
                       <img
-                        src={image.url || `http://localhost:5000/${image.file_path}`}
+                        src={image.url || `${UPLOAD_BASE}/${image.file_path}`}
                         alt={`รูปภาพความเสียหาย ${index + 1}`}
                         className="w-16 h-16 object-cover rounded border border-gray-200"
                         onClick={e => {
@@ -859,7 +860,7 @@ export default function RepairApprovalDialog({
             {/* Image */}
             <div className="relative">
               <img
-                src={repairImages[activeImageIndex]?.url || `http://localhost:5000/${repairImages[activeImageIndex]?.file_path}`}
+                src={repairImages[activeImageIndex]?.url || `${UPLOAD_BASE}/${repairImages[activeImageIndex]?.file_path}`}
                 alt={`รูปภาพความเสียหาย ${activeImageIndex + 1}`}
                 className="max-w-full max-h-[70vh] object-contain"
               />
@@ -898,7 +899,7 @@ export default function RepairApprovalDialog({
                       }`}
                     >
                       <img
-                        src={image.url || `http://localhost:5000/${image.file_path}`}
+                        src={image.url || `${UPLOAD_BASE}/${image.file_path}`}
                         alt={`รูปภาพ ${index + 1}`}
                         className="w-full h-full object-cover rounded"
                       />

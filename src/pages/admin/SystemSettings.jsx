@@ -18,7 +18,7 @@ import {
 import { FaUserEdit } from 'react-icons/fa';
 // removed security icons
 import { ImMail4 } from "react-icons/im";
-import { authFetch } from '../../utils/api';
+import { API_BASE, authFetch } from '../../utils/api';
 import Notification from '../../components/Notification';
 import PersonalInfoEdit from '../users/edit_profile.jsx';
 
@@ -354,7 +354,7 @@ const SystemSettings = () => {
         setShowNotification(true);
         return;
       }
-      const res = await authFetch('http://localhost:5000/api/users/request-password-otp', {
+      const res = await authFetch(`${API_BASE}/users/request-password-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: securityForm.email })
@@ -404,7 +404,7 @@ const SystemSettings = () => {
         return;
       }
 
-      const res = await authFetch('http://localhost:5000/api/users/reset-password', {
+      const res = await authFetch(`${API_BASE}/users/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: securityForm.email, otp: securityForm.otp, password: securityForm.password })
@@ -431,7 +431,7 @@ const SystemSettings = () => {
   const fetchContactInfo = async () => {
     try {
       setLoading(true);
-      const response = await authFetch('http://localhost:5000/api/contact-info');
+      const response = await authFetch(`${API_BASE}/contact-info`);
       const data = await response.json();
 
       if (data.success && data.data) {
@@ -596,7 +596,7 @@ const SystemSettings = () => {
         return;
       }
 
-      const response = await authFetch('http://localhost:5000/api/notification-settings/stats');
+      const response = await authFetch(`${API_BASE}/notification-settings/stats`);
       const data = await response.json();
 
       if (data.success && data.data) {
@@ -614,7 +614,7 @@ const SystemSettings = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await authFetch('http://localhost:5000/api/notification-settings/users');
+      const response = await authFetch(`${API_BASE}/notification-settings/users`);
       const data = await response.json();
 
       if (data.success && data.data) {
@@ -636,7 +636,7 @@ const SystemSettings = () => {
   const testLineConnection = async () => {
     try {
       setLoading(true);
-      const response = await authFetch('http://localhost:5000/api/notification-settings/test-line-connection', {
+      const response = await authFetch(`${API_BASE}/notification-settings/test-line-connection`, {
         method: 'POST'
       });
       const data = await response.json();
@@ -690,7 +690,7 @@ const SystemSettings = () => {
 
       const userIds = usersInRole.map(user => user.user_id);
 
-      const response = await authFetch('http://localhost:5000/api/notification-settings/bulk-toggle', {
+      const response = await authFetch(`${API_BASE}/notification-settings/bulk-toggle`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -794,11 +794,11 @@ const SystemSettings = () => {
       const userIds = usersWithLine.map(user => user.user_id);
 
       console.log('Making API call:', {
-        url: 'http://localhost:5000/api/notification-settings/bulk-toggle',
+        url: `${API_BASE}/notification-settings/bulk-toggle`,
         payload: { userIds, enabled }
       });
 
-      const response = await authFetch('http://localhost:5000/api/notification-settings/bulk-toggle', {
+      const response = await authFetch(`${API_BASE}/notification-settings/bulk-toggle`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -891,7 +891,7 @@ const SystemSettings = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const response = await authFetch('http://localhost:5000/api/contact-info', {
+      const response = await authFetch(`${API_BASE}/contact-info`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

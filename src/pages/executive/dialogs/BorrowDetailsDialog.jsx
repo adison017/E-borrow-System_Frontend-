@@ -13,7 +13,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
-import { getBorrowById } from "../../../utils/api";
+import { getBorrowById, API_BASE, UPLOAD_BASE } from "../../../utils/api";
 import DocumentViewer from '../../../components/DocumentViewer';
 
 export default function BorrowDetailsDialog({
@@ -200,7 +200,6 @@ export default function BorrowDetailsDialog({
   // Helper: ใช้ borrowDetails ถ้ามี, fallback เป็น borrowRequest
   const data = borrowDetails || borrowRequest;
 
-  const API_BASE = "http://localhost:5000";
   // User info mapping (ใช้เฉพาะข้อมูลจาก backend เท่านั้น)
   let borrower = null;
   if (data?.borrower && typeof data.borrower === 'object' && Object.keys(data.borrower).length > 0) {
@@ -274,7 +273,7 @@ export default function BorrowDetailsDialog({
                     <div className="flex flex-col items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg mt-3 shadow-sm">
                       <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
                         <img
-                          src={borrower.avatar ? (borrower.avatar.startsWith('http') ? borrower.avatar : `${API_BASE}/uploads/user/${borrower.avatar}`) : "/profile.png"}
+                          src={borrower.avatar ? (borrower.avatar.startsWith('http') ? borrower.avatar : `${UPLOAD_BASE}/user/${borrower.avatar}`) : "/profile.png"}
                           alt={borrower.name}
                           className="w-full h-full object-cover"
                           onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
@@ -347,7 +346,7 @@ export default function BorrowDetailsDialog({
                                 <td className="px-2 py-3 align-middle text-center">
                                   <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center mx-auto border border-gray-200 bg-white">
                                     <img
-                                      src={item.pic?.startsWith('http') ? item.pic : `${API_BASE}/uploads/equipment/${item.item_code || item.code}.jpg`}
+                                      src={item.pic?.startsWith('http') ? item.pic : `${UPLOAD_BASE}/equipment/${item.item_code || item.code}.jpg`}
                                       alt={item.name}
                                       className="max-w-full max-h-full object-contain p-1"
                                       style={{ display: 'block', margin: 'auto' }}

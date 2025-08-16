@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { MdAdd, MdRemove, MdSearch, MdShoppingCart } from "react-icons/md";
 // import { globalUserData } from '../../components/Header';
 import Notification from '../../components/Notification';
-import { getCategories, getEquipment, updateEquipmentStatus, authFetch } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
+import { getCategories, getEquipment, updateEquipmentStatus, authFetch, API_BASE } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
 import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
@@ -280,13 +280,14 @@ const Home = () => {
     });
 
     try {
-      const response = await authFetch('http://localhost:5000/api/borrows', {
+      const response = await authFetch(`${API_BASE}/borrows`, {
         method: 'POST',
         // Don't set Content-Type header for FormData - let browser set it with boundary
         body: formData
       });
             const data = await response.json();
       if (response.ok) {
+        setShowBorrowDialog(false);
         setNotification({
           show: true,
           title: 'สำเร็จ',
@@ -294,7 +295,6 @@ const Home = () => {
           type: 'success',
           duration: 5000 // แสดง 5 วินาที
         });
-        setShowBorrowDialog(false);
         setQuantities({});
         setBorrowData({ reason: '', borrowDate: '', returnDate: '' });
 

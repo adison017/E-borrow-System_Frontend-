@@ -34,6 +34,7 @@ import EditUserDialog from "./dialog/EditUserDialog";
 import ViewUserDialog from "./dialog/ViewUserDialog";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
+import { API_BASE, UPLOAD_BASE } from '../../utils/api';
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -154,7 +155,7 @@ function ManageUser() {
   const fetchUsers = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get('http://localhost:5000/api/users', {
+      const response = await axios.get(`${API_BASE}/users`, {
         headers: getAuthHeaders()
       });
       setUserList(response.data);
@@ -195,9 +196,9 @@ function ManageUser() {
     const fetchFilters = async () => {
       try {
         const [rolesRes, branchesRes, positionsRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/users/roles', { headers: getAuthHeaders() }),
-          axios.get('http://localhost:5000/api/users/branches', { headers: getAuthHeaders() }),
-          axios.get('http://localhost:5000/api/users/positions', { headers: getAuthHeaders() }),
+          axios.get(`${API_BASE}/users/roles`, { headers: getAuthHeaders() }),
+          axios.get(`${API_BASE}/users/branches`, { headers: getAuthHeaders() }),
+          axios.get(`${API_BASE}/users/positions`, { headers: getAuthHeaders() }),
         ]);
         setRoles(rolesRes.data);
         setBranches(branchesRes.data);
@@ -224,7 +225,7 @@ function ManageUser() {
 
   const confirmDelete = async () => {
     try {
-      const response = await axios.delete(`http://localhost:5000/api/users/id/${selectedUser.user_id}`, {
+      const response = await axios.delete(`${API_BASE}/users/id/${selectedUser.user_id}`, {
         headers: getAuthHeaders()
       });
 
@@ -340,7 +341,7 @@ function ManageUser() {
   // เพิ่มฟังก์ชัน handleToggleLineNotify
   const handleToggleLineNotify = (userId, checked) => {
     // ตัวอย่าง: เรียก API เพื่ออัปเดต line_notify_enabled
-    axios.patch(`http://localhost:5000/api/users/${userId}/line-notify`, { line_notify_enabled: checked ? 1 : 0 }, {
+    axios.patch(`${API_BASE}/users/${userId}/line-notify`, { line_notify_enabled: checked ? 1 : 0 }, {
       headers: getAuthHeaders()
     })
       .then(res => res.data)
@@ -608,7 +609,7 @@ function ManageUser() {
                         <td className="px-3 py-4 w-15 h-full whitespace-nowrap">
                           <div className="flex items-center justify-center object-cover">
                                             <Avatar
-                  src={avatar && avatar.includes('cloudinary.com') ? avatar : avatar ? `http://localhost:5000/uploads/user/${avatar}?t=${Date.now()}` : "/public/profile.png"}
+                  src={avatar && avatar.includes('cloudinary.com') ? avatar : avatar ? `${UPLOAD_BASE}/uploads/user/${avatar}?t=${Date.now()}` : "/public/profile.png"}
                               alt={Fullname}
                               size="md"
                               className="rounded-full w-13 h-13 object-cover"
@@ -630,7 +631,7 @@ function ManageUser() {
                                 onClick={async (e) => {
                                   e.stopPropagation();
                                   const newValue = !line_notify_enabled ? 1 : 0;
-                                  await axios.patch(`http://localhost:5000/api/users/${user_id}/line-notify`, { line_notify_enabled: newValue }, {
+                                  await axios.patch(`${API_BASE}/users/${user_id}/line-notify`, { line_notify_enabled: newValue }, {
                                     headers: getAuthHeaders()
                                   });
                                   setUserList(prevList => prevList.map(u =>

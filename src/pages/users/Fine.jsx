@@ -5,7 +5,7 @@ import AlertDialog from '../../components/Notification.jsx';
 import { FaBarcode } from "react-icons/fa";
 import { MdPayment } from "react-icons/md";
 import { FaMoneyCheckAlt } from "react-icons/fa";
-import { authFetch } from '../../utils/api';
+import { API_BASE, authFetch } from '../../utils/api';
 
 const Fine = () => {
   const [fineList, setFineList] = useState([]);
@@ -33,7 +33,7 @@ const Fine = () => {
       setFineList([]);
       return;
     }
-    authFetch(`http://localhost:5000/api/returns/summary?user_id=${user_id}`)
+    authFetch(`${API_BASE}/returns/summary?user_id=${user_id}`)
       .then(res => res.json())
       .then(data => {
         setFineList(data);
@@ -69,7 +69,7 @@ const Fine = () => {
     const user_id = globalUserData?.user_id;
     if (user_id) {
       setLoading(true);
-      authFetch(`http://localhost:5000/api/returns/summary?user_id=${user_id}`)
+      authFetch(`${API_BASE}/returns/summary?user_id=${user_id}`)
         .then(res => res.json())
         .then(data => {
           setFineList(data);

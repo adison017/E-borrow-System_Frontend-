@@ -21,7 +21,7 @@ import {
   MdViewWeek,
   MdViewModule
 } from 'react-icons/md';
-import { getAllBorrows } from '../../utils/api';
+import { getAllBorrows, API_BASE, authFetch } from '../../utils/api';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -144,7 +144,7 @@ const BorrowCalendar = () => {
         return;
       }
 
-      console.log('Making API call to:', `http://localhost:5000/api/borrows`);
+      console.log('Making API call to:', `${API_BASE}/borrows`);
       const data = await getAllBorrows();
       console.log('Fetched borrows data:', data);
       console.log('Data type:', typeof data);

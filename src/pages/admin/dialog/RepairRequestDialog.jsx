@@ -5,6 +5,7 @@ import { FaClipboardList, FaImage, FaTimes, FaTools, FaUser } from 'react-icons/
 import { RiCoinsFill } from "react-icons/ri";
 // import { globalUserData } from '../../../components/Header';
 import Notification from '../../../components/Notification';
+import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
 
 export default function RepairRequestDialog({
   open,
@@ -50,7 +51,7 @@ export default function RepairRequestDialog({
         return;
       }
 
-      const response = await axios.get('http://localhost:5000/api/users/profile', {
+      const response = await axios.get(`${API_BASE}/users/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -189,7 +190,7 @@ export default function RepairRequestDialog({
       console.log('Files to upload:', files.length);
 
       const response = await axios.post(
-        'http://localhost:5000/api/repair-requests/upload-images',
+        `${API_BASE}/repair-requests/upload-images`,
         formData,
         {
           headers: {
@@ -270,7 +271,7 @@ export default function RepairRequestDialog({
 
       // ตรวจสอบรหัสซ้ำฝั่ง backend
       try {
-        const response = await axios.post('http://localhost:5000/api/repair-requests', repairData, {
+        const response = await axios.post(`${API_BASE}/repair-requests`, repairData, {
           headers: {
             'Content-Type': 'application/json'
           }
@@ -285,7 +286,7 @@ export default function RepairRequestDialog({
           console.log('Updating equipment status for item_code:', equipmentCode);
 
           if (equipmentCode) {
-            const response = await axios.put(`http://localhost:5000/api/equipment/${equipmentCode}/status`, {
+            const response = await axios.put(`${API_BASE}/equipment/${equipmentCode}/status`, {
               status: "รออนุมัติซ่อม"
             });
 

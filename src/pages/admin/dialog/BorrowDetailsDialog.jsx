@@ -9,10 +9,8 @@ import {
 } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
-import { updateBorrowStatus } from '../../../utils/api';
+import { updateBorrowStatus, API_BASE, UPLOAD_BASE } from '../../../utils/api';
 import DocumentViewer from '../../../components/DocumentViewer';
-
-const API_BASE = "http://localhost:5000";
 
 const formatDate = (dateString) => {
     if (!dateString) return "-";

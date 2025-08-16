@@ -1,14 +1,24 @@
 import React, { useEffect, useState } from "react";
+import { isCloudinaryUrl, getOptimizedCloudinaryUrl } from '../utils/cloudinaryUtils';
 import { MdAssignment, MdBuild, MdCheckCircle, MdChevronRight, MdErrorOutline, MdFactCheck, MdLocalShipping, MdNotifications, MdPayment, MdSchedule, MdSettings, MdUndo, MdWarningAmber } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useBadgeCounts } from '../hooks/useSocket';
-import { authFetch, getAllBorrows } from '../utils/api';
+import { authFetch, getAllBorrows, API_BASE } from '../utils/api';
 import Notification from './Notification';
 // import { Avatar } from "@material-tailwind/react"; // ไม่ใช้ Avatar แล้ว
 
 function Header({ userRole, changeRole }) {
   const [username, setUsername] = useState("");
   const [avatar, setAvatar] = useState('/logo_it.png');
+  const resolveAvatarUrl = (path) => {
+    if (!path) return '/logo_it.png';
+    if (isCloudinaryUrl(path)) return getOptimizedCloudinaryUrl(path, 'thumbnail');
+    if (path.startsWith('http://') || path.startsWith('https://')) return path;
+    const BASE = (import.meta.env.VITE_API_URL || window.__API_BASE__ || 'http://localhost:5000').replace(/\/$/, '');
+    if (path.startsWith('/uploads/')) return `${BASE}${path}`;
+    if (path.startsWith('uploads/')) return `${BASE}/${path}`;
+    return `${BASE}/uploads/user/${path}`;
+  };
   const roleNames = {
     admin: "ผู้ดูแลระบบ",
     user: "ผู้ใช้งาน",
@@ -98,20 +108,33 @@ function Header({ userRole, changeRole }) {
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
-        if (user.avatar) {
-          setAvatar(user.avatar.startsWith('http') ? user.avatar : `http://localhost:5000/uploads/user/${user.avatar}`);
-        }
+        if (user.avatar) setAvatar(resolveAvatarUrl(user.avatar));
       } catch {}
     }
     // ฟัง event profileImageUpdated
     const handleProfileImageUpdate = (event) => {
       if (event.detail && event.detail.imagePath) {
-        setAvatar(event.detail.imagePath); // setState ด้วย path ใหม่
+        setAvatar(resolveAvatarUrl(event.detail.imagePath));
       }
     };
+    const handleSessionExpired = () => {
+      // แจ้งเตือนและเด้งไปหน้า login เพื่อความปลอดภัย
+      try {
+        if (Notification && Notification.permission === 'granted') {
+          const n = new Notification('เซสชันหมดอายุ', { body: 'กรุณาเข้าสู่ระบบใหม่เพื่อความปลอดภัย', icon: '/logo_it.png' });
+          setTimeout(() => n.close(), 6000);
+        }
+      } catch {}
+      alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่เพื่อความปลอดภัย');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/login');
+    };
     window.addEventListener('profileImageUpdated', handleProfileImageUpdate);
+    window.addEventListener('sessionExpired', handleSessionExpired);
     return () => {
       window.removeEventListener('profileImageUpdated', handleProfileImageUpdate);
+      window.removeEventListener('sessionExpired', handleSessionExpired);
     };
   }, []);
 
@@ -125,7 +148,7 @@ function Header({ userRole, changeRole }) {
   // Init notification sound
   useEffect(() => {
     try {
-      audioRef.current = new Audio('/notification.mp');
+      audioRef.current = new Audio('/notification.mp3');
       audioRef.current.preload = 'auto';
       audioRef.current.volume = 1.0;
     } catch {}
@@ -378,7 +401,7 @@ function Header({ userRole, changeRole }) {
       try {
         const data = await getAllBorrows();
         const borrowApproval = Array.isArray(data) ? data.filter(b => b.status === 'pending_approval').length : 0;
-        const res = await authFetch('http://localhost:5000/api/repair-requests');
+        const res = await authFetch(`${API_BASE}/repair-requests`);
         const list = await res.json();
         const repairApproval = Array.isArray(list) ? list.filter(r => r.status === 'รออนุมัติซ่อม').length : 0;
         setExecCounts({ borrowApproval, repairApproval });
@@ -431,11 +454,7 @@ function Header({ userRole, changeRole }) {
         // Rebuild list lazily
         refreshAdmin();
       } else if (userRole === 'executive') {
-        const { borrowApprovalCount, repairApprovalCount } = badges;
-        setExecCounts(prev => ({
-          borrowApproval: typeof borrowApprovalCount === 'number' ? borrowApprovalCount : prev.borrowApproval,
-          repairApproval: typeof repairApprovalCount === 'number' ? repairApprovalCount : prev.repairApproval,
-        }));
+        // Always recompute from API to ensure accuracy
         refreshExecutive();
       } else if (userRole === 'user') {
         // For user, just refresh personal counts on any badge update

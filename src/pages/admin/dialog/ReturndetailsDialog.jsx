@@ -8,6 +8,7 @@ import {
 import { MdClose } from "react-icons/md";
 import { useState, useEffect } from "react";
 import DocumentViewer from '../../../components/DocumentViewer';
+import { UPLOAD_BASE } from '../../../utils/api';
 
 const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) => {
   const [imageModal, setImageModal] = useState({
@@ -129,7 +130,7 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                         returnItem.borrower.avatar
                           ? returnItem.borrower.avatar.startsWith('http')
                             ? returnItem.borrower.avatar
-                            : `http://localhost:5000/uploads/user/${returnItem.borrower.avatar}`
+                            : `${UPLOAD_BASE}/uploads/user/${returnItem.borrower.avatar}`
                           : '/profile.png'
                       }
                       alt={returnItem.borrower.name}

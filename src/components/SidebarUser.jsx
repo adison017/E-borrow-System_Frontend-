@@ -6,6 +6,8 @@ import { RiArrowGoBackLine } from "react-icons/ri";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import './sidebar.css';
 import Notification from './Notification';
+import { getAllBorrows } from '../utils/api';
+import { useBadgeCounts } from '../hooks/useSocket';
 
 const borrowingMenus = [
   { to: '/borrow', icon: <MdAccessTimeFilled size={30} />, label: 'รออนุมัติ', key: 'borrow' },
@@ -26,8 +28,10 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
   const [menuReady, setMenuReady] = useState(false);
   const [animating, setAnimating] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [counts, setCounts] = useState({ borrow: 0, approve: 0, return: 0, fine: 0, cancel: 0, completed: 0 });
   const navigate = useNavigate();
   const location = useLocation();
+  const { subscribeToBadgeCounts } = useBadgeCounts();
 
   useEffect(() => {
     // Immediately hide submenu when collapsed
@@ -60,6 +64,45 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
     return () => clearTimeout(timer);
   }, []);
 
+  // ฟัง sessionExpired เพื่อความปลอดภัย
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่เพื่อความปลอดภัย');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/login');
+    };
+    window.addEventListener('sessionExpired', handleSessionExpired);
+    return () => window.removeEventListener('sessionExpired', handleSessionExpired);
+  }, [navigate]);
+
+  // Initial fetch and realtime subscribe for user's own counts
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const userId = user?.user_id;
+    if (!userId) return;
+
+    const computeCounts = async () => {
+      try {
+        const data = await getAllBorrows();
+        const mine = Array.isArray(data) ? data.filter(b => String(b.user_id) === String(userId)) : [];
+        setCounts({
+          borrow: mine.filter(b => b.status === 'pending' || b.status === 'pending_approval').length,
+          approve: mine.filter(b => b.status === 'approved').length,
+          return: mine.filter(b => b.status === 'borrowing').length,
+          fine: mine.filter(b => b.status === 'waiting_payment').length,
+          cancel: mine.filter(b => b.status === 'rejected').length,
+          completed: mine.filter(b => b.status === 'returned' || b.status === 'completed').length,
+        });
+      } catch {}
+    };
+
+    computeCounts();
+    const unsubscribe = subscribeToBadgeCounts(() => computeCounts());
+    return unsubscribe;
+  }, [subscribeToBadgeCounts]);
+
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
@@ -84,202 +127,232 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
 
   return (
     <>
-          <div
-      className={
-        mobileOpen
-          ? "fixed top-0 left-0 h-full w-72 z-50 bg-white shadow-xl rounded-r-2xl transition-all duration-300 ease-in-out overflow-y-auto mobile-menu-enter-active"
-          : `${isCollapsed ? 'w-20' : 'w-72'} flex-none bg-white border-r border-gray-200 shadow-md transition-all duration-300 h-full hidden lg:block rounded-r-3xl overflow-y-auto`
-      }
-      style={mobileOpen ? {
-        maxWidth: '85vw',
-        animation: 'slideIn 0.3s ease-in-out'
-      } : {}}
-    >
-      <div className={mobileOpen ? "py-5 h-full flex flex-col" : "py-6 h-full flex flex-col"}>
-        {/* Mobile Header */}
-        <div className={mobileOpen ? "flex items-center justify-between mb-6 px-6 pb-4 border-b border-gray-100" : "flex flex-col items-center justify-between mb-8 px-4"}>
-          {/* Logo or Brand */}
-          <div className="flex items-center">
-            <h1 className={`font-bold text-blue-600 text-xl ${isCollapsed && !mobileOpen ? 'hidden' : ''}`}>e-Borrow</h1>
+      <div
+        className={
+          mobileOpen
+            ? "fixed top-0 left-0 h-full w-72 z-50 bg-white shadow-xl rounded-r-2xl transition-all duration-300 ease-in-out overflow-y-auto mobile-menu-enter-active"
+            : `${isCollapsed ? 'w-20' : 'w-72'} flex-none bg-white border-r border-gray-200 shadow-md transition-all duration-300 h-full hidden lg:block rounded-r-3xl overflow-y-auto`
+        }
+        style={mobileOpen ? {
+          maxWidth: '85vw',
+          animation: 'slideIn 0.3s ease-in-out'
+        } : {}}
+      >
+        <div className={mobileOpen ? "py-5 h-full flex flex-col" : "py-6 h-full flex flex-col"}>
+          {/* Mobile Header */}
+          <div className={mobileOpen ? "flex items-center justify-between mb-6 px-6 pb-4 border-b border-gray-100" : "flex flex-col items-center justify-between mb-8 px-4"}>
+            {/* Logo or Brand */}
+            <div className="flex items-center">
+              <h1 className={`font-bold text-blue-600 text-xl ${isCollapsed && !mobileOpen ? 'hidden' : ''}`}>e-Borrow</h1>
+            </div>
+
+            {/* Close button for mobile */}
+            {mobileOpen && (
+              <button
+                onClick={() => setMobileOpen(false)}
+                className="p-2 rounded-full hover:bg-gray-100 text-gray-700 transition-colors duration-200"
+                aria-label="Close sidebar"
+              >
+                <MdClose size={26} />
+              </button>
+            )}
           </div>
 
-          {/* Close button for mobile */}
-          {mobileOpen && (
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="p-2 rounded-full hover:bg-gray-100 text-gray-700 transition-colors duration-200"
-              aria-label="Close sidebar"
-            >
-              <MdClose size={26} />
-            </button>
-          )}
-        </div>
+          <ul className={`flex-1 ${isCollapsed ? "flex flex-col items-center space-y-2 px-2" : mobileOpen ? "space-y-2 font-medium px-5" : "space-y-2 font-medium px-4"}`}>
+            {/* Hamburger menu for desktop */}
+            {!mobileOpen && (
+              <li className={`${isCollapsed ? "w-full flex justify-center mb-2" : "mb-2"} transition-all duration-300 ease-in-out ${menuReady ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
+                <button
+                  onClick={toggleCollapse}
+                  className={isCollapsed
+                    ? "flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-700 transition-all duration-200"
+                    : "flex items-center p-3 rounded-xl hover:bg-gray-100 text-gray-700 w-full justify-start transition-all duration-200"}
+                  aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                >
+                  <MdMenu size={24} />
+                  {!isCollapsed && <span className="ml-3 font-medium">เมนู</span>}
+                </button>
+              </li>
+            )}
 
-        <ul className={`flex-1 ${isCollapsed ? "flex flex-col items-center space-y-2 px-2" : mobileOpen ? "space-y-2 font-medium px-5" : "space-y-2 font-medium px-4"}`}>
-          {/* Hamburger menu for desktop */}
-          {!mobileOpen && (
-            <li className={`${isCollapsed ? "w-full flex justify-center mb-2" : "mb-2"} transition-all duration-300 ease-in-out ${menuReady ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}>
-              <button
-                onClick={toggleCollapse}
-                className={isCollapsed
-                  ? "flex items-center justify-center w-10 h-10 rounded-xl bg-gray-50 hover:bg-gray-100 text-gray-700 transition-all duration-200"
-                  : "flex items-center p-3 rounded-xl hover:bg-gray-100 text-gray-700 w-full justify-start transition-all duration-200"}
-                aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            {/* Dashboard, Equipment & Profile Menu Items */}
+            {mainMenus.map((item, index) => (
+              <li
+                key={item.key}
+                className={`${isCollapsed ? "w-full flex justify-center" : "w-full"} transition-all duration-300 ease-in-out
+                  ${menuReady ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}
+                style={{
+                  transitionDelay: menuReady ? `${(index + 1) * 100}ms` : '0ms',
+                  animation: !isCollapsed && menuReady ? 'fadeIn 0.3s ease-in-out' : 'none'
+                }}
               >
-                <MdMenu size={24} />
-                {!isCollapsed && <span className="ml-3 font-medium">เมนู</span>}
-              </button>
-            </li>
-          )}
+                <Link
+                  to={item.to}
+                  onClick={() => handleMenuClick(item.to)}
+                  className={`flex items-center rounded-xl transition-all duration-200
+                    ${isCollapsed
+                      ? 'justify-center w-12 h-12'
+                      : 'justify-start w-full p-3'}
+                    ${isActive(item.to)
+                      ? 'bg-blue-500 text-white shadow-md shadow-blue-200'
+                      : 'hover:bg-blue-50 text-gray-700'}`}
+                  title={isCollapsed ? item.label : undefined}
+                >
+                  {item.icon}
+                  <span
+                    className={`transition-all duration-700 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? 'max-w-0 opacity-0 ms-0' : 'max-w-xs opacity-100 ms-3'} font-medium`}
+                  >
+                    {item.label}
+                  </span>
+                </Link>
+              </li>
+            ))}
 
-          {/* Dashboard, Equipment & Profile Menu Items */}
-          {mainMenus.map((item, index) => (
+            {/* Borrowing Menu Section */}
             <li
-              key={item.key}
-              className={`${isCollapsed ? "w-full flex justify-center" : "w-full"} transition-all duration-300 ease-in-out
+              className={`${isCollapsed ? "hidden" : "w-full"} transition-all duration-300 ease-in-out
                 ${menuReady ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}
               style={{
-                transitionDelay: menuReady ? `${(index + 1) * 100}ms` : '0ms',
+                transitionDelay: menuReady ? '400ms' : '0ms',
                 animation: !isCollapsed && menuReady ? 'fadeIn 0.3s ease-in-out' : 'none'
               }}
             >
-              <Link
-                to={item.to}
-                onClick={() => handleMenuClick(item.to)}
-                className={`flex items-center rounded-xl transition-all duration-200
-                  ${isCollapsed
-                    ? 'justify-center w-12 h-12'
-                    : 'justify-start w-full p-3'}
-                  ${isActive(item.to)
-                    ? 'bg-blue-500 text-white shadow-md shadow-blue-200'
-                    : 'hover:bg-blue-50 text-gray-700'}`}
-                title={isCollapsed ? item.label : undefined}
+              <div
+                onClick={() => !isCollapsed && setOpenSubMenu(!openSubMenu)}
+                className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 ease-in-out
+                  ${openSubMenu ? 'bg-blue-200 text-black shadow-md shadow-blue-200' : 'hover:bg-blue-50 text-gray-700'}`}
               >
-                {item.icon}
-                <span
-                  className={`transition-all duration-700 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? 'max-w-0 opacity-0 ms-0' : 'max-w-xs opacity-100 ms-3'} font-medium`}
-                >
-                  {item.label}
-                </span>
-              </Link>
-            </li>
-          ))}
-
-          {/* Borrowing Menu Section */}
-          <li
-            className={`${isCollapsed ? "hidden" : "w-full"} transition-all duration-300 ease-in-out
-              ${menuReady ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}
-            style={{
-              transitionDelay: menuReady ? '400ms' : '0ms',
-              animation: !isCollapsed && menuReady ? 'fadeIn 0.3s ease-in-out' : 'none'
-            }}
-          >
-            <div
-              onClick={() => !isCollapsed && setOpenSubMenu(!openSubMenu)}
-              className={`flex items-center justify-between p-3 rounded-xl cursor-pointer transition-all duration-200 ease-in-out
-                ${openSubMenu ? 'bg-blue-200 text-black shadow-md shadow-blue-200' : 'hover:bg-blue-50 text-gray-700'}`}
-            >
-              <div className="flex items-center">
-                <FaThList size={iconSize} />
-                <span className={`transition-all duration-700 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? 'max-w-0 opacity-0 ms-0' : 'max-w-xs opacity-100 ms-3'} font-medium`}>
-                  รายการขอยืมครุภัณฑ์
-                </span>
+                <div className="flex items-center">
+                  <FaThList size={iconSize} />
+                  <span className={`transition-all duration-700 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? 'max-w-0 opacity-0 ms-0' : 'max-w-xs opacity-100 ms-3'} font-medium`}>
+                    รายการขอยืมครุภัณฑ์
+                  </span>
+                </div>
+                <MdKeyboardArrowRight
+                  size={20}
+                  className={`transition-transform duration-200 ease-in-out ${openSubMenu ? "rotate-90" : ""}`}
+                />
               </div>
-              <MdKeyboardArrowRight
-                size={20}
-                className={`transition-transform duration-200 ease-in-out ${openSubMenu ? "rotate-90" : ""}`}
-              />
-            </div>
-            {/* Submenu container */}
-            {(!isCollapsed && (openSubMenu || animating)) && (
-              <ul
-                className={`ml-4 mt-1 space-y-1 pl-2 border-l-2 border-blue-100 overflow-hidden
-                  ${isCollapsed ? 'duration-0' : 'transition-all duration-300 ease-in-out'}
-                  ${openSubMenu ? 'max-h-[1000px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2'}`}
-              >
-                {borrowingMenus.map((item, index) => (
-                  <li
-                    key={item.key}
-                    className={`transition-all duration-300 ease-in-out
-                      ${openSubMenu ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}
-                    `}
-                    style={{ transitionDelay: openSubMenu ? `${index * 50}ms` : '0ms' }}
-                  >
-                    <Link
-                      to={item.to}
-                      onClick={() => handleMenuClick(item.to)}
-                      className={`flex items-center justify-start py-2 px-3 rounded-lg transition-colors duration-200
-                        ${isActive(item.to) ? 'bg-blue-500 text-white shadow-sm' : 'hover:bg-blue-50 text-gray-700'} w-full`}
+              {/* Submenu container */}
+              {(!isCollapsed && (openSubMenu || animating)) && (
+                <ul
+                  className={`ml-4 mt-1 space-y-1 pl-2 border-l-2 border-blue-100 overflow-hidden
+                    ${isCollapsed ? 'duration-0' : 'transition-all duration-300 ease-in-out'}
+                    ${openSubMenu ? 'max-h-[1000px] opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-2'}`}
+                >
+                  {borrowingMenus.map((item, index) => (
+                    <li
+                      key={item.key}
+                      className={`transition-all duration-300 ease-in-out
+                        ${openSubMenu ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}
+                      `}
+                      style={{ transitionDelay: openSubMenu ? `${index * 50}ms` : '0ms' }}
                     >
-                      {React.cloneElement(item.icon, { size: iconSize })}
-                      <span className="ms-3 text-sm font-medium whitespace-nowrap">
-                        {item.label}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </li>
-          {/* Icon-Only List for Borrowing Menu */}
-          {borrowingMenus.map((item, index) => (
-            <li
-              key={`${item.key}-icon`}
-              className={`w-full flex justify-center transition-all duration-300 ease-in-out
-                ${isCollapsed ? 'my-1 opacity-100 max-h-12' : 'm-0 opacity-0 max-h-0 invisible overflow-hidden'}
-                ${menuReady ? 'translate-y-0' : '-translate-y-4'}`}
-              style={{
-                transitionDelay: menuReady && isCollapsed ? `${(index + 4) * 50}ms` : '0ms',
-                animation: isCollapsed && menuReady ? 'fadeIn 0.3s ease-in-out' : 'none'
-              }}
-            >
-              <Link
-                to={item.to}
-                onClick={() => handleMenuClick(item.to)}
-                className={`flex items-center justify-center w-12 h-12 rounded-xl transition-colors duration-200
-                  ${isActive(item.to) ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'hover:bg-blue-50 text-gray-700'}
-                  ${isCollapsed ? 'opacity-100' : 'opacity-0'}`}
-                title={item.label}
-                style={{ pointerEvents: isCollapsed ? 'auto' : 'none' }}
-              >
-                {React.cloneElement(item.icon, { size: iconSize })}
-              </Link>
+                      <Link
+                        to={item.to}
+                        onClick={() => handleMenuClick(item.to)}
+                        className={`flex items-center justify-start py-2 px-3 rounded-lg transition-colors duration-200
+                          ${isActive(item.to) ? 'bg-blue-500 text-white shadow-sm' : 'hover:bg-blue-50 text-gray-700'} w-full`}
+                      >
+                        {React.cloneElement(item.icon, { size: iconSize })}
+                        <span className="ms-3 text-sm font-medium whitespace-nowrap">
+                          {item.label}
+                          {item.key === 'borrow' && counts.borrow > 0 && (
+                            <span className="ml-2 bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
+                              {counts.borrow}
+                            </span>
+                          )}
+                          {item.key === 'approve' && counts.approve > 0 && (
+                            <span className="ml-2 bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
+                              {counts.approve}
+                            </span>
+                          )}
+                          {item.key === 'return' && counts.return > 0 && (
+                            <span className="ml-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
+                              {counts.return}
+                            </span>
+                          )}
+                          {item.key === 'fine' && counts.fine > 0 && (
+                            <span className="ml-2 bg-purple-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
+                              {counts.fine}
+                            </span>
+                          )}
+                          {item.key === 'cancel' && counts.cancel > 0 && (
+                            <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
+                              {counts.cancel}
+                            </span>
+                          )}
+                          {item.key === 'completed' && counts.completed > 0 && (
+                            <span className="ml-2 bg-gray-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
+                              {counts.completed}
+                            </span>
+                          )}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
-          ))}
-        </ul>
+            {/* Icon-Only List for Borrowing Menu */}
+            {borrowingMenus.map((item, index) => (
+              <li
+                key={`${item.key}-icon`}
+                className={`w-full flex justify-center transition-all duration-300 ease-in-out
+                  ${isCollapsed ? 'my-1 opacity-100 max-h-12' : 'm-0 opacity-0 max-h-0 invisible overflow-hidden'}
+                  ${menuReady ? 'translate-y-0' : '-translate-y-4'}`}
+                style={{
+                  transitionDelay: menuReady && isCollapsed ? `${(index + 4) * 50}ms` : '0ms',
+                  animation: isCollapsed && menuReady ? 'fadeIn 0.3s ease-in-out' : 'none'
+                }}
+              >
+                <Link
+                  to={item.to}
+                  onClick={() => handleMenuClick(item.to)}
+                  className={`flex items-center justify-center w-12 h-12 rounded-xl transition-colors duration-200
+                    ${isActive(item.to) ? 'bg-blue-500 text-white shadow-md shadow-blue-200' : 'hover:bg-blue-50 text-gray-700'}
+                    ${isCollapsed ? 'opacity-100' : 'opacity-0'}`}
+                  title={item.label}
+                  style={{ pointerEvents: isCollapsed ? 'auto' : 'none' }}
+                >
+                  {React.cloneElement(item.icon, { size: iconSize })}
+                </Link>
+              </li>
+            ))}
+          </ul>
 
-        {/* Logout button - moved to bottom */}
-        <div className={`mt-auto px-4 pb-6 ${isCollapsed ? 'flex justify-center' : ''} transition-all duration-500 ease-in-out ${menuReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{ transitionDelay: menuReady ? '500ms' : '0ms' }}>
-          <button
-            onClick={handleLogout}
-            className={isCollapsed
-              ? "flex items-center justify-center w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 transition-all duration-200"
-              : "flex items-center w-full p-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 justify-start transition-all duration-200"}
-            title={isCollapsed ? "ออกจากระบบ" : undefined}
-          >
-            <FaSignOutAlt size={iconSize} />
-            <span
-              className={`transition-all duration-700 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? 'max-w-0 opacity-0 ms-0' : 'max-w-xs opacity-100 ms-3'} font-medium`}
+          {/* Logout button - moved to bottom */}
+          <div className={`mt-auto px-4 pb-6 ${isCollapsed ? 'flex justify-center' : ''} transition-all duration-500 ease-in-out ${menuReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{ transitionDelay: menuReady ? '500ms' : '0ms' }}>
+            <button
+              onClick={handleLogout}
+              className={isCollapsed
+                ? "flex items-center justify-center w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 transition-all duration-200"
+                : "flex items-center w-full p-3 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 justify-start transition-all duration-200"}
+              title={isCollapsed ? "ออกจากระบบ" : undefined}
             >
-              ออกจากระบบ
-            </span>
-          </button>
+              <FaSignOutAlt size={iconSize} />
+              <span
+                className={`transition-all duration-700 ease-in-out overflow-hidden whitespace-nowrap ${isCollapsed ? 'max-w-0 opacity-0 ms-0' : 'max-w-xs opacity-100 ms-3'} font-medium`}
+              >
+                ออกจากระบบ
+              </span>
+            </button>
+          </div>
         </div>
+        {showLogoutConfirm && (
+          <Notification
+            show={showLogoutConfirm}
+            title="ยืนยันออกจากระบบ"
+            message="คุณต้องการออกจากระบบใช่หรือไม่?"
+            type="warning"
+            onClose={cancelLogout}
+            actions={[
+              { label: 'ยกเลิก', onClick: cancelLogout },
+              { label: 'ออกจากระบบ', onClick: confirmLogout }
+            ]}
+          />
+        )}
       </div>
-      {showLogoutConfirm && (
-        <Notification
-          show={showLogoutConfirm}
-          title="ยืนยันออกจากระบบ"
-          message="คุณต้องการออกจากระบบใช่หรือไม่?"
-          type="warning"
-          onClose={cancelLogout}
-          actions={[
-            { label: 'ยกเลิก', onClick: cancelLogout },
-            { label: 'ออกจากระบบ', onClick: confirmLogout }
-          ]}
-        />
-      )}
-    </div>
     </>
   );
 }

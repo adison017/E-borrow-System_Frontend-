@@ -4,6 +4,30 @@ import socketService from '../utils/socketService';
 export const useSocket = () => {
   const eventListenersRef = useRef(new Map());
 
+  // Connect on mount with token and keep it across reconnects
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    socketService.connect(token);
+
+    // Re-authenticate socket whenever token changes in localStorage
+    const onStorage = (e) => {
+      if (e.key === 'token') {
+        const nextToken = e.newValue;
+        if (nextToken) {
+          socketService.connect(nextToken);
+        } else {
+          // Token removed -> disconnect socket to avoid unauthorized pings
+          socketService.disconnect();
+        }
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      // do not disconnect globally; listeners are cleaned up per component
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
   // เพิ่ม event listener
   const on = useCallback((event, callback) => {
     socketService.on(event, callback);

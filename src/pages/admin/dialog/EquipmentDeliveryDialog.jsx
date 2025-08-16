@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { MdClose } from "react-icons/md";
 import WebcamSignatureDialog from "./WebcamSignatureDialog";
 import DocumentViewer from '../../../components/DocumentViewer';
+import { UPLOAD_BASE, API_BASE } from '../../../utils/api';
 
 const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -205,7 +206,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                     {borrow.borrower?.avatar && (
                                         <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
                                             <img
-                                                src={borrow.borrower.avatar ? `http://localhost:5000/uploads/user/${borrow.borrower.avatar}` : '/profile.png'}
+                                                src={borrow.borrower.avatar ? `${UPLOAD_BASE}/uploads/user/${borrow.borrower.avatar}` : '/profile.png'}
                                                 alt={borrow.borrower.name}
                                                 className="w-full h-full object-cover"
                                             />
@@ -293,7 +294,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                                                         src={
                                                                             (item.image || item.pic)?.startsWith('http')
                                                                                 ? (item.image || item.pic)
-                                                                                : `http://localhost:5000/uploads/equipment/${item.item_code || item.code}.jpg`
+                                                                                : `${UPLOAD_BASE}/uploads/equipment/${item.item_code || item.code}.jpg`
                                                                         }
                                                                         alt={item.name}
                                                                         className="max-w-full max-h-full object-contain p-1"
@@ -368,7 +369,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                                     src={borrow.handover_photo ?
                                                         (borrow.handover_photo.startsWith('data:') ?
                                                             borrow.handover_photo :
-                                                            `http://localhost:5000/uploads/${borrow.handover_photo}`) :
+                                                            `${UPLOAD_BASE}/uploads/${borrow.handover_photo}`) :
                                                         deliveryPhoto}
                                                     alt="รูปถ่ายส่งมอบครุภัณฑ์"
                                                     className="h-32 w-48 object-cover border border-gray-300 rounded-lg bg-white shadow-sm"

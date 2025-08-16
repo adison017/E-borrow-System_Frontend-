@@ -1,5 +1,8 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
+import { isCloudinaryUrl, getOptimizedCloudinaryUrl } from '../../utils/cloudinaryUtils';
+import { uploadFileToCloudinary } from '../../utils/cloudinaryUtils';
+import { API_BASE } from '../../utils/api';
 import Notification from '../../components/Notification.jsx';
 import OtpDialog from '../../components/OtpDialog.jsx';
 // import { globalUpdateProfileImage } from '../../components/Header';
@@ -53,9 +56,9 @@ const PersonalInfoEdit = () => {
     const fetchData = async () => {
       try {
         const [positionsResponse, branchesResponse, rolesResponse] = await Promise.all([
-          axios.get('http://localhost:5000/api/users/positions'),
-          axios.get('http://localhost:5000/api/users/branches'),
-          axios.get('http://localhost:5000/api/users/roles')
+          axios.get(`${API_BASE}/users/positions`),
+          axios.get(`${API_BASE}/users/branches`),
+          axios.get(`${API_BASE}/users/roles`)
         ]);
 
         if (!positionsResponse.data) throw new Error('Failed to fetch positions');
@@ -85,13 +88,15 @@ const PersonalInfoEdit = () => {
     }
   }, [positions, branches, formData.position_id, formData.branch_id]);
 
-  // 1. ปรับ getAvatarUrl ให้เติม /user/ ถ้า path เป็นชื่อไฟล์
+  // 1. ปรับ getAvatarUrl ให้เติม /user/ ถ้า path เป็นชื่อไฟล์ และรองรับรูปแบบต่างๆ
   const getAvatarUrl = (path) => {
     if (!path) return '/logo_it.png';
+    if (isCloudinaryUrl(path)) return getOptimizedCloudinaryUrl(path, 'thumbnail');
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    if (path.startsWith('/uploads/')) return `http://localhost:5000${path}`;
-    // ถ้าเป็นชื่อไฟล์อย่างเดียว
-    return `http://localhost:5000/uploads/user/${path}`;
+    const BASE = (import.meta.env.VITE_API_URL || window.__API_BASE__ || 'http://localhost:5000').replace(/\/$/, '');
+    if (path.startsWith('/uploads/')) return `${BASE}${path}`;
+    if (path.startsWith('uploads/')) return `${BASE}/${path}`;
+    return `${BASE}/uploads/user/${path}`;
   };
 
   // Get user info from localStorage
@@ -142,26 +147,7 @@ const PersonalInfoEdit = () => {
     }
   }, []); // <--- Only run once
 
-  // เพิ่ม useEffect สำหรับตรวจสอบการโหลดรูปภาพ
-  useEffect(() => {
-    if (previewImage && previewImage !== '/logo_it.png') {
-      console.log('Checking image availability:', previewImage);
-      fetch(previewImage)
-        .then(response => {
-          if (!response.ok) {
-            console.error('Image not available:', previewImage);
-            console.error('Response status:', response.status);
-            setPreviewImage('/logo_it.png');
-          } else {
-            console.log('Image is available:', previewImage);
-          }
-        })
-        .catch(error => {
-          console.error('Error checking image:', error);
-          setPreviewImage('/logo_it.png');
-        });
-    }
-  }, [previewImage]);
+  // ลบการ fetch ตรวจสอบรูปเพื่อลด CORS/401 และพึ่ง onError ของ <img>
 
   // Add event listener for profile image updates
   useEffect(() => {
@@ -328,7 +314,7 @@ const PersonalInfoEdit = () => {
       if (formData.password) {
         setPendingPassword(formData.password);
         // ขอ OTP ไป backend (สมมุติ endpoint /api/users/request-password-otp)
-        await axios.post('http://localhost:5000/api/users/request-password-otp', {
+        await axios.post(`${API_BASE}/users/request-password-otp`, {
           email: formData.email
         });
         setShowOtpDialog(true);
@@ -349,26 +335,31 @@ const PersonalInfoEdit = () => {
     try {
       let newAvatarPath = formData.pic;
       if (formData.pic instanceof File) {
-        const formDataImage = new FormData();
-        formDataImage.append('user_code', formData.user_code);
-        formDataImage.append('avatar', formData.pic);
-        const token = localStorage.getItem('token');
-        const response = await axios.post('http://localhost:5000/api/users/upload-image', formDataImage, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
-          },
-          validateStatus: status => status < 500
-        });
-        if (response.status === 200 && response.data && response.data.filename) {
-          newAvatarPath = response.data.filename;
+        // Upload to Cloudinary and use the returned secure URL
+        const result = await uploadFileToCloudinary(formData.pic, 'e-borrow/user');
+        if (result && (result.secure_url || result.url)) {
+          newAvatarPath = result.secure_url || result.url;
+        } else if (result && result.filename) {
+          // Fallback if backend still returns filename
+          newAvatarPath = result.filename;
         } else {
-          throw new Error(response.data.message || 'ไม่ได้รับข้อมูลรูปภาพจาก server');
+          throw new Error('อัปโหลดรูปภาพไม่สำเร็จ: ไม่พบ URL จาก Cloud');
         }
       }
       const position = positions.find(p => p.position_name === formData.position_name);
       const branch = branches.find(b => b.branch_name === formData.branch_name);
       const role = roles.find(r => r.role_name === formData.role_name);
+      // ตัดสินใจรูปแบบ avatar ที่จะบันทึก: ถ้าเป็น Cloudinary/URL ให้เก็บทั้ง URL, ถ้าเป็นไฟล์ในเครื่องให้เก็บเฉพาะชื่อไฟล์
+      let avatarValue = newAvatarPath;
+      if (typeof newAvatarPath === 'string') {
+        if (isCloudinaryUrl(newAvatarPath)) {
+          avatarValue = newAvatarPath;
+        } else if (newAvatarPath.startsWith('http://') || newAvatarPath.startsWith('https://')) {
+          avatarValue = newAvatarPath;
+        } else if (newAvatarPath.includes('/')) {
+          avatarValue = newAvatarPath.split('/').pop();
+        }
+      }
       const userDataToUpdate = {
         user_code: formData.user_code,
         username: formData.username,
@@ -382,7 +373,7 @@ const PersonalInfoEdit = () => {
         district: formData.district || '',
         province: formData.province || '',
         postal_no: formData.postal_no || '',
-        avatar: (typeof newAvatarPath === 'string' && newAvatarPath.includes('/') ? newAvatarPath.split('/').pop() : newAvatarPath)
+        avatar: avatarValue
       };
       if (role ? role.role_id : formData.role_id) {
         userDataToUpdate.role_id = role ? role.role_id : formData.role_id;
@@ -399,19 +390,28 @@ const PersonalInfoEdit = () => {
         userDataToUpdate.password = formData.password;
       }
       const token = localStorage.getItem('token');
-      const updateResponse = await axios.put(
-        `http://localhost:5000/api/users/id/${formData.user_id}`,
-        userDataToUpdate,
+      const doUpdate = async (payload) => axios.put(
+        `${API_BASE}/users/id/${formData.user_id}`,
+        payload,
         {
           headers: { 'Authorization': `Bearer ${token}` },
           validateStatus: status => status < 500
         }
       );
+
+      let updateResponse = await doUpdate(userDataToUpdate);
+      // Fallback: ถ้าอัปเดตล้มเหลวและ avatar เป็น URL ให้ลองส่งเฉพาะชื่อไฟล์ (แก้กรณี backend ไม่รับ URL ยาว)
+      if (!(updateResponse.status === 200 && updateResponse.data) && typeof userDataToUpdate.avatar === 'string' && userDataToUpdate.avatar.startsWith('http')) {
+        const altAvatar = userDataToUpdate.avatar.split('/').pop().split('?')[0];
+        updateResponse = await doUpdate({ ...userDataToUpdate, avatar: altAvatar });
+      }
+
       if (updateResponse.status === 200 && updateResponse.data) {
-        const updatedUserResponse = await axios.get(`http://localhost:5000/api/users/id/${formData.user_id}`);
+        const updatedUserResponse = await axios.get(`${API_BASE}/users/id/${formData.user_id}`);
         const updatedUser = updatedUserResponse.data;
         try {
-          localStorage.setItem('user', JSON.stringify({ ...updatedUser, avatar: updatedUser.avatar }));
+          const imageUrl = getAvatarUrl(updatedUser.avatar);
+          localStorage.setItem('user', JSON.stringify({ ...updatedUser, avatar: imageUrl }));
         } catch {}
         const imageUrl = getAvatarUrl(updatedUser.avatar);
         setPreviewImage(imageUrl);
@@ -433,8 +433,9 @@ const PersonalInfoEdit = () => {
         throw new Error(updateResponse.data?.message || 'ไม่ได้รับข้อมูลการอัปเดตจาก server');
       }
     } catch (error) {
-      showErrorDialog();
-      setOtpError(error?.response?.data?.message || error.message || "OTP ไม่ถูกต้อง");
+      const errMsg = error?.response?.data?.message || error?.message || "เกิดข้อผิดพลาดขณะอัปเดตข้อมูล";
+      showErrorDialog(errMsg);
+      setOtpError(errMsg);
     } finally {
       setIsLoading(false);
     }
@@ -465,7 +466,7 @@ const PersonalInfoEdit = () => {
       }
       if (!userId) return;
       try {
-        const res = await fetch(`http://localhost:5000/api/users/id/${userId}`, {
+        const res = await fetch(`${API_BASE}/users/id/${userId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) return;

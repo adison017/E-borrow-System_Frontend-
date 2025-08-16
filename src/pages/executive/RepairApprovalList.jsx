@@ -8,6 +8,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
 import { useBadgeCounts } from '../../hooks/useSocket';
+import { API_BASE, UPLOAD_BASE } from '../../utils/api';
 
 export default function RepairApprovalList() {
   const [repairRequests, setRepairRequests] = useState([]);
@@ -20,6 +21,7 @@ export default function RepairApprovalList() {
   // Pagination state
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;
+  const [pendingToast, setPendingToast] = useState(null); // { type, message }
 
   // สถานะของคำขอซ่อม
   const statusOptions = [
@@ -68,10 +70,20 @@ export default function RepairApprovalList() {
     // === จบ logic ===
   }, [subscribeToBadgeCounts]);
 
+  // แสดง toast หลัง dialog ปิดเท่านั้น
+  useEffect(() => {
+    if (!isDialogOpen && pendingToast) {
+      if (pendingToast.type === 'success') toast.success(pendingToast.message);
+      else if (pendingToast.type === 'error') toast.error(pendingToast.message);
+      else toast(pendingToast.message);
+      setPendingToast(null);
+    }
+  }, [isDialogOpen, pendingToast]);
+
   const fetchRepairRequests = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/repair-requests');
+      const response = await axios.get(`${API_BASE}/repair-requests`);
       console.log('=== API Response Debug ===');
       console.log('Raw API response:', response.data);
       console.log('First item sample:', response.data[0]);
@@ -171,10 +183,12 @@ export default function RepairApprovalList() {
       // รีเฟรชข้อมูลใหม่
       await fetchRepairRequests();
 
-      notifyRepairAction("approve");
+      setPendingToast({ type: 'success', message: 'อนุมัติคำขอซ่อมเรียบร้อยแล้ว' });
+      setIsDialogOpen(false);
     } catch (error) {
       console.error('Error approving request:', error);
-      notifyRepairAction("error", "เกิดข้อผิดพลาดในการอนุมัติคำขอซ่อม");
+      setPendingToast({ type: 'error', message: 'เกิดข้อผิดพลาดในการอนุมัติคำขอซ่อม' });
+      setIsDialogOpen(false);
     }
   };
 
@@ -186,10 +200,12 @@ export default function RepairApprovalList() {
       // รีเฟรชข้อมูลใหม่
       await fetchRepairRequests();
 
-      notifyRepairAction("reject", rejectedData.rejectReason);
+      setPendingToast({ type: 'error', message: `ปฏิเสธคำขอซ่อมเรียบร้อยแล้ว${rejectedData.rejectReason ? ` เหตุผล: ${rejectedData.rejectReason}` : ''}` });
+      setIsDialogOpen(false);
     } catch (error) {
       console.error('Error rejecting request:', error);
-      notifyRepairAction("error", "เกิดข้อผิดพลาดในการปฏิเสธคำขอซ่อม");
+      setPendingToast({ type: 'error', message: 'เกิดข้อผิดพลาดในการปฏิเสธคำขอซ่อม' });
+      setIsDialogOpen(false);
     }
   };
 
@@ -285,7 +301,7 @@ export default function RepairApprovalList() {
                         <div className="flex-shrink-0 h-15 w-15">
                           <img
                             className="h-15 w-15 object-contain rounded-lg"
-                            src={request.equipment_pic || (request.equipment_pic_filename ? `http://localhost:5000/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
+                            src={request.equipment_pic || (request.equipment_pic_filename ? `${UPLOAD_BASE}/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
                             alt={request.equipment_name}
                             onError={(e) => {
                               e.target.src = "/placeholder-equipment.png";
@@ -303,7 +319,7 @@ export default function RepairApprovalList() {
                         <div className="flex-shrink-0 h-11 w-11">
                           <img
                             className="h-full w-full rounded-full object-cover"
-                            src={request.avatar ? `http://localhost:5000/uploads/user/${request.avatar}` : "/placeholder-user.png"}
+                            src={request.avatar ? (typeof request.avatar === 'string' && request.avatar.startsWith('http') ? request.avatar : `${UPLOAD_BASE}/uploads/user/${request.avatar}`) : "/placeholder-user.png"}
                             alt={request.requester_name}
                           />
                         </div>

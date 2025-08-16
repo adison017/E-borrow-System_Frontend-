@@ -14,6 +14,7 @@ import {
 } from "react-icons/fa";
 import { MdClose, MdCloudUpload } from "react-icons/md";
 import PinDialog from "../../../components/dialog/PinDialog";
+import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
 
 export default function EditUserDialog({ open, onClose, userData, onSave }) {
   const [formData, setFormData] = useState({
@@ -72,9 +73,9 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     const fetchData = async () => {
       try {
         const [positionsResponse, branchesResponse, rolesResponse, provincesResponse] = await Promise.all([
-          axios.get('http://localhost:5000/api/users/positions'),
-          axios.get('http://localhost:5000/api/users/branches'),
-          axios.get('http://localhost:5000/api/users/roles'),
+          axios.get(`${API_BASE}/users/positions`),
+          axios.get(`${API_BASE}/users/branches`),
+          axios.get(`${API_BASE}/users/roles`),
           fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json').then(res => res.json())
         ]);
 
@@ -264,7 +265,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
       if (avatarPath && avatarPath.includes('cloudinary.com')) {
         setPreviewImage(avatarPath);
       } else {
-        setPreviewImage(avatarPath ? `http://localhost:5000/uploads/user/${avatarPath}` : "/profile.png");
+        setPreviewImage(avatarPath ? `${UPLOAD_BASE}/uploads/user/${avatarPath}` : "/profile.png");
       }
     }
   }, [userData, provinces]);
@@ -371,7 +372,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
       console.log('Token:', token ? 'exists' : 'missing');
       console.log('Sending request to verify password...');
 
-      const response = await axios.post('http://localhost:5000/api/users/verify-password',
+      const response = await axios.post(`${API_BASE}/users/verify-password`,
         { password: pin },
         {
           headers: {
@@ -432,7 +433,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         formDataImage.append('avatar', formData.pic);
         try {
           const token = localStorage.getItem('token');
-          const uploadResponse = await axios.post('http://localhost:5000/api/users/upload-image', formDataImage, {
+          const uploadResponse = await axios.post(`${API_BASE}/users/upload-image`, formDataImage, {
             headers: {
               'Content-Type': 'multipart/form-data',
               'Authorization': `Bearer ${token}`
@@ -485,7 +486,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
       }
       console.log('Sending PATCH request to update user...');
       const response = await axios.patch(
-        `http://localhost:5000/api/users/id/${formData.user_id}`,
+        `${API_BASE}/users/id/${formData.user_id}`,
         updateData,
         {
           headers: {

@@ -29,7 +29,7 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import ScannerDialog from "../../components/ScannerDialog";
-import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
+import { getAllBorrows, updateBorrowStatus, UPLOAD_BASE } from "../../utils/api";
 import EquipmentDeliveryDialog from "./dialog/EquipmentDeliveryDialog";
 import { useBadgeCounts } from '../../hooks/useSocket';
 
@@ -373,7 +373,7 @@ const ReceiveItem = () => {
                       <td className="w-48 px-4 py-4 whitespace-nowrap text-left">
                         <div className="flex items-center gap-3">
                           <img
-                            src={item.borrower.avatar ? `http://localhost:5000/uploads/user/${item.borrower.avatar}` : '/profile.png'}
+                            src={item.borrower.avatar ? (String(item.borrower.avatar).startsWith('http') ? item.borrower.avatar : `${UPLOAD_BASE}/uploads/user/${item.borrower.avatar}`) : '/profile.png'}
                             alt={item.borrower.name}
                             className="w-10 h-10 rounded-full object-cover bg-white border border-gray-200 shadow-sm"
                           />

@@ -6,6 +6,7 @@ import {
   TrashIcon
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
+import { useBadgeCounts } from '../../hooks/useSocket';
 
 import {
   BanknotesIcon,
@@ -160,6 +161,7 @@ const ReturnList = () => {
 
   // เพิ่ม state สำหรับ refresh
   const [refreshFlag, setRefreshFlag] = useState(0);
+  const { subscribeToBadgeCounts } = useBadgeCounts();
 
   // ฟังก์ชัน fetch returns ใหม่ (ใช้ทั้งใน useEffect และหลังคืนของ)
   const fetchReturns = async () => {
@@ -226,6 +228,14 @@ const ReturnList = () => {
   useEffect(() => {
     fetchReturns();
   }, [refreshFlag]);
+
+  // อัปเดตรายการแบบเรียลไทม์เมื่อได้รับ badgeCountsUpdated
+  useEffect(() => {
+    const unsubscribe = subscribeToBadgeCounts(() => {
+      fetchReturns();
+    });
+    return unsubscribe;
+  }, [subscribeToBadgeCounts]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
@@ -296,6 +306,7 @@ const ReturnList = () => {
     await fetchReturns(); // ดึงข้อมูลใหม่ทันทีหลังคืนของ
     setRefreshFlag(f => f + 1); // trigger useEffect (optional)
     setIsReturnFormOpen(false);
+    showNotification('บันทึกข้อมูลการคืนสำเร็จ', 'success');
   };
 
   const handleViewDetails = (returnItem) => {

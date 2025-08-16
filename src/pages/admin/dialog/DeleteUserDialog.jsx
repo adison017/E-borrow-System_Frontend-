@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { MdClose } from "react-icons/md";
 import axios from 'axios';
 import PinDialog from "../../../components/dialog/PinDialog";
+import { UPLOAD_BASE, API_BASE } from '../../../utils/api';
 
 export default function DeleteUserDialog({
   open,
@@ -46,7 +47,7 @@ export default function DeleteUserDialog({
       console.log('Token:', token ? 'exists' : 'missing');
       console.log('Sending request to verify password...');
 
-      const response = await axios.post('http://localhost:5000/api/users/verify-password',
+      const response = await axios.post(`${API_BASE}/users/verify-password`,
         { password: pin },
         {
           headers: {
@@ -112,7 +113,7 @@ export default function DeleteUserDialog({
               </div>
               <div className="mt-2 bg-gray-50 p-3 rounded-lg flex items-center gap-3">
                 <img
-                  src={selectedUser?.avatar ? `http://localhost:5000/uploads/user/${selectedUser.avatar.split('/').pop()}` : (selectedUser?.pic || "/public/profile.png")}
+                  src={selectedUser?.avatar ? (String(selectedUser.avatar).startsWith('http') ? selectedUser.avatar : `${UPLOAD_BASE}/uploads/user/${selectedUser.avatar.split('/').pop()}`) : (selectedUser?.pic || "/public/profile.png")}
                   alt={selectedUser?.username}
                   className="w-12 h-12 rounded-full object-cover border border-gray-200 bg-white"
                 />

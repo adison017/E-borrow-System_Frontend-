@@ -27,8 +27,7 @@ import {
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import Notification from '../../components/Notification';
-
-const API_BASE = 'http://localhost:5000/api';
+import { API_BASE } from '../../utils/api';
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ เหมือน ManageEquipment
 const theme = {

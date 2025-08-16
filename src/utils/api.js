@@ -1,20 +1,11 @@
 // Environment-based API configuration
 const getApiBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) {
-    return `${import.meta.env.VITE_API_URL}/api`;
-  }
-  
-  // สำหรับตอนนี้ใช้ localhost
-  return 'http://localhost:5000/api';
+  const base = import.meta.env.VITE_API_URL || window.__API_BASE__ || 'http://localhost:5000';
+  return `${base.replace(/\/$/, '')}/api`;
 };
 
 const getUploadBaseUrl = () => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL;
-  }
-  
-  // สำหรับตอนนี้ใช้ localhost
-  return 'http://localhost:5000';
+  return (import.meta.env.VITE_API_URL || window.__API_BASE__ || 'http://localhost:5000').replace(/\/$/, '');
 };
 
 export const API_BASE = getApiBaseUrl();
@@ -27,7 +18,19 @@ export function authFetch(url, options = {}) {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  return fetch(url, { ...options, headers });
+  return fetch(url, { ...options, headers }).then((res) => {
+    if (res.status === 401 || res.status === 403) {
+      try {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        if (typeof window !== 'undefined') {
+          const evt = new CustomEvent('sessionExpired', { detail: { status: res.status, url } });
+          window.dispatchEvent(evt);
+        }
+      } catch {}
+    }
+    return res;
+  });
 }
 
 // Equipment

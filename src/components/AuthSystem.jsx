@@ -215,11 +215,11 @@ const AuthSystem = (props) => {
         }
       });
     // fetch positions
-    axios.get('http://localhost:5000/api/users/positions')
+    axios.get(`${API_BASE}/users/positions`)
       .then(res => setPositions(res.data))
       .catch(() => setPositions([]));
     // fetch branches
-    axios.get('http://localhost:5000/api/users/branches')
+    axios.get(`${API_BASE}/users/branches`)
       .then(res => setBranches(res.data))
       .catch(() => setBranches([]));
   }, []);
@@ -240,7 +240,7 @@ const AuthSystem = (props) => {
       navigate('/login');
       return;
     }
-    fetch('http://localhost:5000/api/users/verify-token', {
+    fetch(`${API_BASE}/users/verify-token`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => {
@@ -276,7 +276,7 @@ const AuthSystem = (props) => {
       // ตรวจสอบรหัสนิสิตซ้ำ
       if (value) {
         try {
-          const res = await axios.get(`http://localhost:5000/api/users/username/${value}`);
+          const res = await axios.get(`${API_BASE}/users/username/${value}`);
           setValidation(v => ({ ...v, idNumber: res.data ? 'duplicate' : 'ok' }));
         } catch {
           setValidation(v => ({ ...v, idNumber: 'ok' }));
@@ -290,7 +290,7 @@ const AuthSystem = (props) => {
       setRegisterData(prev => ({ ...prev, username: value }));
       if (value) {
         try {
-          const res = await axios.get(`http://localhost:5000/api/users/username/${value}`);
+          const res = await axios.get(`${API_BASE}/users/username/${value}`);
           setValidation(v => ({ ...v, username: res.data ? 'duplicate' : 'ok' }));
         } catch {
           setValidation(v => ({ ...v, username: 'ok' }));
@@ -302,7 +302,7 @@ const AuthSystem = (props) => {
       setRegisterData(prev => ({ ...prev, email: value }));
       if (value && value.includes('@')) {
         try {
-          const res = await axios.get(`http://localhost:5000/api/users/username/${value}`);
+          const res = await axios.get(`${API_BASE}/users/username/${value}`);
           setValidation(v => ({ ...v, email: res.data ? 'duplicate' : 'ok' }));
         } catch {
           setValidation(v => ({ ...v, email: 'ok' }));
@@ -410,6 +410,21 @@ const AuthSystem = (props) => {
       
       // จัดการ error messages จาก backend
       let errorMessage = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
+      // จัดการ rate limit จากเซิร์ฟเวอร์ (429 Too Many Requests)
+      if (error.response?.status === 429) {
+        const retryAfterHeader = error.response?.headers?.['retry-after'] || error.response?.headers?.['Retry-After'];
+        const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
+        const fallbackMinutes = 15;
+        const waitMs = Number.isFinite(retryAfterSec) ? retryAfterSec * 1000 : fallbackMinutes * 60 * 1000;
+        setLoginAttempts({
+          remaining: 0,
+          blockedUntil: Date.now() + waitMs,
+          lastAttempt: Date.now()
+        });
+        const minutes = Math.max(1, Math.ceil(waitMs / 60000));
+        handleLoginError(`พยายามเข้าสู่ระบบบ่อยเกินไป กรุณาลองใหม่ใน ${minutes} นาที`);
+        return;
+      }
       
       if (error.response?.data?.message) {
         const backendMessage = error.response.data.message;
@@ -477,7 +492,7 @@ const AuthSystem = (props) => {
     setIsLoading(true);
     try {
       const contact = otpDialog.email;
-      const res = await axios.post('http://localhost:5000/api/users/verify-otp-register', { contact, otp });
+      const res = await axios.post(`${API_BASE}/users/verify-otp-register`, { contact, otp });
       if (res.data && res.data.success) {
         setOtpVerified(true);
         setOtpDialog({ show: false, email: '', error: '' });
@@ -502,7 +517,7 @@ const AuthSystem = (props) => {
           postal_no: registerData.postalCode
         };
         try {
-          await axios.post('http://localhost:5000/api/users', payload);
+          await axios.post(`${API_BASE}/users`, payload);
           setIsLoading(false);
           setRegisterData({
             idNumber: '',
@@ -552,7 +567,7 @@ const AuthSystem = (props) => {
   const handleForgotOtpVerify = async (otp) => {
     setForgotLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/users/verify-otp', { email: forgotData.email, otp });
+      const res = await axios.post(`${API_BASE}/users/verify-otp`, { email: forgotData.email, otp });
       if (res.data && res.data.success) {
         setForgotData(prev => ({ ...prev, otp })); // เก็บ otp ไว้ใน state
         setForgotStep(2); // ไปหน้ากรอกรหัสผ่านใหม่
@@ -571,7 +586,7 @@ const AuthSystem = (props) => {
     e.preventDefault();
     setForgotLoading(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/users/reset-password', {
+      const res = await axios.post(`${API_BASE}/users/reset-password`, {
         email: forgotData.email,
         otp: forgotData.otp,
         password: forgotData.password
@@ -774,7 +789,7 @@ const AuthSystem = (props) => {
                       if (forgotStep === 0) {
                         setForgotLoading(true);
                         try {
-                          const res = await fetch('http://localhost:5000/api/users/request-password-otp', {
+                          const res = await fetch(`${API_BASE}/users/request-password-otp`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ email: forgotData.email })
@@ -812,7 +827,7 @@ const AuthSystem = (props) => {
                         }
                         setForgotLoading(true);
                         try {
-                          const res = await fetch('http://localhost:5000/api/users/reset-password', {
+                          const res = await fetch(`${API_BASE}/users/reset-password`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ email: forgotData.email, otp: forgotData.otp, password: forgotData.password })
@@ -878,7 +893,7 @@ const AuthSystem = (props) => {
                           setForgotError("");
                           try {
                             // ตรวจสอบ OTP
-                            const res = await fetch('http://localhost:5000/api/users/verify-otp', {
+                            const res = await fetch(`${API_BASE}/users/verify-otp`, {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ email: forgotData.email, otp })
@@ -1399,7 +1414,7 @@ const AuthSystem = (props) => {
                                       ? 'border-red-400 focus:border-red-500 bg-red-50'
                                       : 'border-gray-200 focus:border-blue-500 focus:bg-white group-hover:border-blue-300'
                                   }`}
-                                  placeholder="ยืนยันรหัสผ่าน"
+                                  placeholder="ยืนยันรหัสผ่านใหม่"
                                   required
                                 />
                                 <FaLock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
@@ -1674,7 +1689,7 @@ const AuthSystem = (props) => {
                                 }
                                 setIsLoading(true);
                                 try {
-                                  await axios.post('http://localhost:5000/api/users/request-otp', { contact: registerData.email });
+                                  await axios.post(`${API_BASE}/users/request-otp`, { contact: registerData.email });
                                   setOtpDialog({ show: true, email: registerData.email, error: '' });
                                 } catch (err) {
                                   setNotification({

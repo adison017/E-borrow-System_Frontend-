@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import { Button } from "@material-tailwind/react";
-import { API_BASE, authFetch } from '../../../utils/api';
+import { API_BASE, authFetch, UPLOAD_BASE } from '../../../utils/api';
 import DocumentViewer from '../../../components/DocumentViewer';
 // import { globalUserData } from '../../../components/Header.jsx';
 dayjs.extend(utc);
@@ -60,7 +60,7 @@ const ReturnFormDialog = ({
   useEffect(() => {
     const token = localStorage.getItem('token');
     console.log('[FRONTEND] Fetching damage levels...');
-    fetch("http://localhost:5000/api/damage-levels", {
+    fetch(`${API_BASE}/damage-levels`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -320,10 +320,6 @@ const ReturnFormDialog = ({
       // === Logic การอัปเดตสถานะครุภัณฑ์ถูกย้ายไปจัดการใน backend แล้ว ===
       // Backend จะตรวจสอบสภาพครุภัณฑ์และอัปเดตสถานะเป็น 'complete' หรือ 'พร้อมใช้งาน' ตามเงื่อนไข
       // === จบ logic ===
-      notify(
-        'บันทึกข้อมูลการคืนสำเร็จ' + ((paymentMethod === 'online' || paymentMethod === 'transfer') ? '\nผู้ใช้ต้องไปชำระเงินในหน้า "ชำระค่าปรับ"' : ''),
-        'success'
-      );
       if (typeof onConfirm === 'function') {
         onConfirm(); // เรียกหลัง API สำเร็จเท่านั้น
       }
@@ -374,7 +370,7 @@ const ReturnFormDialog = ({
     const formData = new FormData();
     formData.append("slip", file);
     try {
-      const res = await fetch("http://localhost:5000/api/verify-slip", {
+      const res = await fetch(`${API_BASE}/verify-slip`, {
         method: "POST",
         body: formData
       });
@@ -395,7 +391,7 @@ const ReturnFormDialog = ({
     if (imagePath.startsWith('http')) {
       imageUrl = imagePath;
     } else {
-      imageUrl = `/uploads/${imagePath}`;
+      imageUrl = `${UPLOAD_BASE}/uploads/${imagePath}`;
     }
 
     setImageModal({
@@ -458,7 +454,7 @@ const ReturnFormDialog = ({
                                borrowedItem?.borrower?.avatar
                                  ? borrowedItem.borrower.avatar.startsWith('http')
                                    ? borrowedItem.borrower.avatar
-                                   : `http://localhost:5000/uploads/user/${borrowedItem.borrower.avatar}`
+                                   : `${UPLOAD_BASE}/uploads/user/${borrowedItem.borrower.avatar}`
                                  : '/profile.png'
                              }
                              alt={borrowedItem?.borrower?.name}
@@ -467,7 +463,7 @@ const ReturnFormDialog = ({
                                borrowedItem?.borrower?.avatar
                                  ? borrowedItem.borrower.avatar.startsWith('http')
                                    ? borrowedItem.borrower.avatar
-                                   : `http://localhost:5000/uploads/user/${borrowedItem.borrower.avatar}`
+                                   : `${UPLOAD_BASE}/uploads/user/${borrowedItem.borrower.avatar}`
                                  : null,
                                `รูปภาพนิสิต - ${borrowedItem.borrower.name}`
                              )}

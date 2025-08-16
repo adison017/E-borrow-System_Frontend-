@@ -1,4 +1,5 @@
 import { authFetch } from './api';
+import { API_BASE } from './api';
 
 /**
  * Upload single file to Cloudinary
@@ -6,19 +7,58 @@ import { authFetch } from './api';
  * @param {string} folder - The folder in Cloudinary (default: 'e-borrow/general')
  * @returns {Promise<Object>} Upload result
  */
+const extractCloudinaryFields = (payload) => {
+  if (!payload) return { url: undefined, secure_url: undefined, public_id: undefined };
+
+  const candidates = [
+    payload,
+    payload.data,
+    payload.result,
+    payload.uploadResult,
+    payload.resource,
+  ];
+
+  for (const obj of candidates) {
+    if (obj && (obj.secure_url || obj.url)) {
+      return {
+        secure_url: obj.secure_url || obj.url,
+        url: obj.secure_url || obj.url,
+        public_id: obj.public_id || obj.asset_id || obj.publicId
+      };
+    }
+  }
+
+  // Sometimes API returns { url: '...', public_id: '...' } directly at root
+  if (payload.url || payload.secureUrl || payload.secure_url) {
+    const u = payload.secure_url || payload.secureUrl || payload.url;
+    return { secure_url: u, url: u, public_id: payload.public_id };
+  }
+
+  // Handle arrays (upload-multiple or wrapped response)
+  if (Array.isArray(payload)) {
+    for (const item of payload) {
+      const r = extractCloudinaryFields(item);
+      if (r.url) return r;
+    }
+  }
+
+  return { url: undefined, secure_url: undefined, public_id: undefined };
+};
+
 export const uploadFileToCloudinary = async (file, folder = 'e-borrow/general') => {
   try {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', folder);
 
-    const response = await authFetch('http://localhost:5000/api/cloudinary/upload', {
+    const response = await authFetch(`${API_BASE}/cloudinary/upload`, {
       method: 'POST',
       body: formData
     });
 
     const data = await response.json();
-    return data;
+    const { url, secure_url, public_id } = extractCloudinaryFields(data);
+    return { url: secure_url || url, secure_url: secure_url || url, public_id, original: data };
   } catch (error) {
     console.error('Error uploading to Cloudinary:', error);
     throw error;
@@ -39,13 +79,28 @@ export const uploadMultipleFilesToCloudinary = async (files, folder = 'e-borrow/
     });
     formData.append('folder', folder);
 
-    const response = await authFetch('http://localhost:5000/api/cloudinary/upload-multiple', {
+    const response = await authFetch(`${API_BASE}/cloudinary/upload-multiple`, {
       method: 'POST',
       body: formData
     });
 
     const data = await response.json();
-    return data;
+    if (Array.isArray(data)) {
+      return data.map(d => {
+        const { url, secure_url, public_id } = extractCloudinaryFields(d);
+        return { url: secure_url || url, secure_url: secure_url || url, public_id, original: d };
+      });
+    }
+    // Sometimes wrapped in { results: [...] }
+    if (Array.isArray(data?.results)) {
+      return data.results.map(d => {
+        const { url, secure_url, public_id } = extractCloudinaryFields(d);
+        return { url: secure_url || url, secure_url: secure_url || url, public_id, original: d };
+      });
+    }
+    // Fallback single object
+    const { url, secure_url, public_id } = extractCloudinaryFields(data);
+    return [{ url: secure_url || url, secure_url: secure_url || url, public_id, original: data }];
   } catch (error) {
     console.error('Error uploading multiple files to Cloudinary:', error);
     throw error;
@@ -59,7 +114,7 @@ export const uploadMultipleFilesToCloudinary = async (files, folder = 'e-borrow/
  */
 export const deleteFileFromCloudinary = async (publicId) => {
   try {
-    const response = await authFetch(`http://localhost:5000/api/cloudinary/delete/${publicId}`, {
+    const response = await authFetch(`${API_BASE}/cloudinary/delete/${publicId}`, {
       method: 'DELETE'
     });
 
@@ -136,7 +191,7 @@ export const isCloudinaryUrl = (url) => {
  */
 export const getCloudinaryConfig = async () => {
   try {
-    const response = await authFetch('http://localhost:5000/api/cloudinary/config');
+    const response = await authFetch(`${API_BASE}/cloudinary/config`);
     const data = await response.json();
     return data;
   } catch (error) {
@@ -151,7 +206,7 @@ export const getCloudinaryConfig = async () => {
  */
 export const testCloudinaryConnection = async () => {
   try {
-    const response = await authFetch('http://localhost:5000/api/cloudinary/test-connection');
+    const response = await authFetch(`${API_BASE}/cloudinary/test-connection`);
     const data = await response.json();
     return data;
   } catch (error) {
@@ -166,7 +221,7 @@ export const testCloudinaryConnection = async () => {
  */
 export const getCloudinaryUsageStats = async () => {
   try {
-    const response = await authFetch('http://localhost:5000/api/cloudinary/usage-stats');
+    const response = await authFetch(`${API_BASE}/cloudinary/usage-stats`);
     const data = await response.json();
     return data;
   } catch (error) {
@@ -181,7 +236,7 @@ export const getCloudinaryUsageStats = async () => {
  */
 export const createCloudinaryFolders = async () => {
   try {
-    const response = await authFetch('http://localhost:5000/api/cloudinary/create-folders', {
+    const response = await authFetch(`${API_BASE}/cloudinary/create-folders`, {
       method: 'POST'
     });
     const data = await response.json();
@@ -198,7 +253,7 @@ export const createCloudinaryFolders = async () => {
  */
 export const listCloudinaryFolders = async () => {
   try {
-    const response = await authFetch('http://localhost:5000/api/cloudinary/list-folders');
+    const response = await authFetch(`${API_BASE}/cloudinary/list-folders`);
     const data = await response.json();
     return data;
   } catch (error) {

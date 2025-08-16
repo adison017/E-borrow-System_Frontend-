@@ -11,6 +11,8 @@ import SidebarUser from './components/SidebarUser';
 import './sidebar.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import socketService from './utils/socketService';
+import { API_BASE } from './utils/api';
 
 // Admin Pages
 import BorrowList from './pages/admin/BorrowList';
@@ -128,8 +130,11 @@ function AppInner() {
       }
       setUserRole(payload.role);
 
+      // Ensure socket connection with token for real-time updates
+      socketService.connect(token);
+
       // Verify กับ backend (ใช้ endpoint ที่ require auth เช่น /api/users/verify-token)
-      fetch('http://localhost:5000/api/users/verify-token', {
+      fetch(`${API_BASE}/users/verify-token`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => {

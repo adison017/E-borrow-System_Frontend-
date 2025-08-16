@@ -7,6 +7,7 @@ import {
   EyeIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline';
+import { UPLOAD_BASE } from '../utils/api';
 
 const DocumentViewer = ({ documents = [], title = "เอกสารแนบ" }) => {
   const [selectedDocument, setSelectedDocument] = useState(null);
@@ -116,7 +117,7 @@ const DocumentViewer = ({ documents = [], title = "เอกสารแนบ" 
         return doc.file_path;
       } else {
         // ถ้าไม่เริ่มต้นด้วย http/https ให้เพิ่ม localhost
-        return `http://localhost:5000/${doc.file_path}`;
+        return `${UPLOAD_BASE}/${doc.file_path}`;
       }
     }
     // fallback

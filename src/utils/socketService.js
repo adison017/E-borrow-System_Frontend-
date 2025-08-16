@@ -13,14 +13,18 @@ class SocketService {
     this.heartbeatInterval = null;
   }
 
-  connect() {
+  connect(token) {
+    if (token) {
+      this.authToken = token;
+    }
     if (this.socket && this.isConnected) {
       console.log('Socket already connected');
       return this.socket;
     }
 
     try {
-      this.socket = io('http://localhost:5000', {
+      const base = (import.meta?.env?.VITE_API_URL || window.__API_BASE__ || 'http://localhost:5000').replace(/\/$/, '');
+      this.socket = io(base, {
         transports: ['websocket', 'polling'],
         timeout: 20000,
         reconnection: true,
@@ -28,10 +32,21 @@ class SocketService {
         reconnectionDelay: this.reconnectDelay,
         reconnectionDelayMax: 5000,
         maxReconnectionAttempts: this.maxReconnectAttempts,
-        autoConnect: false // ไม่เชื่อมต่ออัตโนมัติ
+        autoConnect: true,
+        auth: this.authToken ? { token: this.authToken } : undefined
       });
 
       this.setupEventHandlers();
+
+      // Ensure auth data is sent on every reconnect attempt as well
+      this.socket.io.on('reconnect_attempt', () => {
+        if (this.socket && this.authToken) {
+          try {
+            this.socket.auth = { token: this.authToken };
+          } catch {}
+        }
+      });
+
       return this.socket;
     } catch (error) {
       console.error('Failed to create socket connection:', error);
@@ -111,6 +126,9 @@ class SocketService {
       
       // ถ้ามี token ให้ authenticate อัตโนมัติ
       if (this.authToken) {
+        try {
+          this.socket.auth = { token: this.authToken };
+        } catch {}
         this.authenticate(this.authToken).catch(error => {
           console.error('Auto-authentication failed:', error);
         });
@@ -141,6 +159,9 @@ class SocketService {
       
       // ถ้ามี token ให้ authenticate อัตโนมัติ
       if (this.authToken) {
+        try {
+          this.socket.auth = { token: this.authToken };
+        } catch {}
         this.authenticate(this.authToken).catch(error => {
           console.error('Reconnection authentication failed:', error);
         });
@@ -155,7 +176,7 @@ class SocketService {
 
   getSocket() {
     if (!this.socket) {
-      return this.connect();
+      return this.connect(this.authToken);
     }
     return this.socket;
   }

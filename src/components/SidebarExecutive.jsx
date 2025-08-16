@@ -9,6 +9,7 @@ import Notification from './Notification';
 import { getAllBorrows } from '../utils/api';
 import axios from 'axios';
 import { useBadgeCounts } from '../hooks/useSocket';
+import { API_BASE } from '../utils/api';
 
 const menuItems = [
   { to: '/DashboardEx', icon: <BsGraphUp size={22} />, label: 'รายงาน', key: 'dashboardEx' },
@@ -35,11 +36,35 @@ function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOp
     return () => clearTimeout(timer);
   }, []);
 
+  // ฟัง sessionExpired เพื่อความปลอดภัย
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่เพื่อความปลอดภัย');
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      navigate('/login');
+    };
+    window.addEventListener('sessionExpired', handleSessionExpired);
+    return () => window.removeEventListener('sessionExpired', handleSessionExpired);
+  }, [navigate]);
+
   useEffect(() => {
     // รับ badge real-time จาก backend
-    const unsubscribe = subscribeToBadgeCounts((badges) => {
-      if (typeof badges.borrowApprovalCount === 'number') setBorrowApprovalCount(badges.borrowApprovalCount);
-      if (typeof badges.repairApprovalCount === 'number') setRepairApprovalCount(badges.repairApprovalCount);
+    const computeCounts = async () => {
+      try {
+        const [borrowsRes, repairsRes] = await Promise.all([
+          getAllBorrows(),
+          axios.get(`${API_BASE}/repair-requests`).then(r => r.data)
+        ]);
+        const borrowList = Array.isArray(borrowsRes) ? borrowsRes : [];
+        const repairList = Array.isArray(repairsRes) ? repairsRes : [];
+        setBorrowApprovalCount(borrowList.filter(b => b.status === 'pending_approval').length);
+        setRepairApprovalCount(repairList.filter(r => r.status === 'รออนุมัติซ่อม').length);
+      } catch {}
+    };
+
+    const unsubscribe = subscribeToBadgeCounts(() => {
+      computeCounts();
     });
 
     // cleanup
@@ -47,20 +72,19 @@ function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOp
   }, [subscribeToBadgeCounts]);
 
   useEffect(() => {
-    // ดึงจำนวนรออนุมัติยืม (สำหรับ initial load)
-    getAllBorrows().then(data => {
-      if (Array.isArray(data)) {
-        const count = data.filter(b => b.status === 'pending_approval').length;
-        setBorrowApprovalCount(count);
-      }
-    });
-    // ดึงจำนวนรออนุมัติซ่อม (สำหรับ initial load)
-    axios.get('http://localhost:5000/api/repair-requests').then(res => {
-      if (Array.isArray(res.data)) {
-        const count = res.data.filter(r => r.status === 'รออนุมัติซ่อม').length;
-        setRepairApprovalCount(count);
-      }
-    });
+    // initial load
+    (async () => {
+      try {
+        const [borrowsRes, repairsRes] = await Promise.all([
+          getAllBorrows(),
+          axios.get(`${API_BASE}/repair-requests`).then(r => r.data)
+        ]);
+        const borrowList = Array.isArray(borrowsRes) ? borrowsRes : [];
+        const repairList = Array.isArray(repairsRes) ? repairsRes : [];
+        setBorrowApprovalCount(borrowList.filter(b => b.status === 'pending_approval').length);
+        setRepairApprovalCount(repairList.filter(r => r.status === 'รออนุมัติซ่อม').length);
+      } catch {}
+    })();
   }, []);
 
   const isActive = (path) => location.pathname === path;

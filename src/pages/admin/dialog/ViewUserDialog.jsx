@@ -10,14 +10,15 @@ import {
   FaUser
 } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
+import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
 
 // ปรับ getAvatarUrl ให้เหมือน edit_profile.jsx
 const getAvatarUrl = (path) => {
   if (!path) return '/logo_it.png';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (path.startsWith('/uploads/')) return `http://localhost:5000${path}`;
+  if (path.startsWith('/uploads/')) return `${UPLOAD_BASE}${path}`;
   // ถ้าเป็นชื่อไฟล์อย่างเดียว
-  return `http://localhost:5000/uploads/user/${path}`;
+  return `${UPLOAD_BASE}/uploads/user/${path}`;
 };
 
 export default function ViewUserDialog({ open, onClose, userData }) {
@@ -78,9 +79,9 @@ export default function ViewUserDialog({ open, onClose, userData }) {
     const fetchData = async () => {
       try {
         const [positionsResponse, branchesResponse, rolesResponse, provincesResponse] = await Promise.all([
-          axios.get('http://localhost:5000/api/users/positions'),
-          axios.get('http://localhost:5000/api/users/branches'),
-          axios.get('http://localhost:5000/api/users/roles'),
+          axios.get(`${API_BASE}/users/positions`),
+          axios.get(`${API_BASE}/users/branches`),
+          axios.get(`${API_BASE}/users/roles`),
           fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json').then(res => res.json())
         ]);
         setPositions(positionsResponse.data);

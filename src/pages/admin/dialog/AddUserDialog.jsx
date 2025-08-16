@@ -15,9 +15,9 @@ import {
 import { GiOfficeChair } from "react-icons/gi";
 import { MdClose, MdCloudUpload } from "react-icons/md";
 import Swal from 'sweetalert2';
-import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import PinDialog from "../../../components/dialog/PinDialog";
+import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
 
 export default function AddUserDialog({
   open,
@@ -80,11 +80,10 @@ export default function AddUserDialog({
 
     const fetchData = async () => {
       try {
-        const [positionsResponse, branchesResponse, rolesResponse, provincesResponse] = await Promise.all([
-          axios.get('http://localhost:5000/api/users/positions'),
-          axios.get('http://localhost:5000/api/users/branches'),
-          axios.get('http://localhost:5000/api/users/roles'),
-          fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json').then(res => res.json())
+        const [positionsResponse, branchesResponse, rolesResponse] = await Promise.all([
+          axios.get(`${API_BASE}/users/positions`),
+          axios.get(`${API_BASE}/users/branches`),
+          axios.get(`${API_BASE}/users/roles`),
         ]);
 
         if (!positionsResponse.data) throw new Error('Failed to fetch positions');
@@ -294,7 +293,7 @@ export default function AddUserDialog({
       console.log('Token:', token ? 'exists' : 'missing');
       console.log('Sending request to verify password...');
 
-      const response = await axios.post('http://localhost:5000/api/users/verify-password',
+      const response = await axios.post(`${API_BASE}/users/verify-password`,
         { password: pin },
         {
           headers: {
@@ -356,7 +355,7 @@ export default function AddUserDialog({
         formDataImage.append('user_code', formData.user_code);
         formDataImage.append('avatar', formData.pic);
         try {
-          const uploadResponse = await axios.post('http://localhost:5000/api/users/upload-image', formDataImage, {
+          const uploadResponse = await axios.post(`${API_BASE}/users/upload-image`, formDataImage, {
             headers: {
               'Content-Type': 'multipart/form-data',
               'Authorization': `Bearer ${token}`
@@ -397,14 +396,13 @@ export default function AddUserDialog({
         password: formData.password || undefined
       };
 
-      const response = await axios.post('http://localhost:5000/api/users', userDataToSave, {
+      const response = await axios.post(`${API_BASE}/users`, userDataToSave, {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         }
       });
 
-      toast.success('เพิ่มผู้ใช้งานสำเร็จ');
       onSave(userDataToSave); // ส่ง object user ที่จะบันทึก
       onClose();
     } catch (error) {

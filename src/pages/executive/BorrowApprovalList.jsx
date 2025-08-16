@@ -4,14 +4,12 @@ import {
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { IconButton, Tooltip } from "@material-tailwind/react";
 import { useEffect, useState } from "react";
-import { getAllBorrows, updateBorrowStatus } from "../../utils/api";
+import { getAllBorrows, updateBorrowStatus, API_BASE, UPLOAD_BASE } from "../../utils/api";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
 import { useBadgeCounts } from '../../hooks/useSocket';
-
-const API_BASE = "http://localhost:5000";
 
 export default function BorrowApprovalList() {
   const [borrowRequests, setBorrowRequests] = useState([]);
@@ -25,6 +23,7 @@ export default function BorrowApprovalList() {
   // Pagination state
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;
+  const [pendingToast, setPendingToast] = useState(null); // { type, message }
 
   // สถานะของคำขอยืม
   const statusOptions = [
@@ -87,6 +86,16 @@ export default function BorrowApprovalList() {
     // === จบ logic ===
   }, [subscribeToBadgeCounts]);
 
+  // แสดง toast หลัง dialog ปิดเท่านั้น
+  useEffect(() => {
+    if (!isDialogOpen && pendingToast) {
+      if (pendingToast.type === 'success') toast.success(pendingToast.message);
+      else if (pendingToast.type === 'error') toast.error(pendingToast.message);
+      else toast(pendingToast.message);
+      setPendingToast(null);
+    }
+  }, [isDialogOpen, pendingToast]);
+
   const handleOpenDialog = (request) => {
     setSelectedRequest(request);
     setIsDialogOpen(false); // ปิด dialog ก่อนเพื่อ reset state
@@ -135,9 +144,11 @@ export default function BorrowApprovalList() {
             : req
         )
       );
-      notifyBorrowAction("approve");
+      setPendingToast({ type: 'success', message: 'อนุมัติคำขอยืมเรียบร้อยแล้ว (รอส่งมอบ)' });
+      setIsDialogOpen(false);
     } catch (err) {
-      notifyBorrowAction("error", "เกิดข้อผิดพลาดในการอนุมัติ");
+      setPendingToast({ type: 'error', message: 'เกิดข้อผิดพลาดในการอนุมัติ' });
+      setIsDialogOpen(false);
     }
   };
 
@@ -151,9 +162,11 @@ export default function BorrowApprovalList() {
             : req
         )
       );
-      notifyBorrowAction("reject", rejectedData.rejectReason);
+      setPendingToast({ type: 'error', message: `ปฏิเสธคำขอยืมเรียบร้อยแล้ว${rejectedData.rejectReason ? ` เหตุผล: ${rejectedData.rejectReason}` : ''}` });
+      setIsDialogOpen(false);
     } catch (err) {
-      notifyBorrowAction("error", "เกิดข้อผิดพลาดในการปฏิเสธ");
+      setPendingToast({ type: 'error', message: 'เกิดข้อผิดพลาดในการปฏิเสธ' });
+      setIsDialogOpen(false);
     }
   };
 
@@ -277,7 +290,7 @@ export default function BorrowApprovalList() {
                               request.borrower?.avatar
                                 ? (request.borrower.avatar.startsWith('http')
                                     ? request.borrower.avatar
-                                    : `${API_BASE}/uploads/user/${request.borrower.avatar}`)
+                                    : `${UPLOAD_BASE}/uploads/user/${request.borrower.avatar}`)
                                 : "/profile.png"
                             }
                             alt={request.borrower?.name}

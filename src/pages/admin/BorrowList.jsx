@@ -11,6 +11,7 @@ import {
 import { useEffect, useState } from "react";
 import { getAllBorrows } from "../../utils/api";
 import { useBadgeCounts } from '../../hooks/useSocket';
+import { UPLOAD_BASE } from '../../utils/api';
 
 // Components
 import { ToastContainer, toast } from "react-toastify";
@@ -98,8 +99,6 @@ const formatDate = (dateString) => {
   const year = date.getFullYear();
   return `${day}/${month}/${year}`;
 };
-
-const API_BASE = "http://localhost:5000";
 
 const BorrowList = () => {
   const [borrows, setBorrows] = useState([]);
@@ -365,7 +364,7 @@ const BorrowList = () => {
                       <td className="w-40 px-3 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <Avatar
-                            src={item.borrower.avatar?.startsWith('http') ? item.borrower.avatar : `${API_BASE}/uploads/user/${item.borrower.avatar}`}
+                            src={item.borrower.avatar ? (String(item.borrower.avatar).startsWith('http') ? item.borrower.avatar : `${UPLOAD_BASE}/uploads/user/${item.borrower.avatar}`) : "/profile.png"}
                             alt={item.borrower.name}
                             size="sm"
                             className="bg-white shadow-sm rounded-full flex-shrink-0"

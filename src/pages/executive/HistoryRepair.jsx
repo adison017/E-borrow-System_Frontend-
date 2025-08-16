@@ -11,6 +11,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { BiSearchAlt2 } from "react-icons/bi";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
+import { API_BASE, UPLOAD_BASE } from '../../utils/api';
 
 export default function HistoryRepair() {
   const [repairRequests, setRepairRequests] = useState([]);
@@ -57,7 +58,7 @@ export default function HistoryRepair() {
     const fetchRepairRequests = async () => {
       setLoading(true);
       try {
-        const response = await axios.get('http://localhost:5000/api/repair-requests/history');
+        const response = await axios.get(`${API_BASE}/repair-requests/history`);
         console.log('API DATA:', response.data); // debug log
         // แปลงข้อมูลจาก API ให้ตรงกับรูปแบบที่ใช้ใน component (mapping ให้ตรง backend)
         const formattedData = response.data.map(request => ({
@@ -88,7 +89,7 @@ export default function HistoryRepair() {
           requester: {
             name: request.requester_name,
             department: request.branch_name,
-            avatar: request.avatar ? `http://localhost:5000/uploads/user/${request.avatar}` : "/placeholder-user.png"
+            avatar: request.avatar ? `${UPLOAD_BASE}/uploads/user/${request.avatar}` : "/placeholder-user.png"
           },
           description: request.problem_description,
           requestDate: request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : "-",
@@ -334,7 +335,7 @@ export default function HistoryRepair() {
                         <div className="flex-shrink-0 h-15 w-15">
                           <img
                             className="h-full w-full object-contain rounded-lg"
-                            src={request.equipment?.image || request.equipment_pic || (request.equipment_pic_filename ? `http://localhost:5000/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
+                            src={request.equipment?.image || request.equipment_pic || (request.equipment_pic_filename ? `${UPLOAD_BASE}/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
                             alt={request.equipment?.name || request.equipment_name}
                             onError={e => { e.target.src = "/placeholder-equipment.png"; }}
                           />
@@ -350,7 +351,7 @@ export default function HistoryRepair() {
                         <div className="flex-shrink-0 h-12 w-12">
                           <img
                             className="h-full w-full rounded-full object-cover"
-                            src={request.requester?.avatar ? request.requester.avatar : (request.avatar ? `http://localhost:5000/uploads/user/${request.avatar}` : "/placeholder-user.png")}
+                            src={request.requester?.avatar ? (request.requester.avatar.startsWith('http') ? request.requester.avatar : `${UPLOAD_BASE}/uploads/user/${request.requester.avatar}`) : (request.avatar ? (String(request.avatar).startsWith('http') ? request.avatar : `${UPLOAD_BASE}/uploads/user/${request.avatar}`) : "/placeholder-user.png")}
                             alt={request.requester?.name || request.requester_name}
                           />
                         </div>
