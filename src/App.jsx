@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { MdMenu } from 'react-icons/md';
-import { Navigate, Route, BrowserRouter as Router, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import AuthSystem from './components/AuthSystem'; // เพิ่มบรรทัดนี้
 import Footer from './components/Footer';
 import FirstVisitNewsModal from './components/FirstVisitNewsModal';
@@ -380,11 +380,7 @@ function AppInner() {
 }
 
 function App() {
-  return (
-    <Router>
-      <AppInner />
-    </Router>
-  );
+  return <AppInner />;
 }
 
 export default App;

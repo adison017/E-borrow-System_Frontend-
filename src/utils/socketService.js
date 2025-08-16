@@ -14,16 +14,29 @@ class SocketService {
   }
 
   connect(token) {
+    // Update auth token if provided
     if (token) {
       this.authToken = token;
     }
-    if (this.socket && this.isConnected) {
-      console.log('Socket already connected');
+
+    // If socket already exists
+    if (this.socket) {
+      // If we now have a token and not connected, attach and connect
+      if (this.authToken) {
+        try {
+          this.socket.auth = { token: this.authToken };
+        } catch {}
+        if (!this.isConnected && this.socket.disconnected) {
+          this.socket.connect();
+        }
+      }
       return this.socket;
     }
 
+    // Create socket instance. Avoid connecting without token to prevent server-side "Token required" errors
     try {
       const base = (import.meta?.env?.VITE_API_URL || window.__API_BASE__ || 'http://localhost:5000').replace(/\/$/, '');
+      const hasToken = Boolean(this.authToken);
       this.socket = io(base, {
         transports: ['websocket', 'polling'],
         timeout: 20000,
@@ -32,8 +45,8 @@ class SocketService {
         reconnectionDelay: this.reconnectDelay,
         reconnectionDelayMax: 5000,
         maxReconnectionAttempts: this.maxReconnectAttempts,
-        autoConnect: true,
-        auth: this.authToken ? { token: this.authToken } : undefined
+        autoConnect: hasToken, // only auto-connect when we have a token
+        auth: hasToken ? { token: this.authToken } : undefined
       });
 
       this.setupEventHandlers();
@@ -147,6 +160,10 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
+      // Suppress noisy errors when no token has been provided yet
+      if (!this.authToken && (error?.message === 'Token required' || /token/i.test(error?.message || ''))) {
+        return;
+      }
       console.error('Socket connection error:', error);
       this.isConnected = false;
       this.isAuthenticated = false;
