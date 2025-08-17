@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { MdContentCopy } from "react-icons/md";
 import BorrowingRequestDialog from "./dialogs/BorrowingRequestDialog";
 // import { globalUserData } from '../../components/Header';
 import AlertDialog from '../../components/Notification.jsx';
@@ -6,6 +7,7 @@ import { FaBarcode } from "react-icons/fa";
 import { MdPayment } from "react-icons/md";
 import { FaMoneyCheckAlt } from "react-icons/fa";
 import { API_BASE, authFetch } from '../../utils/api';
+import { toast } from 'react-toastify';
 
 const Fine = () => {
   const [fineList, setFineList] = useState([]);
@@ -16,6 +18,9 @@ const Fine = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [dialogShouldClose, setDialogShouldClose] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [paymentSettings, setPaymentSettings] = useState(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [selectedMethod, setSelectedMethod] = useState(null);
 
   // Get user info from localStorage
   const userStr = localStorage.getItem('user');
@@ -42,6 +47,34 @@ const Fine = () => {
       .catch(() => setLoading(false));
   }, []);
 
+  // Load payment settings for displaying method (PromptPay / Bank)
+  useEffect(() => {
+    const loadPaymentSettings = async () => {
+      try {
+        setPaymentLoading(true);
+        const res = await authFetch(`${API_BASE}/payment-settings`);
+        const data = await res.json();
+        if (data?.success && data?.data) {
+          setPaymentSettings(data.data);
+          if (data.data.method) setSelectedMethod(data.data.method);
+        }
+      } catch (_) {
+        // ignore UI failure silently
+      } finally {
+        setPaymentLoading(false);
+      }
+    };
+    loadPaymentSettings();
+  }, []);
+
+  const copyText = async (text) => {
+    try {
+      if (!text) return;
+      await navigator.clipboard.writeText(text);
+      toast.success('คัดลอกแล้ว');
+    } catch {}
+  };
+
   const handleNext = (borrowId) => {
     setCurrentImageIndices(prev => {
       const currentIndex = prev[borrowId] || 0;
@@ -54,7 +87,11 @@ const Fine = () => {
   };
 
   const openDialog = (request) => {
-    setSelectedRequest({ ...request });
+    setSelectedRequest({
+      ...request,
+      paymentMethod: selectedMethod || paymentSettings?.method || 'promptpay',
+      paymentInfo: paymentSettings || {}
+    });
     setActiveStep(5);
     setIsDialogOpen(true);
   };
@@ -121,13 +158,126 @@ const Fine = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Payment Method Section */}
+      <div className="mb-6">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <MdPayment className="text-2xl text-emerald-600" />
+              <h3 className="text-gray-800 font-semibold">ช่องทางการชำระเงิน</h3>
+            </div>
+            {paymentSettings?.method && (
+              <span className={`text-xs px-3 py-1 rounded-full border ${paymentSettings.method === 'promptpay' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
+                ใช้งาน: {paymentSettings.method === 'promptpay' ? 'PromptPay' : 'โอนผ่านบัญชีธนาคาร'}
+              </span>
+            )}
+          </div>
+          {/* selector */}
+          <div className="mb-4 flex items-center gap-6 text-sm">
+            <label className="flex items-center gap-2 text-gray-700">
+              <input type="radio" name="pay_method" checked={selectedMethod === 'promptpay'} onChange={() => setSelectedMethod('promptpay')} />
+              ใช้ PromptPay
+            </label>
+            <label className="flex items-center gap-2 text-gray-700">
+              <input type="radio" name="pay_method" checked={selectedMethod === 'bank'} onChange={() => setSelectedMethod('bank')} />
+              โอนผ่านบัญชีธนาคาร
+            </label>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* PromptPay card */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedMethod('promptpay')}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedMethod('promptpay'); }}
+              className={`rounded-xl border p-4 transition-all duration-200 cursor-pointer group
+                ${selectedMethod === 'promptpay'
+                  ? 'border-emerald-400 bg-emerald-50/60 ring-2 ring-emerald-300 shadow-md'
+                  : 'border-gray-200 bg-gray-50/30 hover:border-emerald-200 hover:bg-emerald-50/30 hover:shadow'}
+              `}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <FaBarcode className={`transition-colors ${selectedMethod === 'promptpay' ? 'text-emerald-600' : 'text-emerald-500 group-hover:text-emerald-600'}`} />
+                  <span className="font-semibold text-gray-800">PromptPay</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedMethod === 'promptpay' && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">กำลังเลือก</span>
+                  )}
+                  {paymentSettings?.method === 'promptpay' && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">กำลังใช้งาน</span>
+                  )}
+                </div>
+              </div>
+              <div className="text-sm text-gray-700 flex items-center gap-2">
+                หมายเลข: <span className="font-semibold text-gray-900">{paymentSettings?.promptpay_number || '-'}</span>
+                {paymentSettings?.promptpay_number && (
+                  <button
+                    className="ml-2 inline-flex items-center gap-1 text-emerald-700 text-xs border border-emerald-300 px-2 py-0.5 rounded hover:bg-emerald-50"
+                    onClick={(e) => { e.stopPropagation(); copyText(paymentSettings.promptpay_number); }}
+                  >
+                    <MdContentCopy /> คัดลอก
+                  </button>
+                )}
+              </div>
+              <div className="text-[10px] text-gray-400 mt-2">คลิกเพื่อเลือกวิธีนี้</div>
+            </div>
+            {/* Bank card */}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setSelectedMethod('bank')}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedMethod('bank'); }}
+              className={`rounded-xl border p-4 transition-all duration-200 cursor-pointer group
+                ${selectedMethod === 'bank'
+                  ? 'border-blue-400 bg-blue-50/60 ring-2 ring-blue-300 shadow-md'
+                  : 'border-gray-200 bg-gray-50/30 hover:border-blue-200 hover:bg-blue-50/30 hover:shadow'}
+              `}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <FaMoneyCheckAlt className={`transition-colors ${selectedMethod === 'bank' ? 'text-blue-600' : 'text-blue-500 group-hover:text-blue-600'}`} />
+                  <span className="font-semibold text-gray-800">โอนผ่านบัญชีธนาคาร</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {selectedMethod === 'bank' && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">กำลังเลือก</span>
+                  )}
+                  {paymentSettings?.method === 'bank' && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">กำลังใช้งาน</span>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
+                <div>ธนาคาร: <span className="font-semibold text-gray-900">{paymentSettings?.bank_name || '-'}</span></div>
+                <div>ชื่อบัญชี: <span className="font-semibold text-gray-900">{paymentSettings?.account_name || '-'}</span></div>
+                <div className="sm:col-span-2 flex items-center gap-2">เลขที่บัญชี: <span className="font-semibold text-gray-900">{paymentSettings?.account_number || '-'}</span>
+                  {paymentSettings?.account_number && (
+                    <button
+                      className="ml-1 inline-flex items-center gap-1 text-blue-700 text-xs border border-blue-300 px-2 py-0.5 rounded hover:bg-blue-50"
+                      onClick={(e) => { e.stopPropagation(); copyText(paymentSettings.account_number); }}
+                    >
+                      <MdContentCopy /> คัดลอก
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="text-[10px] text-gray-400 mt-2">คลิกเพื่อเลือกวิธีนี้</div>
+            </div>
+          </div>
+          {paymentLoading && (
+            <div className="text-xs text-gray-500 mt-2">กำลังโหลดข้อมูลช่องทางชำระเงิน...</div>
+          )}
+        </div>
+      </div>
       {/* Success Notification */}
       <AlertDialog
         show={showSuccessAlert}
-        title="ชำระเงินสำเร็จ!"
-        message="การชำระค่าปรับเสร็จสิ้นแล้ว ขอบคุณที่ใช้บริการ"
+        title="🎉 ชำระเงินสำเร็จ!"
+        message="การชำระค่าปรับเสร็จสิ้นแล้ว ขอบคุณที่ใช้บริการ รายการยืมของคุณได้เสร็จสิ้นเรียบร้อยแล้ว"
         type="success"
-        duration={5000}
+        duration={3000}
         onClose={() => setShowSuccessAlert(false)}
         actions={[
           {

@@ -28,7 +28,7 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
   const [menuReady, setMenuReady] = useState(false);
   const [animating, setAnimating] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-  const [counts, setCounts] = useState({ borrow: 0, approve: 0, return: 0, fine: 0, cancel: 0, completed: 0 });
+  const [counts, setCounts] = useState({ borrow: 0, approve: 0, return: 0, fine: 0, cancel: 0, completed: 0, approved_only: 0 });
   const navigate = useNavigate();
   const location = useLocation();
   const { subscribeToBadgeCounts } = useBadgeCounts();
@@ -94,13 +94,17 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
       try {
         const data = await getAllBorrows();
         const mine = Array.isArray(data) ? data.filter(b => String(b.user_id) === String(userId)) : [];
+        const countApprovedOnly = mine.filter(b => b.status === 'approved').length;
+        const countCarry = mine.filter(b => b.status === 'carry').length;
+        const countBorrowing = mine.filter(b => b.status === 'borrowing').length;
         setCounts({
           borrow: mine.filter(b => b.status === 'pending' || b.status === 'pending_approval').length,
-          approve: mine.filter(b => b.status === 'approved').length,
-          return: mine.filter(b => b.status === 'borrowing').length,
+          approve: countCarry, // show only carry on Approve menu
+          return: countBorrowing,
           fine: mine.filter(b => b.status === 'waiting_payment').length,
           cancel: mine.filter(b => b.status === 'rejected').length,
           completed: mine.filter(b => b.status === 'returned' || b.status === 'completed').length,
+          approved_only: countApprovedOnly,
         });
       } catch {}
     };
@@ -276,9 +280,9 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
                               {counts.approve}
                             </span>
                           )}
-                          {item.key === 'return' && counts.return > 0 && (
+                          {item.key === 'return' && (counts.return + counts.approve) > 0 && (
                             <span className="ml-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
-                              {counts.return}
+                              {counts.return + counts.approve}
                             </span>
                           )}
                           {item.key === 'fine' && counts.fine > 0 && (

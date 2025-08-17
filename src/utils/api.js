@@ -31,7 +31,17 @@ export function authFetch(url, options = {}) {
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  return fetch(url, { ...options, headers }).then((res) => {
+
+  // Add CORS headers for PATCH requests
+  if (options.method === 'PATCH') {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return fetch(url, {
+    ...options,
+    headers,
+    credentials: 'include' // Include credentials for CORS
+  }).then((res) => {
     if (res.status === 401 || res.status === 403) {
       try {
         // ตรวจสอบว่ายังมี token อยู่ใน localStorage หรือไม่

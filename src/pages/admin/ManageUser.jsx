@@ -163,10 +163,10 @@ function ManageUser() {
       if (response.data && Array.isArray(response.data)) {
         setUserList(response.data);
       } else {
-        throw new Error('Invalid data format received');
+        throw new Error('รูปแบบข้อมูลที่ได้รับไม่ถูกต้อง');
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้:', error);
       if (error.code === 'ECONNABORTED') {
         notifyUserAction('การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง', 'error');
       } else if (error.response?.status === 401) {
@@ -216,7 +216,7 @@ function ManageUser() {
         setBranches(branchesRes.data || []);
         setPositions(positionsRes.data || []);
       } catch (err) {
-        console.error('Error fetching filter data:', err);
+        console.error('เกิดข้อผิดพลาดในการดึงข้อมูลตัวกรอง:', err);
         // Set empty arrays as fallback
         setRoles([]);
         setBranches([]);
@@ -245,7 +245,7 @@ function ManageUser() {
         headers: getAuthHeaders()
       });
 
-      if (!response.data) throw new Error('Failed to delete user');
+      if (!response.data) throw new Error('ลบผู้ใช้ไม่สำเร็จ');
 
       // Update the list immediately
       setUserList(prevList => prevList.filter(item => item.user_id !== selectedUser.user_id));
@@ -253,7 +253,7 @@ function ManageUser() {
       setSelectedUser(null);
       notifyUserAction("delete", selectedUser.Fullname);
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('เกิดข้อผิดพลาดในการลบผู้ใช้:', error);
       notifyUserAction('delete_error');
     }
   };
@@ -642,18 +642,37 @@ function ManageUser() {
                             <div className="flex flex-col items-center justify-center gap-1">
                               <button
                                 type="button"
-                                className={`line-notify-switch relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none border-2 ${line_notify_enabled ? 'bg-green-400 border-green-500' : 'bg-white border-gray-400'}`}
+                                className={`line-notify-switch relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none border-2 cursor-pointer ${line_notify_enabled ? 'bg-green-400 border-green-500' : 'bg-white border-gray-400'}`}
                                 aria-pressed={!!line_notify_enabled}
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  const newValue = !line_notify_enabled ? 1 : 0;
-                                  await axios.patch(`${API_BASE}/users/${user_id}/line-notify`, { line_notify_enabled: newValue }, {
-                                    headers: getAuthHeaders()
-                                  });
-                                  setUserList(prevList => prevList.map(u =>
-                                    u.user_id === user_id ? { ...u, line_notify_enabled: newValue } : u
-                                  ));
-                                                                     toast.success(newValue ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
+                                  try {
+                                    const newValue = !line_notify_enabled ? 1 : 0;
+                                    console.log('กำลังสลับการแจ้งเตือน LINE สำหรับผู้ใช้:', user_id, 'เป็น:', newValue);
+
+                                    const response = await axios.patch(`${API_BASE}/users/${user_id}/line-notify`,
+                                      { line_notify_enabled: newValue },
+                                      {
+                                        headers: {
+                                          ...getAuthHeaders(),
+                                          'Content-Type': 'application/json'
+                                        },
+                                        withCredentials: true
+                                      }
+                                    );
+
+                                    console.log('การตอบกลับการสลับแจ้งเตือน LINE:', response.data);
+
+                                    setUserList(prevList => prevList.map(u =>
+                                      u.user_id === user_id ? { ...u, line_notify_enabled: newValue } : u
+                                    ));
+
+                                    toast.success(newValue ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
+                                  } catch (error) {
+                                    console.error('เกิดข้อผิดพลาดในการสลับแจ้งเตือน LINE:', error);
+                                    console.error('การตอบกลับข้อผิดพลาด:', error.response?.data);
+                                    toast.error('เกิดข้อผิดพลาดในการอัปเดตแจ้งเตือน LINE: ' + (error.response?.data?.message || error.message));
+                                  }
                                 }}
                               >
                                 <span
