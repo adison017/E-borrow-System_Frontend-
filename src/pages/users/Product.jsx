@@ -564,11 +564,11 @@ const Home = () => {
                             )}
                             {/* เพิ่มแสดงวันที่คืนเมื่อสถานะเป็น 'ถูกยืม' */}
                             {equipment.status === 'ถูกยืม' && equipment.dueDate && (
-                              <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-xl bg-yellow-100 border border-yellow-300 shadow-sm animate-pulse">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-full bg-yellow-100 border border-yellow-300 shadow-sm animate-pulse">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                 </svg>
-                                <span className="text-base font-bold text-red-700">
+                                <span className="text-sm font-bold text-black">
                                   กำหนดคืน {new Date(equipment.dueDate).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' })}
                                 </span>
                               </div>

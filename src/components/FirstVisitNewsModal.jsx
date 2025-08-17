@@ -129,10 +129,10 @@ export default function FirstVisitNewsModal({ userId }) {
       {/* Backdrop with blur effect */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-opacity duration-300">
         {/* Container with navigation buttons on sides */}
-        <div className="flex items-center gap-4 w-full max-w-5xl">
+  <div className="flex items-center gap-4 w-full max-w-3xl">
           {/* Previous Button - Outside Modal */}
           <button
-            className="p-3 bg-white/80 hover:bg-white shadow-lg hover:shadow-xl rounded-2xl h-20 transition-all duration-300 group backdrop-blur-sm flex-shrink-0"
+            className="p-2 bg-white/80 hover:bg-white shadow-lg hover:shadow-xl rounded-2xl h-14 transition-all duration-300 group backdrop-blur-sm flex-shrink-0"
             onClick={movePrev}
             aria-label="ก่อนหน้า"
           >
@@ -140,12 +140,12 @@ export default function FirstVisitNewsModal({ userId }) {
           </button>
 
           {/* Main Modal Container with glass morphism effect */}
-          <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-h-[95vh] overflow-hidden border border-white/20 transform transition-all duration-500 flex flex-col">
+          <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-h-[80vh] overflow-hidden border border-white/20 transform transition-all duration-500 flex flex-col">
             {/* Decorative gradient background */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 opacity-50"></div>
             
             {/* Header Section */}
-            <div className="relative p-6 border-b border-gray-200/50 bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-sm flex-shrink-0">
+            <div className="relative p-4 border-b border-gray-200/50 bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-sm flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg animate-pulse">
@@ -169,12 +169,12 @@ export default function FirstVisitNewsModal({ userId }) {
             </div>
             
             {/* Content Section - Scrollable */}
-            <div className="relative p-8 overflow-y-auto flex-1">
+            <div className="relative p-6 overflow-y-auto flex-1">
               {/* Main Content Area */}
               <div className="w-full">
                 {/* Category Badge and Title */}
                 <div className="mb-4">
-                  <h3 className="text-3xl font-bold text-gray-800 leading-tight mb-2">
+                  <h3 className="text-2xl font-bold text-gray-800 leading-tight mb-2">
                     {current.title}
                   </h3>
                   <div className="flex items-center mb-2 gap-2 text-sm text-gray-600">
@@ -211,8 +211,8 @@ export default function FirstVisitNewsModal({ userId }) {
                   const prevImg = () => setImageIndex((i) => (i - 1 + total) % total);
                   const nextImg = () => setImageIndex((i) => (i + 1) % total);
                   return (
-                    <div className="mb-6">
-                      <div className={`relative h-64 md:h-96 w-full rounded-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-2xl ${categoryStyle.glow} group`}>
+            <div className="mb-6">
+              <div className={`relative h-48 md:h-72 w-full rounded-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-2xl ${categoryStyle.glow} group`}>
                         <img
                           src={urls[imageIndex]}
                           alt={`${current.title}-${imageIndex}`}
@@ -252,7 +252,7 @@ export default function FirstVisitNewsModal({ userId }) {
                       
                       {/* Image dots indicator */}
                       {total > 1 && (
-                        <div className="mt-4 flex items-center justify-center gap-2">
+                            <div className="mt-4 flex items-center justify-center gap-2">
                           {urls.map((_, i) => (
                             <button
                               key={i}
@@ -272,7 +272,7 @@ export default function FirstVisitNewsModal({ userId }) {
                       {/* Full screen preview */}
                       {isPreviewOpen && (
                         <div className="fixed inset-0 z-[100] bg-white flex items-center justify-center p-4 transition-opacity duration-300" onClick={() => setIsPreviewOpen(false)}>
-                          <div className="relative w-full h-full max-w-7xl max-h-[90vh] transform transition-transform duration-300 scale-100" onClick={(e) => e.stopPropagation()}>
+                          <div className="relative w-full h-full max-w-4xl max-h-[80vh] transform transition-transform duration-300 scale-100" onClick={(e) => e.stopPropagation()}>
                             <img
                               src={urls[imageIndex]}
                               alt={`${current.title}-preview-${imageIndex}`}
@@ -328,14 +328,14 @@ export default function FirstVisitNewsModal({ userId }) {
             </div>
             
             {/* Footer Section */}
-            <div className="relative p-6 border-t border-gray-200/50 bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-sm">
+            <div className="relative p-4 border-t border-gray-200/50 bg-gradient-to-r from-white/80 to-white/60 backdrop-blur-sm">
               <div className="flex flex-col items-center gap-3">
                 <span className="text-sm font-medium text-gray-600 flex items-center gap-2">
                   กำลังแสดงข่าวที่ {currentIndex + 1} จาก {newsItems.length} รายการ
                 </span>
                 
                 <button
-                  className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-300 w-full max-w-xs text-center ${
+                  className={`px-5 py-2 rounded-xl font-medium transition-all duration-300 w-full max-w-xs text-center ${
                     (current && (current.force_show === 1 || current.force_show === '1' || current.force_show === true))
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:shadow-md'
@@ -351,7 +351,7 @@ export default function FirstVisitNewsModal({ userId }) {
 
           {/* Next Button - Outside Modal */}
           <button
-            className="p-3 bg-white/80 hover:bg-white shadow-lg hover:shadow-xl h-20 rounded-2xl transition-all duration-300 group backdrop-blur-sm flex-shrink-0"
+            className="p-2 bg-white/80 hover:bg-white shadow-lg hover:shadow-xl h-14 rounded-2xl transition-all duration-300 group backdrop-blur-sm flex-shrink-0"
             onClick={moveNext}
             aria-label="ถัดไป"
           >
