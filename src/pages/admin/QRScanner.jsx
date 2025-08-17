@@ -80,30 +80,28 @@ const QRScanner = () => {
 
       console.log("Available cameras:", devices.map(d => ({ id: d.deviceId, label: d.label })));
 
-      // Enhanced camera selection for mobile devices
-      let selectedDeviceId = null;
-
-      // Try to find rear/back camera with multiple approaches
+      // Enhanced camera selection with fallback probing
       const rearCameraKeywords = ['back', 'rear', 'environment', 'facing back', 'camera2 0'];
-      const rearCamera = devices.find((device) => {
-        const label = device.label.toLowerCase();
-        return rearCameraKeywords.some(keyword => label.includes(keyword));
-      });
+      const candidates = [];
+      const rear = devices.find(d => rearCameraKeywords.some(k => d.label.toLowerCase().includes(k)));
+      if (rear) candidates.push(rear.deviceId);
+      if (devices.length > 1) candidates.push(devices[devices.length - 1].deviceId);
+      devices.forEach(d => { if (!candidates.includes(d.deviceId)) candidates.push(d.deviceId); });
 
-      if (rearCamera) {
-        selectedDeviceId = rearCamera.deviceId;
-        console.log("Using rear camera:", rearCamera.label);
-      } else if (devices.length > 1) {
-        // If multiple cameras but no clear rear camera, try the last one (often rear on mobile)
-        selectedDeviceId = devices[devices.length - 1].deviceId;
-        console.log("Using last camera (likely rear):", devices[devices.length - 1].label);
-      } else {
-        // Use the only available camera
-        selectedDeviceId = devices[0].deviceId;
-        console.log("Using only available camera:", devices[0].label);
+      let selectedDeviceId = null;
+      for (const devId of candidates) {
+        try {
+          const testStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: devId } } });
+          testStream.getTracks().forEach(t => t.stop());
+          selectedDeviceId = devId;
+          break;
+        } catch (probeErr) {
+          console.warn('Camera not readable, trying next device:', probeErr?.name || probeErr);
+          continue;
+        }
       }
 
-      if (!selectedDeviceId) throw new Error("ไม่สามารถเลือกกล้องได้");
+      if (!selectedDeviceId) throw new DOMException('ไม่สามารถเริ่มกล้องจากอุปกรณ์ใดๆ ได้', 'NotReadableError');
 
       // Clean up any existing video stream
       if (videoRef.current.srcObject) {
