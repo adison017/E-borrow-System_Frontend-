@@ -42,6 +42,21 @@ const extractCloudinaryFields = (payload) => {
     }
   }
 
+  // Handle new backend response format
+  if (payload && typeof payload === 'object') {
+    // Check if it's a successful upload result from backend
+    if (payload.success && payload.data) {
+      const data = payload.data;
+      if (data.url || data.secure_url) {
+        return {
+          secure_url: data.secure_url || data.url,
+          url: data.secure_url || data.url,
+          public_id: data.public_id
+        };
+      }
+    }
+  }
+
   return { url: undefined, secure_url: undefined, public_id: undefined };
 };
 
@@ -85,22 +100,60 @@ export const uploadMultipleFilesToCloudinary = async (files, folder = 'e-borrow/
     });
 
     const data = await response.json();
+    console.log('Cloudinary upload response:', data);
+
+    // Handle the new response format from backend
+    if (data && data.success && Array.isArray(data.data)) {
+      const results = data.data.map(d => {
+        const { url, secure_url, public_id } = extractCloudinaryFields(d);
+        return {
+          url: secure_url || url,
+          secure_url: secure_url || url,
+          public_id,
+          original: d,
+          success: d.success !== false // Assume success unless explicitly false
+        };
+      });
+      return results;
+    }
+
+    // Handle legacy array format
     if (Array.isArray(data)) {
       return data.map(d => {
         const { url, secure_url, public_id } = extractCloudinaryFields(d);
-        return { url: secure_url || url, secure_url: secure_url || url, public_id, original: d };
+        return {
+          url: secure_url || url,
+          secure_url: secure_url || url,
+          public_id,
+          original: d,
+          success: d.success !== false
+        };
       });
     }
+
     // Sometimes wrapped in { results: [...] }
     if (Array.isArray(data?.results)) {
       return data.results.map(d => {
         const { url, secure_url, public_id } = extractCloudinaryFields(d);
-        return { url: secure_url || url, secure_url: secure_url || url, public_id, original: d };
+        return {
+          url: secure_url || url,
+          secure_url: secure_url || url,
+          public_id,
+          original: d,
+          success: d.success !== false
+        };
       });
     }
+
     // Fallback single object
     const { url, secure_url, public_id } = extractCloudinaryFields(data);
-    return [{ url: secure_url || url, secure_url: secure_url || url, public_id, original: data }];
+    return [{
+      url: secure_url || url,
+      secure_url: secure_url || url,
+      public_id,
+      original: data,
+      success: data.success !== false
+    }];
   } catch (error) {
     console.error('Error uploading multiple files to Cloudinary:', error);
     throw error;
