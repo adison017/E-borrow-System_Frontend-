@@ -96,6 +96,25 @@ export default function FirstVisitNewsModal({ userId }) {
     setImageIndex(0);
   }, [currentIndex]);
 
+  // Keyboard navigation: left/right to navigate, Esc to close
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        movePrev();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        moveNext();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setOpen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, newsItems.length]);
+
   if (!open || !current) return null;
 
   const moveNext = () => setCurrentIndex((i) => (i + 1) % newsItems.length);
@@ -122,25 +141,28 @@ export default function FirstVisitNewsModal({ userId }) {
     setCurrentIndex((idx) => (idx >= remaining.length ? 0 : idx));
   };
 
+
   const categoryStyle = getCategoryStyle(current?.category);
 
   return (
     <div className="modal modal-open">
       {/* Backdrop with blur effect */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-opacity duration-300">
-        {/* Container with navigation buttons on sides */}
-  <div className="flex items-center gap-4 w-full max-w-3xl">
-          {/* Previous Button - Outside Modal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-md transition-opacity duration-300">
+        {/* Container with navigation buttons on sides (stack on mobile) */}
+      <div className="flex flex-col sm:flex-row items-center gap-4 w-full max-w-4xl sm:max-w-2xl">
+          {/* Previous Button - Outside Modal (hidden on mobile) */}
           <button
-            className="p-2 bg-white/80 hover:bg-white shadow-lg hover:shadow-xl rounded-2xl h-14 transition-all duration-300 group backdrop-blur-sm flex-shrink-0"
+            type="button"
+            title="ก่อนหน้า"
+            className="hidden sm:inline-flex items-center justify-center p-0 bg-white/95 hover:bg-white shadow-2xl rounded-xl w-14 h-40 transition-transform duration-200 transform hover:scale-105 text-gray-600 flex-shrink-0"
             onClick={movePrev}
             aria-label="ก่อนหน้า"
           >
-            <MdChevronLeft className="text-gray-600 group-hover:text-blue-600 text-2xl transition-colors" />
+            <MdChevronLeft className="text-2xl" />
           </button>
 
           {/* Main Modal Container with glass morphism effect */}
-          <div className="relative bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-h-[80vh] overflow-hidden border border-white/20 transform transition-all duration-500 flex flex-col">
+          <div className="relative bg-white/95 backdrop-blur-xl rounded-4xl sm:rounded-3xl shadow-2xl w-full max-h-[95vh] sm:max-h-[100vh] h-[calc(100vh-4rem)] sm:h-auto overflow-hidden border border-white/20 transform transition-all duration-500 flex flex-col">
             {/* Decorative gradient background */}
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 opacity-50"></div>
             
@@ -212,7 +234,7 @@ export default function FirstVisitNewsModal({ userId }) {
                   const nextImg = () => setImageIndex((i) => (i + 1) % total);
                   return (
             <div className="mb-6">
-              <div className={`relative h-48 md:h-72 w-full rounded-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-2xl ${categoryStyle.glow} group`}>
+              <div className={`relative h-56 sm:h-72 w-full rounded-2xl overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 shadow-2xl ${categoryStyle.glow} group`}>
                         <img
                           src={urls[imageIndex]}
                           alt={`${current.title}-${imageIndex}`}
@@ -335,7 +357,7 @@ export default function FirstVisitNewsModal({ userId }) {
                 </span>
                 
                 <button
-                  className={`px-5 py-2 rounded-xl font-medium transition-all duration-300 w-full max-w-xs text-center ${
+                  className={`px-5 py-2 rounded-full font-medium transition-all duration-300 w-full max-w-xs text-center text-sm ${
                     (current && (current.force_show === 1 || current.force_show === '1' || current.force_show === true))
                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-700 hover:shadow-md'
@@ -349,13 +371,21 @@ export default function FirstVisitNewsModal({ userId }) {
             </div>
           </div>
 
-          {/* Next Button - Outside Modal */}
+            {/* Mobile Prev/Next controls (visible on small screens) */}
+            <div className="w-full sm:hidden mt-1 mb-2 flex items-center justify-between gap-3 px-2">
+              <button type="button" onClick={movePrev} className="flex-1 px-4 py-3 bg-blue-500  text-white rounded-xl shadow-md hover:bg-white hover:text-black text-sm font-medium transition-transform transform hover:scale-105">ก่อนหน้า</button>
+              <button type="button" onClick={moveNext} className="flex-1 px-4 py-3 bg-blue-500  text-white rounded-xl shadow-md hover:bg-white hover:text-black text-sm font-medium transition-transform transform hover:scale-105">ถัดไป</button>
+            </div>
+
+          {/* Next Button - Outside Modal (hidden on mobile) */}
           <button
-            className="p-2 bg-white/80 hover:bg-white shadow-lg hover:shadow-xl h-14 rounded-2xl transition-all duration-300 group backdrop-blur-sm flex-shrink-0"
+            type="button"
+            title="ถัดไป"
+            className="hidden sm:inline-flex items-center justify-center p-0 bg-white/95 hover:bg-white shadow-2xl rounded-xl w-14 h-40 transition-transform duration-200 transform hover:scale-105 text-gray-600 flex-shrink-0"
             onClick={moveNext}
             aria-label="ถัดไป"
           >
-            <MdChevronRight className="text-gray-600 group-hover:text-blue-600 text-2xl transition-colors" />
+            <MdChevronRight className="text-2xl" />
           </button>
         </div>
       </div>
