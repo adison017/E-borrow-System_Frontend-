@@ -1,15 +1,19 @@
+import { useState } from "react";
 import { StopCircleIcon as CancelIcon, CameraIcon as TakePictureIcon } from "@heroicons/react/24/solid"; // Using appropriate icons
 import { MdClose } from "react-icons/md";
 import Webcam from "react-webcam";
+import PermissionRequest from "../../../components/PermissionRequest";
 
-const WebcamSignatureDialog = ({ 
-    isOpen, 
-    onClose, 
-    onCapture, 
-    webcamRef, 
-    cameraReady, 
+const WebcamSignatureDialog = ({
+    isOpen,
+    onClose,
+    onCapture,
+    webcamRef,
+    cameraReady,
     setCameraReady // Parent manages cameraReady state via setCameraReady
 }) => {
+    const [showPermissionRequest, setShowPermissionRequest] = useState(false);
+
     if (!isOpen) return null;
 
     const handleCapture = () => {
@@ -19,14 +23,21 @@ const WebcamSignatureDialog = ({
         }
     };
 
+    const handlePermissionGranted = (permissionType) => {
+        if (permissionType === 'camera') {
+            setShowPermissionRequest(false);
+            setCameraReady(true);
+        }
+    };
+
     return (
         <div className="modal modal-open">
             <div className="modal-box bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all duration-300">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                     <h3 className="text-xl font-semibold text-gray-800">ถ่ายภาพลายเซ็น</h3>
-                    <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
                     >
                         <MdClose className="w-6 h-6" />
@@ -40,9 +51,22 @@ const WebcamSignatureDialog = ({
                             audio={false}
                             ref={webcamRef}
                             screenshotFormat="image/jpeg"
-                            videoConstraints={{ facingMode: "user" }}
+                            videoConstraints={{
+                                width: { ideal: 1280 },
+                                height: { ideal: 720 },
+                                facingMode: "user",
+                                aspectRatio: { ideal: 16/9 }
+                            }}
                             onUserMedia={() => setCameraReady(true)}
-                            onUserMediaError={() => setCameraReady(false)} // Handle media error
+                            onUserMediaError={(error) => {
+                                console.error("Camera error:", error);
+                                setCameraReady(false);
+
+                                // แสดง Permission Request Dialog สำหรับ permission errors
+                                if (error.name === 'NotAllowedError' || error.name === 'NotReadableError') {
+                                    setShowPermissionRequest(true);
+                                }
+                            }} // Handle media error
                             className="w-full h-full object-cover"
                         />
                         {!cameraReady && (
@@ -51,8 +75,17 @@ const WebcamSignatureDialog = ({
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                <p className="text-white text-base font-medium">กำลังรอการอนุญาตกล้อง...</p>
-                                <p className="text-gray-300 text-xs mt-1">โปรดอนุญาตการเข้าถึงกล้องในเบราว์เซอร์ของคุณ</p>
+                                <p className="text-white text-base font-medium">กำลังเชื่อมต่อกล้อง...</p>
+                                <p className="text-gray-300 text-xs mt-2 text-center max-w-xs">
+                                    กรุณาอนุญาตการเข้าถึงกล้องในเบราว์เซอร์<br/>
+                                    หากมีข้อผิดพลาด ลองปิดแอปอื่นที่ใช้กล้อง
+                                </p>
+                                <button
+                                    onClick={() => setShowPermissionRequest(true)}
+                                    className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                                >
+                                    ขออนุญาตกล้อง
+                                </button>
                             </div>
                         )}
                     </div>
@@ -84,8 +117,16 @@ const WebcamSignatureDialog = ({
             <form method="dialog" className="modal-backdrop">
                 <button onClick={onClose}>close</button>
             </form>
+
+            {/* Permission Request Dialog */}
+            <PermissionRequest
+                isOpen={showPermissionRequest}
+                onClose={() => setShowPermissionRequest(false)}
+                onPermissionGranted={handlePermissionGranted}
+                requestType="camera"
+            />
         </div>
     );
 };
 
-export default WebcamSignatureDialog; 
+export default WebcamSignatureDialog;

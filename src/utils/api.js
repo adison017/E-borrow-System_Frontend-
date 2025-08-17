@@ -34,9 +34,17 @@ export function authFetch(url, options = {}) {
   return fetch(url, { ...options, headers }).then((res) => {
     if (res.status === 401 || res.status === 403) {
       try {
+        // ตรวจสอบว่ายังมี token อยู่ใน localStorage หรือไม่
+        // ถ้าไม่มีแล้ว แสดงว่าเป็นการ logout เองแล้ว ไม่ต้องแสดงข้อความ session expired
+        const currentToken = localStorage.getItem('token');
+        const isManualLogout = localStorage.getItem('isManualLogout') === 'true';
+
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        if (typeof window !== 'undefined') {
+        localStorage.removeItem('isManualLogout');
+
+        // แสดง session expired เฉพาะเมื่อไม่ใช่การ logout เองและยังมี token อยู่
+        if (currentToken && !isManualLogout && typeof window !== 'undefined') {
           const evt = new CustomEvent('sessionExpired', { detail: { status: res.status, url } });
           window.dispatchEvent(evt);
         }
