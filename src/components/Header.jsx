@@ -60,6 +60,8 @@ function Header({ userRole, changeRole }) {
     setShowLogoutConfirm(true);
   };
   const confirmLogout = () => {
+    // ตั้ง flag ว่าเป็นการ logout เอง
+    localStorage.setItem('isManualLogout', 'true');
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     sessionStorage.clear();
@@ -118,16 +120,16 @@ function Header({ userRole, changeRole }) {
       }
     };
     const handleSessionExpired = () => {
-      // แจ้งเตือนและเด้งไปหน้า login เพื่อความปลอดภัย
-      try {
-        if (Notification && Notification.permission === 'granted') {
-          const n = new Notification('เซสชันหมดอายุ', { body: 'กรุณาเข้าสู่ระบบใหม่เพื่อความปลอดภัย', icon: '/logo_it.png' });
-          setTimeout(() => n.close(), 6000);
-        }
-      } catch {}
-      alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่เพื่อความปลอดภัย');
+      // ตรวจสอบว่าเป็นการ logout เองหรือไม่
+      const isManualLogout = localStorage.getItem('isManualLogout') === 'true';
+
+      // ลบ flag และ cleanup
+      localStorage.removeItem('isManualLogout');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+
+      // ไม่แสดงการแจ้งเตือนใดๆ เมื่อ session หมดอายุ
+
       navigate('/login');
     };
     window.addEventListener('profileImageUpdated', handleProfileImageUpdate);
@@ -715,6 +717,11 @@ function Header({ userRole, changeRole }) {
                                           </div>
                                           <MdChevronRight className="h-5 w-5 text-gray-400" />
                                         </div>
+
+
+
+                                        {/* Arrow icon with animation */}
+                                        <MdChevronRight className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400 group-hover:text-gray-600 transition-all duration-200 flex-shrink-0 group-hover:translate-x-1" />
                                       </div>
                                     </div>
                                   </button>

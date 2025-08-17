@@ -156,12 +156,26 @@ function ManageUser() {
     setIsLoading(true);
     try {
       const response = await axios.get(`${API_BASE}/users`, {
-        headers: getAuthHeaders()
+        headers: getAuthHeaders(),
+        timeout: 10000 // 10 second timeout
       });
-      setUserList(response.data);
+
+      if (response.data && Array.isArray(response.data)) {
+        setUserList(response.data);
+      } else {
+        throw new Error('Invalid data format received');
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
-      notifyUserAction('fetch_error');
+      if (error.code === 'ECONNABORTED') {
+        notifyUserAction('การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง', 'error');
+      } else if (error.response?.status === 401) {
+        notifyUserAction('กรุณาเข้าสู่ระบบใหม่', 'error');
+        // Redirect to login or refresh token
+      } else {
+        notifyUserAction('fetch_error');
+      }
+      setUserList([]); // Set empty array on error
     } finally {
       setIsLoading(false);
     }
@@ -169,12 +183,10 @@ function ManageUser() {
 
   // Fetch users when component mounts
   useEffect(() => {
-    if (effectRan.current === true) {
+    if (!effectRan.current) {
+      effectRan.current = true;
       fetchUsers();
     }
-    return () => {
-      effectRan.current = true;
-    };
   }, []);
 
   // Add event listener for user data updates
@@ -200,11 +212,15 @@ function ManageUser() {
           axios.get(`${API_BASE}/users/branches`, { headers: getAuthHeaders() }),
           axios.get(`${API_BASE}/users/positions`, { headers: getAuthHeaders() }),
         ]);
-        setRoles(rolesRes.data);
-        setBranches(branchesRes.data);
-        setPositions(positionsRes.data);
+        setRoles(rolesRes.data || []);
+        setBranches(branchesRes.data || []);
+        setPositions(positionsRes.data || []);
       } catch (err) {
-        // fallback: do nothing
+        console.error('Error fetching filter data:', err);
+        // Set empty arrays as fallback
+        setRoles([]);
+        setBranches([]);
+        setPositions([]);
       }
     };
     fetchFilters();

@@ -1,7 +1,9 @@
-import { XCircleIcon as ErrorIcon, MagnifyingGlassIcon } from "@heroicons/react/24/solid"; // Updated and added icons
+import { XCircleIcon as ErrorIcon, MagnifyingGlassIcon, ExclamationTriangleIcon } from "@heroicons/react/24/solid"; // Updated and added icons
 import { BrowserMultiFormatReader, ChecksumException, FormatException, NotFoundException } from "@zxing/library";
 import { useEffect, useRef, useState } from "react";
-import { MdClose } from "react-icons/md";
+import { MdClose, MdRefresh } from "react-icons/md";
+import { checkCameraSupport, requestCameraPermission, troubleshootCamera } from "../utils/cameraUtils";
+import PermissionRequest from "./PermissionRequest";
 
 const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
   console.log('=== ScannerDialog Props ===');
@@ -13,6 +15,8 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
   const [manualCode, setManualCode] = useState("");
   const [scanning, setScanning] = useState(false); // Keep for logic if needed
   const [error, setError] = useState(null);
+  const [showTroubleshoot, setShowTroubleshoot] = useState(false);
+  const [showPermissionRequest, setShowPermissionRequest] = useState(false);
   const codeReader = useRef(null);
   const videoRef = useRef(null); // Essential for the video element
 
@@ -32,7 +36,7 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
     };
   }, [isOpen]); // Rerun when isOpen changes
 
-  const initializeScanner = async () => {
+    const initializeScanner = async () => {
     if (scanning) return; // Prevent re-initialization if already scanning
     setScanning(true);
     setError(null);
@@ -44,28 +48,86 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
         return;
       }
 
+      // Clean up any existing scanner
+      if (codeReader.current) {
+        try {
+          codeReader.current.reset();
+        } catch (e) {
+          console.warn("Error resetting existing scanner:", e);
+        }
+        codeReader.current = null;
+      }
+
+      // Request camera permission first
+      try {
+        await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: "environment" } }
+        }).then(stream => {
+          stream.getTracks().forEach(track => track.stop()); // Clean up test stream
+        });
+      } catch (permissionError) {
+        throw new Error("กรุณาอนุญาตการเข้าถึงกล้องในเบราว์เซอร์");
+      }
+
+      // Create new scanner instance
       codeReader.current = new BrowserMultiFormatReader();
+
+      // Wait a bit for the scanner to initialize
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      if (!codeReader.current) {
+        throw new Error("ไม่สามารถเริ่มต้นสแกนเนอร์ได้");
+      }
+
       const devices = await codeReader.current.listVideoInputDevices();
 
       if (!devices || devices.length === 0) {
-        throw new Error("ไม่พบอุปกรณ์กล้อง");
+        throw new Error("ไม่พบอุปกรณ์กล้อง กรุณาตรวจสอบการเชื่อมต่อกล้อง");
       }
 
-      const rearCamera = devices.find((device) =>
-        device.label.toLowerCase().includes("back") ||
-        device.label.toLowerCase().includes("rear")
-      );
-      const deviceId = rearCamera?.deviceId || devices[0]?.deviceId;
+      console.log("Available cameras:", devices.map(d => ({ id: d.deviceId, label: d.label })));
 
-      if (!deviceId) throw new Error("ไม่สามารถเลือกกล้องได้");
+      // Enhanced camera selection for mobile devices
+      let selectedDeviceId = null;
 
-      // Ensure previous tracks are stopped before starting new ones
+      // Try to find rear/back camera with multiple approaches
+      const rearCameraKeywords = ['back', 'rear', 'environment', 'facing back', 'camera2 0'];
+      const rearCamera = devices.find((device) => {
+        const label = device.label.toLowerCase();
+        return rearCameraKeywords.some(keyword => label.includes(keyword));
+      });
+
+      if (rearCamera) {
+        selectedDeviceId = rearCamera.deviceId;
+        console.log("Using rear camera:", rearCamera.label);
+      } else if (devices.length > 1) {
+        // If multiple cameras but no clear rear camera, try the last one (often rear on mobile)
+        selectedDeviceId = devices[devices.length - 1].deviceId;
+        console.log("Using last camera (likely rear):", devices[devices.length - 1].label);
+      } else {
+        // Use the only available camera
+        selectedDeviceId = devices[0].deviceId;
+        console.log("Using only available camera:", devices[0].label);
+      }
+
+      if (!selectedDeviceId) throw new Error("ไม่สามารถเลือกกล้องได้");
+
+      // Clean up any existing video stream
       if (videoRef.current.srcObject) {
         videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
+
+      // Wait a bit more before starting the scanner
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Check if codeReader is still valid
+      if (!codeReader.current || typeof codeReader.current.decodeFromVideoDevice !== 'function') {
+        throw new Error("สแกนเนอร์ไม่พร้อมใช้งาน");
       }
 
       await codeReader.current.decodeFromVideoDevice(
-        deviceId,
+        selectedDeviceId,
         videoRef.current,
         (result, err) => {
           if (result) {
@@ -78,9 +140,30 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
           }
         }
       );
-    } catch (e) {
+            } catch (e) {
       console.error("Scanner initialization error:", e);
-      setError(e.message || "เกิดข้อผิดพลาดในการเริ่มต้นสแกนเนอร์");
+
+      // แสดง Permission Request Dialog สำหรับ permission errors
+      if (e.name === 'NotAllowedError' || e.message.includes('อนุญาต')) {
+        setShowPermissionRequest(true);
+      } else if (e.name === 'NotReadableError') {
+        // กล้องถูกใช้งานโดยแอปอื่น - แสดง dialog ให้ผู้ใช้เลือก
+        setError("กล้องถูกใช้งานโดยแอปพลิเคชันอื่น กรุณาปิดแอปอื่นแล้วลองใหม่");
+        setShowPermissionRequest(true); // แสดง dialog เพื่อให้ผู้ใช้สามารถขออนุญาตใหม่ได้
+      } else {
+        let errorMessage = "เกิดข้อผิดพลาดในการเริ่มต้นสแกนเนอร์";
+
+        if (e.name === 'NotFoundError') {
+          errorMessage = "ไม่พบกล้องที่ใช้งานได้ กรุณาตรวจสอบอุปกรณ์";
+        } else if (e.name === 'OverconstrainedError') {
+          errorMessage = "ไม่สามารถใช้กล้องได้ กรุณาตรวจสอบการตั้งค่า";
+        } else if (e.name === 'AbortError') {
+          errorMessage = "การเชื่อมต่อกล้องถูกยกเลิก";
+        }
+
+        setError(errorMessage);
+      }
+
       setScanning(false);
       if (codeReader.current) {
           codeReader.current.reset();
@@ -92,7 +175,11 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
   const stopScanner = () => {
     try {
       if (codeReader.current) {
-        codeReader.current.reset();
+        try {
+          codeReader.current.reset();
+        } catch (e) {
+          console.warn("Error resetting scanner:", e);
+        }
         codeReader.current = null; // Ensure it's cleared for re-initialization
       }
       if (videoRef.current && videoRef.current.srcObject) {
@@ -117,6 +204,17 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
   const handleCloseDialog = () => {
     stopScanner();
     onClose();
+  };
+
+  const handlePermissionGranted = (permissionType) => {
+    if (permissionType === 'camera') {
+      setShowPermissionRequest(false);
+      setError(null);
+      // ลองเริ่ม scanner ใหม่หลังจากได้รับ permission
+      setTimeout(() => {
+        initializeScanner();
+      }, 1000); // เพิ่มเวลาให้มากขึ้น
+    }
   };
 
   if (!isOpen) return null;
@@ -146,19 +244,30 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
             {/* Content Area */}
             <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto flex-grow">
               {error && (
-                <div className="bg-red-50 p-4 rounded-lg flex items-start space-x-3">
-                  <ErrorIcon className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-red-700">เกิดข้อผิดพลาด</p>
-                    <p className="text-xs text-red-600">{error}</p>
+                <div className="bg-red-50 p-4 rounded-lg space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <ErrorIcon className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-red-700">เกิดข้อผิดพลาด</p>
+                      <p className="text-xs text-red-600">{error}</p>
+                    </div>
                   </div>
-                  <button
-                    className="ml-auto text-xs font-semibold text-blue-600 hover:text-blue-700 underline whitespace-nowrap touch-manipulation select-none"
-                    onClick={() => { initializeScanner(); }} // Removed stopScanner from here, initializeScanner handles reset
-                    style={{ WebkitTapHighlightColor: 'transparent' }}
-                  >
-                    ลองอีกครั้ง
-                  </button>
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors touch-manipulation select-none"
+                      onClick={() => setShowPermissionRequest(true)}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      ขออนุญาต
+                    </button>
+                    <button
+                      className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors touch-manipulation select-none"
+                      onClick={() => { initializeScanner(); }}
+                      style={{ WebkitTapHighlightColor: 'transparent' }}
+                    >
+                      ลองอีกครั้ง
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -228,6 +337,14 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
           </div>
         </div>
       </div>
+
+      {/* Permission Request Dialog */}
+      <PermissionRequest
+        isOpen={showPermissionRequest}
+        onClose={() => setShowPermissionRequest(false)}
+        onPermissionGranted={handlePermissionGranted}
+        requestType="camera"
+      />
     </div>
   );
 };
