@@ -19,6 +19,7 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
   const codeReader = useRef(null);
   const videoRef = useRef(null); // Essential for the video element
+  const handlingScanRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -130,8 +131,13 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
         videoRef.current,
         (result, err) => {
           if (result) {
-            stopScanner(); // Stop scanner before calling onScanComplete
-            onScanComplete(result.getText());
+            if (handlingScanRef.current) return;
+            handlingScanRef.current = true;
+            try {
+              onScanComplete(result.getText());
+            } finally {
+              setTimeout(() => { handlingScanRef.current = false; }, 1000);
+            }
           } else if (err && !(err instanceof NotFoundException) && !(err instanceof ChecksumException) && !(err instanceof FormatException)) {
             // Log more specific errors, but don't show generic scan errors to user unless critical
             console.warn("Scanning error:", err);

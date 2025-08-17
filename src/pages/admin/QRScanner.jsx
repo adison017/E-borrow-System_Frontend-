@@ -21,6 +21,7 @@ const QRScanner = () => {
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
   const codeReader = useRef(null);
   const videoRef = useRef(null);
+  const handlingScanRef = useRef(false);
 
   useEffect(() => {
     initializeScanner();
@@ -122,8 +123,13 @@ const QRScanner = () => {
         videoRef.current,
         (result, err) => {
           if (result) {
-            stopScanner();
-            handleScanComplete(result.getText());
+            if (handlingScanRef.current) return;
+            handlingScanRef.current = true;
+            try {
+              handleScanComplete(result.getText());
+            } finally {
+              setTimeout(() => { handlingScanRef.current = false; }, 1000);
+            }
           } else if (err && !(err instanceof NotFoundException) && !(err instanceof ChecksumException) && !(err instanceof FormatException)) {
             console.warn("Scanning error:", err);
           }
