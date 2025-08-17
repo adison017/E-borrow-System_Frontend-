@@ -11,7 +11,10 @@
   <body>
     <div id="root"></div>
     <script>
-      window.__API_BASE__ = 'https://e-borrow-system-backend.onrender.com';
+      // Prefer environment-based API URL; fallback to localhost in dev
+      window.__API_BASE__ = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+        ? 'http://localhost:5000'
+        : (window.__API_BASE__ || 'https://e-borrow-system-backend.onrender.com');
     </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
