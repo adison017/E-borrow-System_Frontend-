@@ -60,6 +60,8 @@ function Header({ userRole, changeRole }) {
     setShowLogoutConfirm(true);
   };
   const confirmLogout = () => {
+    // ตั้ง flag ว่าเป็นการ logout เอง
+    localStorage.setItem('isManualLogout', 'true');
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     sessionStorage.clear();
@@ -118,16 +120,16 @@ function Header({ userRole, changeRole }) {
       }
     };
     const handleSessionExpired = () => {
-      // แจ้งเตือนและเด้งไปหน้า login เพื่อความปลอดภัย
-      try {
-        if (Notification && Notification.permission === 'granted') {
-          const n = new Notification('เซสชันหมดอายุ', { body: 'กรุณาเข้าสู่ระบบใหม่เพื่อความปลอดภัย', icon: '/logo_it.png' });
-          setTimeout(() => n.close(), 6000);
-        }
-      } catch {}
-      alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่เพื่อความปลอดภัย');
+      // ตรวจสอบว่าเป็นการ logout เองหรือไม่
+      const isManualLogout = localStorage.getItem('isManualLogout') === 'true';
+
+      // ลบ flag และ cleanup
+      localStorage.removeItem('isManualLogout');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+
+      // ไม่แสดงการแจ้งเตือนใดๆ เมื่อ session หมดอายุ
+
       navigate('/login');
     };
     window.addEventListener('profileImageUpdated', handleProfileImageUpdate);
@@ -681,7 +683,7 @@ function Header({ userRole, changeRole }) {
                                 user_overdue: { label: 'เกินกำหนด', color: 'purple', icon: iconMap.user_overdue },
                                 user_rejected: { label: 'ไม่อนุมัติ', color: 'red', icon: iconMap.user_rejected },
                               }[item.type] || { label: 'แจ้งเตือน', color: 'gray', icon: <MdNotifications className="h-5 w-5" /> };
-                              
+
                               const colorClasses = {
                                 blue: 'bg-blue-500 text-blue-500 bg-blue-50 border-blue-200',
                                 amber: 'bg-amber-500 text-amber-500 bg-amber-50 border-amber-200',
@@ -691,7 +693,7 @@ function Header({ userRole, changeRole }) {
                                 rose: 'bg-rose-500 text-rose-500 bg-rose-50 border-rose-200',
                                 gray: 'bg-gray-500 text-gray-500 bg-gray-50 border-gray-200',
                               }[statusConfig.color];
-                              
+
                               const [bgColor, textColor, lightBg, borderColor] = colorClasses.split(' ');
 
                               return (
@@ -732,13 +734,15 @@ function Header({ userRole, changeRole }) {
                                   {!isRead && (
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-500 transition-all duration-200 group-hover:w-1.5"></div>
                                   )}
+
                                   
                                   <div className="flex items-start gap-3 sm:gap-4">
+
                                     {/* Icon container with hover effect */}
                                     <div className={`flex h-8 sm:h-10 w-8 sm:w-10 flex-shrink-0 items-center justify-center rounded-lg ${lightBg} ${textColor} transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg`}>
                                       {React.cloneElement(statusConfig.icon, { className: 'h-4 sm:h-5 w-4 sm:w-5' })}
                                     </div>
-                                    
+
                                     {/* Content */}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-start justify-between gap-2">
@@ -766,7 +770,7 @@ function Header({ userRole, changeRole }) {
                                             </span>
                                           </div>
                                         </div>
-                                        
+
                                         {/* Arrow icon with animation */}
                                         <MdChevronRight className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400 group-hover:text-gray-600 transition-all duration-200 flex-shrink-0 group-hover:translate-x-1" />
                                       </div>

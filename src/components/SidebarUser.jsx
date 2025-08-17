@@ -67,9 +67,16 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
   // ฟัง sessionExpired เพื่อความปลอดภัย
   useEffect(() => {
     const handleSessionExpired = () => {
-      alert('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่เพื่อความปลอดภัย');
+      // ตรวจสอบว่าเป็นการ logout เองหรือไม่
+      const isManualLogout = localStorage.getItem('isManualLogout') === 'true';
+
+      // ลบ flag และ cleanup
+      localStorage.removeItem('isManualLogout');
       localStorage.removeItem('token');
       localStorage.removeItem('user');
+
+      // ไม่แสดงการแจ้งเตือนใดๆ เมื่อ session หมดอายุ
+
       navigate('/login');
     };
     window.addEventListener('sessionExpired', handleSessionExpired);
@@ -109,6 +116,8 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
     setShowLogoutConfirm(true);
   };
   const confirmLogout = () => {
+    // ตั้ง flag ว่าเป็นการ logout เอง
+    localStorage.setItem('isManualLogout', 'true');
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     sessionStorage.clear();
