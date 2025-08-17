@@ -67,14 +67,14 @@ const Notification = ({
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <AiOutlineCheckCircle className="w-8 h-8 text-green-500" />;
+        return <AiOutlineCheckCircle className="w-full h-full text-green-500" />;
       case 'error':
-        return <AiOutlineCloseCircle className="w-8 h-8 text-red-500" />;
+        return <AiOutlineCloseCircle className="w-full h-full text-red-500" />;
       case 'warning':
-        return <AiOutlineWarning className="w-8 h-8 text-yellow-500" />;
+        return <AiOutlineWarning className="w-full h-full text-yellow-500" />;
       case 'info':
       default:
-        return <AiOutlineInfoCircle className="w-8 h-8 text-blue-500" />;
+        return <AiOutlineInfoCircle className="w-full h-full text-blue-500" />;
     }
   };
 
@@ -101,13 +101,12 @@ const Notification = ({
           animation: fadeOutScale 0.25s cubic-bezier(0.4,0,0.2,1);
         }
       `}</style>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn px-4">
         <div
           ref={notificationRef}
-          className={`relative bg-white rounded-3xl p-8 pb-10 w-full max-w-[380px] sm:max-w-[420px] shadow-2xl border ${getNotificationStyle()} transition-all duration-300 ${animateOut ? 'animate-fadeOutScale' : 'animate-fadeInScale'} mb-12`}
+          className={`relative bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 pb-8 sm:pb-10 w-full max-w-[90vw] sm:max-w-[420px] md:max-w-[450px] lg:max-w-[500px] shadow-2xl border ${getNotificationStyle()} transition-all duration-300 ${animateOut ? 'animate-fadeOutScale' : 'animate-fadeInScale'}`}
           style={{
-            maxWidth: '30vw',
-            maxHeight: '80vh',
+            maxHeight: '85vh',
             overflow: 'visible',
             boxSizing: 'border-box',
             display: 'flex',
@@ -117,29 +116,29 @@ const Notification = ({
         >
         {/* ปุ่มปิด (X) มุมขวาบน */}
         <button
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-full p-1 transition"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-300 rounded-full p-1 transition"
           onClick={handleClose}
         >
           <span className="sr-only">Close</span>
-          <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20">
+          <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         </button>
         {/* ไอคอนสถานะใหญ่ */}
         <div className="mb-3 flex items-center justify-center">
-          <div className="w-14 h-14 flex items-center justify-center rounded-full bg-opacity-10 animate-bounce" style={{backgroundColor: type==='success'? '#bbf7d0': type==='error'? '#fecaca': type==='warning'? '#fef08a': '#bfdbfe'}}>
-            <div className="w-8 h-8">{getIcon()}</div>
+          <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center rounded-full bg-opacity-10 animate-bounce" style={{backgroundColor: type==='success'? '#bbf7d0': type==='error'? '#fecaca': type==='warning'? '#fef08a': '#bfdbfe'}}>
+            <div className="w-7 h-7 sm:w-8 sm:h-8">{getIcon()}</div>
           </div>
         </div>
         {/* Title และข้อความ */}
         <h3
-          className="text-2xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 mb-3 text-center break-words tracking-wide drop-shadow-sm"
+          className="text-xl sm:text-2xl md:text-3xl font-extrabold text-gray-900 mb-2 sm:mb-3 text-center break-words tracking-wide drop-shadow-sm px-2"
           style={{ letterSpacing: '0.02em', lineHeight: 1.2 }}
         >
           {title}
         </h3>
         <div
-          className="text-gray-700 text-base sm:text-lg md:text-lg  text-center whitespace-pre-line break-words mb-4 px-2 leading-relaxed font-medium"
+          className="text-gray-700 text-sm sm:text-base md:text-lg text-center whitespace-pre-line break-words mb-3 sm:mb-4 px-3 sm:px-2 leading-relaxed font-medium"
           style={{ letterSpacing: '0.01em' }}
         >
           {message}
@@ -153,7 +152,7 @@ const Notification = ({
                 to { transform: scaleX(0); }
               }
             `}</style>
-            <div className="h-1 bg-gray-200 flex-shrink-0 rounded-b-xl overflow-hidden w-2/3 mx-auto ">
+            <div className="h-1 bg-gray-200 flex-shrink-0 rounded-b-xl overflow-hidden w-3/4 sm:w-2/3 mx-auto">
               <div
                 className={`h-full ${
                   type === 'success' ? 'bg-green-500' :
@@ -173,12 +172,12 @@ const Notification = ({
         )}
         {/* ปุ่ม action ครึ่งในครึ่งนอกกล่อง dialog */}
         {effectiveActions.length > 0 && (
-          <div className="w-full flex flex-row gap-4 justify-center items-center mt-4 flex-wrap">
+          <div className="w-full flex flex-row gap-2 sm:gap-4 justify-center items-center mt-3 sm:mt-4 flex-wrap px-2">
             {effectiveActions.map((action, index) => (
               <button
                 key={index}
                 type="button"
-                className={`min-w-[120px] px-6 py-2 text-base rounded-full shadow-xl border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200
+                className={`min-w-[100px] sm:min-w-[120px] px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-xl border-2 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200
                   ${
                     type === 'warning'
                       ? 'bg-yellow-500 text-black border-yellow-400 hover:bg-yellow-400 hover:text-white focus:ring-yellow-500' :
