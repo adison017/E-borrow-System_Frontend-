@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { isCloudinaryUrl, getOptimizedCloudinaryUrl } from '../utils/cloudinaryUtils';
 import { MdAssignment, MdBuild, MdCheckCircle, MdChevronRight, MdErrorOutline, MdFactCheck, MdLocalShipping, MdNotifications, MdPayment, MdSchedule, MdSettings, MdUndo, MdWarningAmber } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useBadgeCounts } from '../hooks/useSocket';
-import { authFetch, getAllBorrows, API_BASE } from '../utils/api';
+import { API_BASE, authFetch, getAllBorrows } from '../utils/api';
+import { getOptimizedCloudinaryUrl, isCloudinaryUrl } from '../utils/cloudinaryUtils';
 import Notification from './Notification';
 // import { Avatar } from "@material-tailwind/react"; // ไม่ใช้ Avatar แล้ว
 
@@ -591,224 +591,275 @@ function Header({ userRole, changeRole }) {
                 </button>
                 {showNotifMenu && (
                   <>
-                    {/* Mobile overlay backdrop */}
-                    <div className="sm:hidden fixed inset-0 bg-black/50 z-[19]" onClick={() => setShowNotifMenu(false)} />
-                    
-                    {/* Notification menu - centered on mobile, right-aligned on desktop */}
-                    <div id="notif-menu" className="fixed sm:absolute left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 sm:right-0 top-1/2 sm:top-full -translate-y-1/2 sm:translate-y-0 sm:mt-2 w-[90vw] sm:w-[420px] max-w-[420px] overflow-visible z-20 animate-in fade-in slide-in-from-top-1 duration-300">
-                      {/* Pointer (chat bubble tail) with animation - only show on desktop */}
-                      <div
-                        className="hidden sm:block w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-blue-700 absolute right-[10px] -top-[9px] z-30 animate-in fade-in zoom-in-95 duration-200"
-                      />
-
-                      <div className="bg-white rounded-xl shadow-2xl ring-1 ring-gray-900/5 overflow-hidden transform transition-all duration-300 ease-out">
-                      {/* Header with gradient and counter */}
-                      <div className="relative overflow-hidden bg-blue-700 px-4 sm:px-6 py-3 sm:py-4 rounded-b-xl ">
-                        <div className="relative z-10 flex items-center justify-between">
-                          <div className="flex items-center gap-2 sm:gap-3">
-                            <div>
-                              <MdNotifications className="h-6 sm:h-8 w-6 sm:w-8 text-white" />
+                    {/* Mobile: overlay backdrop + centered modal */}
+                    <div
+                      className="sm:hidden fixed inset-0 bg-black/50 z-[19]"
+                      onClick={() => setShowNotifMenu(false)}
+                      style={{ touchAction: 'pan-y' }}
+                    />
+                    <div className="sm:hidden fixed inset-0 z-20 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+                      <div id="notif-menu-mobile" className="w-[90vw] max-w-[90vw] bg-white rounded-xl shadow-2xl ring-1 ring-gray-900/5 overflow-hidden animate-in fade-in duration-300">
+                        {/* Use same inner content as desktop header */}
+                        <div className="relative overflow-hidden bg-blue-700 px-4 py-3 rounded-b-xl">
+                          <div className="relative z-10 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div>
+                                <MdNotifications className="h-6 w-6 text-white" />
+                              </div>
+                              <div>
+                                <h3 className="text-base font-semibold text-white">การแจ้งเตือน</h3>
+                                <p className="text-xs text-blue-100">{unreadCount > 0 ? `${unreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}</p>
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="text-base sm:text-lg font-semibold text-white">การแจ้งเตือน</h3>
-                              <p className="text-xs text-blue-100">
-                                {unreadCount > 0 ? `${unreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}
-                              </p>
-                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const newState = !soundEnabled;
+                                setSoundEnabled(newState);
+                                localStorage.setItem('notifSound', newState ? '1' : '0');
+                              }}
+                              className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-200"
+                              title={soundEnabled ? 'ปิดเสียงแจ้งเตือน' : 'เปิดเสียงแจ้งเตือน'}
+                            >
+                              {soundEnabled ? (
+                                <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                </svg>
+                              ) : (
+                                <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                                </svg>
+                              )}
+                            </button>
                           </div>
-                          {/* Sound toggle */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const newState = !soundEnabled;
-                              setSoundEnabled(newState);
-                              localStorage.setItem('notifSound', newState ? '1' : '0');
-                            }}
-                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-200 hover:scale-110"
-                            title={soundEnabled ? 'ปิดเสียงแจ้งเตือน' : 'เปิดเสียงแจ้งเตือน'}
-                          >
-                            {soundEnabled ? (
-                              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                            </svg>
-                            ) : (
-                              <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                              </svg>
-                            )}
-                          </button>
+                          <div className="absolute -left-4 -bottom-4 h-20 w-20 rounded-full bg-white/10"></div>
                         </div>
-                        {/* Decorative elements */}
-                        <div className="absolute -left-4 -bottom-4 h-20 w-20 rounded-full bg-white/10"></div>
-                      </div>
 
-                      {/* Notifications list with smooth scroll */}
-                      <div className="max-h-[50vh] sm:max-h-[420px] overflow-y-auto bg-gray-50 scroll-smooth scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                        {unreadCount === 0 && sortedVisibleItems.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 sm:px-6 animate-in fade-in duration-300">
-                            <div className="flex h-12 sm:h-16 w-12 sm:w-16 items-center justify-center rounded-full bg-gray-100 mb-3 sm:mb-4 animate-bounce">
-                              <MdNotifications className="h-6 sm:h-8 w-6 sm:w-8 text-gray-400" />
+                        <div className="max-h-[60vh] overflow-y-auto bg-gray-50 scroll-smooth scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                          {unreadCount === 0 && sortedVisibleItems.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center py-8 px-4 animate-in fade-in duration-300">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 mb-3 animate-bounce">
+                                <MdNotifications className="h-6 w-6 text-gray-400" />
+                              </div>
+                              <p className="text-sm font-medium text-gray-900">ไม่มีการแจ้งเตือน</p>
+                              <p className="text-xs text-gray-500 mt-1 text-center">คุณจะได้รับการแจ้งเตือนเมื่อมีกิจกรรมใหม่</p>
                             </div>
-                            <p className="text-sm font-medium text-gray-900">ไม่มีการแจ้งเตือน</p>
-                            <p className="text-xs text-gray-500 mt-1 text-center">คุณจะได้รับการแจ้งเตือนเมื่อมีกิจกรรมใหม่</p>
-                          </div>
-                        ) : (
-                          <div className="divide-y divide-gray-100">
-                            {sortedVisibleItems.map(item => {
-                              const isRead = readIds.has(item.id);
-                              const iconMap = {
-                                admin_pending: <MdAssignment className="h-5 w-5" />,
-                                admin_carry: <MdLocalShipping className="h-5 w-5" />,
-                                admin_return: <MdUndo className="h-5 w-5" />,
-                                exec_borrow_approval: <MdFactCheck className="h-5 w-5" />,
-                                exec_repair_approval: <MdBuild className="h-5 w-5" />,
-                                user_pending: <MdSchedule className="h-5 w-5" />,
-                                user_approved: <MdCheckCircle className="h-5 w-5" />,
-                                user_carry: <MdLocalShipping className="h-5 w-5" />,
-                                user_waiting_payment: <MdPayment className="h-5 w-5" />,
-                                user_overdue: <MdWarningAmber className="h-5 w-5" />,
-                                user_rejected: <MdErrorOutline className="h-5 w-5" />,
-                              };
-                              const statusConfig = {
-                                admin_pending: { label: 'รอจัดการ', color: 'blue', icon: iconMap.admin_pending },
-                                admin_carry: { label: 'ส่งมอบ', color: 'amber', icon: iconMap.admin_carry },
-                                admin_return: { label: 'รอคืน', color: 'purple', icon: iconMap.admin_return },
-                                exec_borrow_approval: { label: 'รออนุมัติยืม', color: 'red', icon: iconMap.exec_borrow_approval },
-                                exec_repair_approval: { label: 'รออนุมัติซ่อม', color: 'amber', icon: iconMap.exec_repair_approval },
-                                user_pending: { label: 'รออนุมัติ', color: 'blue', icon: iconMap.user_pending },
-                                user_approved: { label: 'อนุมัติแล้ว', color: 'green', icon: iconMap.user_approved },
-                                user_carry: { label: 'กำลังยืม', color: 'amber', icon: iconMap.user_carry },
-                                user_waiting_payment: { label: 'ค้างชำระ', color: 'rose', icon: iconMap.user_waiting_payment },
-                                user_overdue: { label: 'เกินกำหนด', color: 'purple', icon: iconMap.user_overdue },
-                                user_rejected: { label: 'ไม่อนุมัติ', color: 'red', icon: iconMap.user_rejected },
-                              }[item.type] || { label: 'แจ้งเตือน', color: 'gray', icon: <MdNotifications className="h-5 w-5" /> };
+                          ) : (
+                            <div className="divide-y divide-gray-100">
+                              {sortedVisibleItems.map(item => {
+                                const isRead = readIds.has(item.id);
+                                const iconMap = {
+                                  admin_pending: <MdAssignment className="h-5 w-5" />,
+                                  admin_carry: <MdLocalShipping className="h-5 w-5" />,
+                                  admin_return: <MdUndo className="h-5 w-5" />,
+                                  exec_borrow_approval: <MdFactCheck className="h-5 w-5" />,
+                                  exec_repair_approval: <MdBuild className="h-5 w-5" />,
+                                  user_pending: <MdSchedule className="h-5 w-5" />,
+                                  user_approved: <MdCheckCircle className="h-5 w-5" />,
+                                  user_carry: <MdLocalShipping className="h-5 w-5" />,
+                                  user_waiting_payment: <MdPayment className="h-5 w-5" />,
+                                  user_overdue: <MdWarningAmber className="h-5 w-5" />,
+                                  user_rejected: <MdErrorOutline className="h-5 w-5" />,
+                                };
+                                const statusConfig = {
+                                  admin_pending: { label: 'รอจัดการ', color: 'blue', icon: iconMap.admin_pending },
+                                  admin_carry: { label: 'ส่งมอบ', color: 'amber', icon: iconMap.admin_carry },
+                                  admin_return: { label: 'รอคืน', color: 'purple', icon: iconMap.admin_return },
+                                  exec_borrow_approval: { label: 'รออนุมัติยืม', color: 'red', icon: iconMap.exec_borrow_approval },
+                                  exec_repair_approval: { label: 'รออนุมัติซ่อม', color: 'amber', icon: iconMap.exec_repair_approval },
+                                  user_pending: { label: 'รออนุมัติ', color: 'blue', icon: iconMap.user_pending },
+                                  user_approved: { label: 'อนุมัติแล้ว', color: 'green', icon: iconMap.user_approved },
+                                  user_carry: { label: 'กำลังยืม', color: 'amber', icon: iconMap.user_carry },
+                                  user_waiting_payment: { label: 'ค้างชำระ', color: 'rose', icon: iconMap.user_waiting_payment },
+                                  user_overdue: { label: 'เกินกำหนด', color: 'purple', icon: iconMap.user_overdue },
+                                  user_rejected: { label: 'ไม่อนุมัติ', color: 'red', icon: iconMap.user_rejected },
+                                }[item.type] || { label: 'แจ้งเตือน', color: 'gray', icon: <MdNotifications className="h-5 w-5" /> };
+                                const colorClasses = {
+                                  blue: 'bg-blue-500 text-blue-500 bg-blue-50 border-blue-200',
+                                  amber: 'bg-amber-500 text-amber-500 bg-amber-50 border-amber-200',
+                                  purple: 'bg-purple-500 text-purple-500 bg-purple-50 border-purple-200',
+                                  red: 'bg-red-500 text-red-500 bg-red-50 border-red-200',
+                                  green: 'bg-green-500 text-green-500 bg-green-50 border-green-200',
+                                  rose: 'bg-rose-500 text-rose-500 bg-rose-50 border-rose-200',
+                                  gray: 'bg-gray-500 text-gray-500 bg-gray-50 border-gray-200',
+                                }[statusConfig.color];
+                                const [bgColor, textColor, lightBg, borderColor] = colorClasses.split(' ');
 
-                              const colorClasses = {
-                                blue: 'bg-blue-500 text-blue-500 bg-blue-50 border-blue-200',
-                                amber: 'bg-amber-500 text-amber-500 bg-amber-50 border-amber-200',
-                                purple: 'bg-purple-500 text-purple-500 bg-purple-50 border-purple-200',
-                                red: 'bg-red-500 text-red-500 bg-red-50 border-red-200',
-                                green: 'bg-green-500 text-green-500 bg-green-50 border-green-200',
-                                rose: 'bg-rose-500 text-rose-500 bg-rose-50 border-rose-200',
-                                gray: 'bg-gray-500 text-gray-500 bg-gray-50 border-gray-200',
-                              }[statusConfig.color];
-
-                              const [bgColor, textColor, lightBg, borderColor] = colorClasses.split(' ');
-
-                              return (
-                                <button
-                                  key={item.id}
-                                  className={`group relative w-full px-4 sm:px-6 py-3 sm:py-4 text-left transition-all duration-200 hover:bg-white hover:shadow-md hover:scale-[1.01] transform ${
-                                    isRead ? 'opacity-60 hover:opacity-80' : 'hover:opacity-100'
-                                  }`}
-                                  onMouseDown={(e) => e.preventDefault()}
-                                  onClick={() => {
-                                    setShowNotifMenu(false);
-                                    const next = new Set(Array.from(readIds));
-                                    next.add(item.id);
-                                    setReadIds(next);
-                                    try {
-                                      const userStr = localStorage.getItem('user');
-                                      const user = userStr ? JSON.parse(userStr) : null;
-                                      const key = `notif.read.${userRole}.${user?.user_id || 'unknown'}`;
-                                      localStorage.setItem(key, JSON.stringify(Array.from(next)));
-                                    } catch {}
-                                    try {
-                                      const keyAt = (() => {
-                                        try {
-                                          const userStr = localStorage.getItem('user');
-                                          const user = userStr ? JSON.parse(userStr) : null;
-                                          const uid = user?.user_id ? String(user.user_id) : 'unknown';
-                                          return `notif.readAt.${userRole}.${uid}`;
-                                        } catch { return `notif.readAt.${userRole}.unknown`; }
-                                      })();
-                                      const newMap = { ...readAtMap, [item.id]: Date.now() };
-                                      setReadAtMap(newMap);
-                                      localStorage.setItem(keyAt, JSON.stringify(newMap));
-                                    } catch {}
-                                    navigate(item.href);
-                                  }}
-                                >
-                                  {/* Unread indicator with animation */}
-                                  {!isRead && (
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-500 transition-all duration-200 group-hover:w-1.5"></div>
-                                  )}
-
-                                  
-                                  <div className="flex items-start gap-3 sm:gap-4">
-
-                                    {/* Icon container with hover effect */}
-                                    <div className={`flex h-8 sm:h-10 w-8 sm:w-10 flex-shrink-0 items-center justify-center rounded-lg ${lightBg} ${textColor} transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg`}>
-                                      {React.cloneElement(statusConfig.icon, { className: 'h-4 sm:h-5 w-4 sm:w-5' })}
-                                    </div>
-
-                                    {/* Content */}
-                                    <div className="flex-1 min-w-0">
-                                      <div className="flex items-start justify-between gap-2">
-                                        <div className="flex-1">
-                                          <p className={`text-xs sm:text-sm font-medium ${isRead ? 'text-gray-600' : 'text-gray-900'} line-clamp-2`}>
-                                            {item.text}
-                                          </p>
-                                          <div className="mt-1 flex flex-wrap items-center gap-1 sm:gap-2">
-                                            <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium ring-1 ring-inset rounded-full ${lightBg} ${textColor} ring-${statusConfig.color}-200 transition-all duration-200 group-hover:ring-2`}>
-                                              {statusConfig.label}
-                                            </span>
-                                            <span className="text-[10px] sm:text-xs text-gray-500">
-                                              {(() => {
-                                                const readAt = readAtMap[item.id];
-                                                if (readAt) {
-                                                  const mins = Math.max(1, Math.round((nowTs - readAt) / 60000));
-                                                  if (mins < 60) return `${mins} นาทีที่แล้ว`;
-                                                  const hours = Math.floor(mins / 60);
-                                                  if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`;
-                                                  const days = Math.floor(hours / 24);
-                                                  return `${days} วันที่แล้ว`;
-                                                }
-                                                return 'ใหม่';
-                                              })()}
-                                            </span>
+                                return (
+                                  <button
+                                    key={item.id}
+                                    className={`group relative w-full px-4 py-3 text-left transition-all duration-200 hover:bg-white hover:shadow-md transform ${isRead ? 'opacity-60' : 'hover:opacity-100'}`}
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={() => {
+                                      setShowNotifMenu(false);
+                                      const next = new Set(Array.from(readIds));
+                                      next.add(item.id);
+                                      setReadIds(next);
+                                      try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const key = `notif.read.${userRole}.${user?.user_id || 'unknown'}`; localStorage.setItem(key, JSON.stringify(Array.from(next))); } catch {}
+                                      try { const keyAt = (() => { try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const uid = user?.user_id ? String(user.user_id) : 'unknown'; return `notif.readAt.${userRole}.${uid}`; } catch { return `notif.readAt.${userRole}.unknown`; } })(); const newMap = { ...readAtMap, [item.id]: Date.now() }; setReadAtMap(newMap); localStorage.setItem(keyAt, JSON.stringify(newMap)); } catch {}
+                                      navigate(item.href);
+                                    }}
+                                  >
+                                    {!isRead && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-500"></div>}
+                                    <div className="flex items-start gap-3">
+                                      <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${lightBg} ${textColor}`}>
+                                        {React.cloneElement(statusConfig.icon, { className: 'h-4 w-4' })}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <div className="flex-1">
+                                            <p className={`text-sm font-medium ${isRead ? 'text-gray-600' : 'text-gray-900'} line-clamp-2`}>{item.text}</p>
+                                            <div className="mt-1 flex items-center gap-2">
+                                              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${lightBg} ${textColor}`}>{statusConfig.label}</span>
+                                              <span className="text-xs text-gray-500">{(() => { const readAt = readAtMap[item.id]; if (readAt) { const mins = Math.max(1, Math.round((nowTs - readAt) / 60000)); if (mins < 60) return `${mins} นาทีที่แล้ว`; const hours = Math.floor(mins / 60); if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`; const days = Math.floor(hours / 24); return `${days} วันที่แล้ว`; } return 'ใหม่'; })()}</span>
+                                            </div>
                                           </div>
+                                          <MdChevronRight className="h-5 w-5 text-gray-400" />
                                         </div>
+
+
 
                                         {/* Arrow icon with animation */}
                                         <MdChevronRight className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400 group-hover:text-gray-600 transition-all duration-200 flex-shrink-0 group-hover:translate-x-1" />
                                       </div>
                                     </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+
+                        {sortedVisibleItems.length > 0 && (
+                          <div className="border-t border-gray-100 bg-blue-700 px-4 py-2">
+                            <div className="flex justify-end">
+                              <button onClick={() => { const allIds = new Set(notifItems.map(i => i.id)); setReadIds(allIds); try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const key = `notif.read.${userRole}.${user?.user_id || 'unknown'}`; localStorage.setItem(key, JSON.stringify(Array.from(allIds))); } catch {} }} className="text-sm font-medium text-white/80 hover:text-white">ทำเครื่องหมายอ่านทั้งหมด</button>
+                            </div>
                           </div>
                         )}
                       </div>
+                    </div>
 
-                      {/* Footer with view all link */}
-                      {sortedVisibleItems.length > 0 && (
-                        <div className="border-t border-gray-100 bg-blue-700 px-4 sm:px-6 py-2 sm:py-3">
+                    {/* Desktop: right-aligned dropdown */}
+                    <div id="notif-menu" className="hidden sm:block absolute right-0 top-full mt-2 w-[420px] max-w-[420px] z-20 animate-in fade-in slide-in-from-top-1 duration-300">
+                      <div className="w-full">
+                        <div className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-blue-700 absolute right-[10px] -top-[9px] z-30" />
+                        <div className="bg-white rounded-xl shadow-2xl ring-1 ring-gray-900/5 overflow-hidden transform transition-all duration-300 ease-out">
+                          <div className="relative overflow-hidden bg-blue-700 px-4 sm:px-6 py-3 sm:py-4 rounded-b-xl">
+                            <div className="relative z-10 flex items-center justify-between">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                                <div>
+                                  <MdNotifications className="h-6 sm:h-8 w-6 sm:w-8 text-white" />
+                                </div>
+                                <div>
+                                  <h3 className="text-base sm:text-lg font-semibold text-white">การแจ้งเตือน</h3>
+                                  <p className="text-xs text-blue-100">{unreadCount > 0 ? `${unreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); const newState = !soundEnabled; setSoundEnabled(newState); localStorage.setItem('notifSound', newState ? '1' : '0'); }}
+                                className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-all duration-200 hover:scale-110"
+                                title={soundEnabled ? 'ปิดเสียงแจ้งเตือน' : 'เปิดเสียงแจ้งเตือน'}
+                              >
+                                {soundEnabled ? (
+                                  <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                                  </svg>
+                                ) : (
+                                  <svg className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                                  </svg>
+                                )}
+                              </button>
+                            </div>
+                            <div className="absolute -left-4 -bottom-4 h-20 w-20 rounded-full bg-white/10"></div>
+                          </div>
 
-                          <div className="flex justify-end">
-                          <button
-                            onClick={() => {
-                              // Do not close the menu when marking all as read
-                              // setShowNotifMenu(false);
-                              // Mark all as read
-                              const allIds = new Set(notifItems.map(i => i.id));
-                              setReadIds(allIds);
-                              try {
-                                const userStr = localStorage.getItem('user');
-                                const user = userStr ? JSON.parse(userStr) : null;
-                                const key = `notif.read.${userRole}.${user?.user_id || 'unknown'}`;
-                                localStorage.setItem(key, JSON.stringify(Array.from(allIds)));
-                              } catch {}
-                            }}
-                            className="text-xs sm:text-sm font-medium text-white/80 hover:text-white transition-all duration-200 hover:underline"
-                          >
-                            ทำเครื่องหมายอ่านทั้งหมด
-                          </button>
+                          <div className="max-h-[50vh] sm:max-h-[420px] overflow-y-auto bg-gray-50 scroll-smooth scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                            {unreadCount === 0 && sortedVisibleItems.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 sm:px-6 animate-in fade-in duration-300">
+                                <div className="flex h-12 sm:h-16 w-12 sm:w-16 items-center justify-center rounded-full bg-gray-100 mb-3 sm:mb-4 animate-bounce">
+                                  <MdNotifications className="h-6 sm:h-8 w-6 sm:w-8 text-gray-400" />
+                                </div>
+                                <p className="text-sm font-medium text-gray-900">ไม่มีการแจ้งเตือน</p>
+                                <p className="text-xs text-gray-500 mt-1 text-center">คุณจะได้รับการแจ้งเตือนเมื่อมีกิจกรรมใหม่</p>
+                              </div>
+                            ) : (
+                              <div className="divide-y divide-gray-100">
+                                {sortedVisibleItems.map(item => {
+                                  const isRead = readIds.has(item.id);
+                                  const iconMap = {
+                                    admin_pending: <MdAssignment className="h-5 w-5" />,
+                                    admin_carry: <MdLocalShipping className="h-5 w-5" />,
+                                    admin_return: <MdUndo className="h-5 w-5" />,
+                                    exec_borrow_approval: <MdFactCheck className="h-5 w-5" />,
+                                    exec_repair_approval: <MdBuild className="h-5 w-5" />,
+                                    user_pending: <MdSchedule className="h-5 w-5" />,
+                                    user_approved: <MdCheckCircle className="h-5 w-5" />,
+                                    user_carry: <MdLocalShipping className="h-5 w-5" />,
+                                    user_waiting_payment: <MdPayment className="h-5 w-5" />,
+                                    user_overdue: <MdWarningAmber className="h-5 w-5" />,
+                                    user_rejected: <MdErrorOutline className="h-5 w-5" />,
+                                  };
+                                  const statusConfig = {
+                                    admin_pending: { label: 'รอจัดการ', color: 'blue', icon: iconMap.admin_pending },
+                                    admin_carry: { label: 'ส่งมอบ', color: 'amber', icon: iconMap.admin_carry },
+                                    admin_return: { label: 'รอคืน', color: 'purple', icon: iconMap.admin_return },
+                                    exec_borrow_approval: { label: 'รออนุมัติยืม', color: 'red', icon: iconMap.exec_borrow_approval },
+                                    exec_repair_approval: { label: 'รออนุมัติซ่อม', color: 'amber', icon: iconMap.exec_repair_approval },
+                                    user_pending: { label: 'รออนุมัติ', color: 'blue', icon: iconMap.user_pending },
+                                    user_approved: { label: 'อนุมัติแล้ว', color: 'green', icon: iconMap.user_approved },
+                                    user_carry: { label: 'กำลังยืม', color: 'amber', icon: iconMap.user_carry },
+                                    user_waiting_payment: { label: 'ค้างชำระ', color: 'rose', icon: iconMap.user_waiting_payment },
+                                    user_overdue: { label: 'เกินกำหนด', color: 'purple', icon: iconMap.user_overdue },
+                                    user_rejected: { label: 'ไม่อนุมัติ', color: 'red', icon: iconMap.user_rejected },
+                                  }[item.type] || { label: 'แจ้งเตือน', color: 'gray', icon: <MdNotifications className="h-5 w-5" /> };
+                                  const colorClasses = {
+                                    blue: 'bg-blue-500 text-blue-500 bg-blue-50 border-blue-200',
+                                    amber: 'bg-amber-500 text-amber-500 bg-amber-50 border-amber-200',
+                                    purple: 'bg-purple-500 text-purple-500 bg-purple-50 border-purple-200',
+                                    red: 'bg-red-500 text-red-500 bg-red-50 border-red-200',
+                                    green: 'bg-green-500 text-green-500 bg-green-50 border-green-200',
+                                    rose: 'bg-rose-500 text-rose-500 bg-rose-50 border-rose-200',
+                                    gray: 'bg-gray-500 text-gray-500 bg-gray-50 border-gray-200',
+                                  }[statusConfig.color];
+                                  const [bgColor, textColor, lightBg, borderColor] = colorClasses.split(' ');
+
+                                  return (
+                                    <button key={item.id} className={`group relative w-full px-4 sm:px-6 py-3 sm:py-4 text-left transition-all duration-200 hover:bg-white hover:shadow-md hover:scale-[1.01] transform ${isRead ? 'opacity-60 hover:opacity-80' : 'hover:opacity-100'}`} onMouseDown={(e) => e.preventDefault()} onClick={() => { setShowNotifMenu(false); const next = new Set(Array.from(readIds)); next.add(item.id); setReadIds(next); try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const key = `notif.read.${userRole}.${user?.user_id || 'unknown'}`; localStorage.setItem(key, JSON.stringify(Array.from(next))); } catch {} try { const keyAt = (() => { try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const uid = user?.user_id ? String(user.user_id) : 'unknown'; return `notif.readAt.${userRole}.${uid}`; } catch { return `notif.readAt.${userRole}.unknown`; } })(); const newMap = { ...readAtMap, [item.id]: Date.now() }; setReadAtMap(newMap); localStorage.setItem(keyAt, JSON.stringify(newMap)); } catch {} navigate(item.href); }}>
+                                      {!isRead && (<div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-500 transition-all duration-200 group-hover:w-1.5"></div>)}
+                                      <div className="flex items-start gap-3 sm:gap-4">
+                                        <div className={`flex h-8 sm:h-10 w-8 sm:w-10 flex-shrink-0 items-center justify-center rounded-lg ${lightBg} ${textColor} transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg`}>{React.cloneElement(statusConfig.icon, { className: 'h-4 sm:h-5 w-4 sm:w-5' })}</div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <div className="flex-1">
+                                              <p className={`text-xs sm:text-sm font-medium ${isRead ? 'text-gray-600' : 'text-gray-900'} line-clamp-2`}>{item.text}</p>
+                                              <div className="mt-1 flex flex-wrap items-center gap-1 sm:gap-2">
+                                                <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium ring-1 ring-inset rounded-full ${lightBg} ${textColor} ring-${statusConfig.color}-200 transition-all duration-200 group-hover:ring-2`}>{statusConfig.label}</span>
+                                                <span className="text-[10px] sm:text-xs text-gray-500">{(() => { const readAt = readAtMap[item.id]; if (readAt) { const mins = Math.max(1, Math.round((nowTs - readAt) / 60000)); if (mins < 60) return `${mins} นาทีที่แล้ว`; const hours = Math.floor(mins / 60); if (hours < 24) return `${hours} ชั่วโมงที่แล้ว`; const days = Math.floor(hours / 24); return `${days} วันที่แล้ว`; } return 'ใหม่'; })()}</span>
+                                              </div>
+                                            </div>
+                                            <MdChevronRight className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400 group-hover:text-gray-600 transition-all duration-200 flex-shrink-0 group-hover:translate-x-1" />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+
+                          {sortedVisibleItems.length > 0 && (
+                            <div className="border-t border-gray-100 bg-blue-700 px-4 sm:px-6 py-2 sm:py-3">
+                              <div className="flex justify-end">
+                                <button onClick={() => { const allIds = new Set(notifItems.map(i => i.id)); setReadIds(allIds); try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const key = `notif.read.${userRole}.${user?.user_id || 'unknown'}`; localStorage.setItem(key, JSON.stringify(Array.from(allIds))); } catch {} }} className="text-xs sm:text-sm font-medium text-white/80 hover:text-white transition-all duration-200 hover:underline">ทำเครื่องหมายอ่านทั้งหมด</button>
+                              </div>
+                            </div>
+                          )}
                         </div>
-                      </div>
-                      )}
                       </div>
                     </div>
                   </>
