@@ -506,6 +506,35 @@ function Header({ userRole, changeRole }) {
     setLastUnreadCount(unreadCount);
   }, [notifItems, unreadCount]);
 
+  // Helper to handle item selection (click/tap) and dedupe touch+click
+  const lastHandledRef = React.useRef({ id: null, ts: 0 });
+  const handleItemSelect = (item) => {
+    try {
+      const now = Date.now();
+      if (lastHandledRef.current.id === item.id && now - lastHandledRef.current.ts < 1000) return;
+      lastHandledRef.current = { id: item.id, ts: now };
+
+      const next = new Set(Array.from(readIds));
+      next.add(item.id);
+      setReadIds(next);
+      try {
+        const userStr = localStorage.getItem('user');
+        const user = userStr ? JSON.parse(userStr) : null;
+        const key = `notif.read.${userRole}.${user?.user_id || 'unknown'}`;
+        localStorage.setItem(key, JSON.stringify(Array.from(next)));
+      } catch {}
+      try {
+        const keyAt = (() => { try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const uid = user?.user_id ? String(user.user_id) : 'unknown'; return `notif.readAt.${userRole}.${uid}`; } catch { return `notif.readAt.${userRole}.unknown`; } })();
+        const newMap = { ...readAtMap, [item.id]: Date.now() };
+        setReadAtMap(newMap);
+        localStorage.setItem(keyAt, JSON.stringify(newMap));
+      } catch {}
+  // Close menu (same behaviour as desktop) then navigate
+  try { setShowNotifMenu(false); } catch {}
+  navigate(item.href);
+    } catch (err) {}
+  };
+
   return (
     <>
       <header className="bg-gradient-to-r from-indigo-950 to-blue-700 text-white py-4 px-10 mb-1">
@@ -690,16 +719,8 @@ function Header({ userRole, changeRole }) {
                                   <button
                                     key={item.id}
                                     className={`group relative w-full px-4 py-3 text-left transition-all duration-200 hover:bg-white hover:shadow-md transform ${isRead ? 'opacity-60' : 'hover:opacity-100'}`}
-                                    onMouseDown={(e) => e.preventDefault()}
-                                    onClick={() => {
-                                      setShowNotifMenu(false);
-                                      const next = new Set(Array.from(readIds));
-                                      next.add(item.id);
-                                      setReadIds(next);
-                                      try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const key = `notif.read.${userRole}.${user?.user_id || 'unknown'}`; localStorage.setItem(key, JSON.stringify(Array.from(next))); } catch {}
-                                      try { const keyAt = (() => { try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const uid = user?.user_id ? String(user.user_id) : 'unknown'; return `notif.readAt.${userRole}.${uid}`; } catch { return `notif.readAt.${userRole}.unknown`; } })(); const newMap = { ...readAtMap, [item.id]: Date.now() }; setReadAtMap(newMap); localStorage.setItem(keyAt, JSON.stringify(newMap)); } catch {}
-                                      navigate(item.href);
-                                    }}
+                                    onPointerUp={(e) => { try { e.stopPropagation(); } catch {} handleItemSelect(item); }}
+                                    onClick={(e) => { try { e.stopPropagation(); } catch {} handleItemSelect(item); }}
                                   >
                                     {!isRead && <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-500"></div>}
                                     <div className="flex items-start gap-3">
@@ -828,7 +849,7 @@ function Header({ userRole, changeRole }) {
                                   const [bgColor, textColor, lightBg, borderColor] = colorClasses.split(' ');
 
                                   return (
-                                    <button key={item.id} className={`group relative w-full px-4 sm:px-6 py-3 sm:py-4 text-left transition-all duration-200 hover:bg-white hover:shadow-md hover:scale-[1.01] transform ${isRead ? 'opacity-60 hover:opacity-80' : 'hover:opacity-100'}`} onMouseDown={(e) => e.preventDefault()} onClick={() => { setShowNotifMenu(false); const next = new Set(Array.from(readIds)); next.add(item.id); setReadIds(next); try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const key = `notif.read.${userRole}.${user?.user_id || 'unknown'}`; localStorage.setItem(key, JSON.stringify(Array.from(next))); } catch {} try { const keyAt = (() => { try { const userStr = localStorage.getItem('user'); const user = userStr ? JSON.parse(userStr) : null; const uid = user?.user_id ? String(user.user_id) : 'unknown'; return `notif.readAt.${userRole}.${uid}`; } catch { return `notif.readAt.${userRole}.unknown`; } })(); const newMap = { ...readAtMap, [item.id]: Date.now() }; setReadAtMap(newMap); localStorage.setItem(keyAt, JSON.stringify(newMap)); } catch {} navigate(item.href); }}>
+                                    <button key={item.id} className={`group relative w-full px-4 sm:px-6 py-3 sm:py-4 text-left transition-all duration-200 hover:bg-white hover:shadow-md hover:scale-[1.01] transform ${isRead ? 'opacity-60 hover:opacity-80' : 'hover:opacity-100'}`} onPointerUp={(e) => { try { e.stopPropagation(); } catch {} handleItemSelect(item); }} onClick={(e) => { try { e.stopPropagation(); } catch {} handleItemSelect(item); }}>
                                       {!isRead && (<div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-500 transition-all duration-200 group-hover:w-1.5"></div>)}
                                       <div className="flex items-start gap-3 sm:gap-4">
                                         <div className={`flex h-8 sm:h-10 w-8 sm:w-10 flex-shrink-0 items-center justify-center rounded-lg ${lightBg} ${textColor} transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg`}>{React.cloneElement(statusConfig.icon, { className: 'h-4 sm:h-5 w-4 sm:w-5' })}</div>

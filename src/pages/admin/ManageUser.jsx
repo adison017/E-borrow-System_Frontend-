@@ -1,10 +1,10 @@
-import { ImMail4 } from "react-icons/im";
 import {
   MagnifyingGlassIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
+import { ImMail4 } from "react-icons/im";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -27,14 +27,15 @@ import {
   Tooltip,
   Typography
 } from "@material-tailwind/react";
-import { BsChatDots } from "react-icons/bs";
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
+import { API_BASE, UPLOAD_BASE } from '../../utils/api';
 import AddUserDialog from "./dialog/AddUserDialog";
 import DeleteUserDialog from "./dialog/DeleteUserDialog";
 import EditUserDialog from "./dialog/EditUserDialog";
+import ManageBranchDialog from "./dialog/ManageBranchDialog";
+import ManagePositionDialog from "./dialog/ManagePositionDialog";
 import ViewUserDialog from "./dialog/ViewUserDialog";
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
-import { API_BASE, UPLOAD_BASE } from '../../utils/api';
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -104,6 +105,8 @@ function ManageUser() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewUser, setViewUser] = useState(null);
+  const [manageBranchOpen, setManageBranchOpen] = useState(false);
+  const [managePositionOpen, setManagePositionOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -446,6 +449,20 @@ function ManageUser() {
                 </svg>
                 ส่งออก Excel
               </Button>
+              <Button
+                variant="outlined"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
+                onClick={() => setManageBranchOpen(true)}
+              >
+                จัดการสาขา
+              </Button>
+              <Button
+                variant="outlined"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
+                onClick={() => setManagePositionOpen(true)}
+              >
+                จัดการตำแหน่ง
+              </Button>
             </div>
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2 justify-center">
@@ -777,6 +794,27 @@ function ManageUser() {
           onSave={handleAddUser}
         />
         <ViewUserDialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} userData={viewUser} />
+        <ManageBranchDialog
+          open={manageBranchOpen}
+          onClose={() => setManageBranchOpen(false)}
+          onSaved={() => {
+            setManageBranchOpen(false);
+            // refresh branch filters and users
+            axios.get(`${API_BASE}/users/branches`, { headers: getAuthHeaders() }).then(res => setBranches(res.data || [])).catch(()=>{});
+            fetchUsers();
+          }}
+        />
+
+        <ManagePositionDialog
+          open={managePositionOpen}
+          onClose={() => setManagePositionOpen(false)}
+          onSaved={() => {
+            setManagePositionOpen(false);
+            // refresh position filters and users
+            axios.get(`${API_BASE}/users/positions`, { headers: getAuthHeaders() }).then(res => setPositions(res.data || [])).catch(()=>{});
+            fetchUsers();
+          }}
+        />
       </Card>
       {/* Floating Add User Button */}
       <Tooltip content="เพิ่มผู้ใช้งาน" placement="left">
