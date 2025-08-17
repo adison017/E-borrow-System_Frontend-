@@ -590,22 +590,27 @@ function Header({ userRole, changeRole }) {
                   )}
                 </button>
                 {showNotifMenu && (
-                  <div id="notif-menu" className="absolute right-0 mt-2 w-[420px] overflow-visible z-20 animate-in fade-in slide-in-from-top-1 duration-300">
-                    {/* Pointer (chat bubble tail) with animation */}
-                    <div
-                      className="w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-blue-700 absolute right-[10px] -top-[9px] z-30 animate-in fade-in zoom-in-95 duration-200"
-                    />
+                  <>
+                    {/* Mobile overlay backdrop */}
+                    <div className="sm:hidden fixed inset-0 bg-black/50 z-[19]" onClick={() => setShowNotifMenu(false)} />
+                    
+                    {/* Notification menu - centered on mobile, right-aligned on desktop */}
+                    <div id="notif-menu" className="fixed sm:absolute left-1/2 sm:left-auto -translate-x-1/2 sm:translate-x-0 sm:right-0 top-1/2 sm:top-full -translate-y-1/2 sm:translate-y-0 sm:mt-2 w-[90vw] sm:w-[420px] max-w-[420px] overflow-visible z-20 animate-in fade-in slide-in-from-top-1 duration-300">
+                      {/* Pointer (chat bubble tail) with animation - only show on desktop */}
+                      <div
+                        className="hidden sm:block w-0 h-0 border-l-[10px] border-l-transparent border-r-[10px] border-r-transparent border-b-[10px] border-b-blue-700 absolute right-[10px] -top-[9px] z-30 animate-in fade-in zoom-in-95 duration-200"
+                      />
 
-                    <div className="bg-white rounded-xl shadow-2xl ring-1 ring-gray-900/5 overflow-hidden transform transition-all duration-300 ease-out">
+                      <div className="bg-white rounded-xl shadow-2xl ring-1 ring-gray-900/5 overflow-hidden transform transition-all duration-300 ease-out">
                       {/* Header with gradient and counter */}
-                      <div className="relative overflow-hidden bg-blue-700 px-6 py-4 rounded-b-xl ">
+                      <div className="relative overflow-hidden bg-blue-700 px-4 sm:px-6 py-3 sm:py-4 rounded-b-xl ">
                         <div className="relative z-10 flex items-center justify-between">
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-2 sm:gap-3">
                             <div>
-                              <MdNotifications className="h-8 w-8 text-white" />
+                              <MdNotifications className="h-6 sm:h-8 w-6 sm:w-8 text-white" />
                             </div>
                             <div>
-                              <h3 className="text-lg font-semibold text-white">การแจ้งเตือน</h3>
+                              <h3 className="text-base sm:text-lg font-semibold text-white">การแจ้งเตือน</h3>
                               <p className="text-xs text-blue-100">
                                 {unreadCount > 0 ? `${unreadCount} รายการใหม่` : 'ไม่มีรายการใหม่'}
                               </p>
@@ -639,14 +644,14 @@ function Header({ userRole, changeRole }) {
                       </div>
 
                       {/* Notifications list with smooth scroll */}
-                      <div className="max-h-[420px] overflow-y-auto bg-gray-50 scroll-smooth scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                      <div className="max-h-[50vh] sm:max-h-[420px] overflow-y-auto bg-gray-50 scroll-smooth scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                         {unreadCount === 0 && sortedVisibleItems.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center py-12 px-6 animate-in fade-in duration-300">
-                            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gray-100 mb-4 animate-bounce">
-                              <MdNotifications className="h-8 w-8 text-gray-400" />
+                          <div className="flex flex-col items-center justify-center py-8 sm:py-12 px-4 sm:px-6 animate-in fade-in duration-300">
+                            <div className="flex h-12 sm:h-16 w-12 sm:w-16 items-center justify-center rounded-full bg-gray-100 mb-3 sm:mb-4 animate-bounce">
+                              <MdNotifications className="h-6 sm:h-8 w-6 sm:w-8 text-gray-400" />
                             </div>
                             <p className="text-sm font-medium text-gray-900">ไม่มีการแจ้งเตือน</p>
-                            <p className="text-xs text-gray-500 mt-1">คุณจะได้รับการแจ้งเตือนเมื่อมีกิจกรรมใหม่</p>
+                            <p className="text-xs text-gray-500 mt-1 text-center">คุณจะได้รับการแจ้งเตือนเมื่อมีกิจกรรมใหม่</p>
                           </div>
                         ) : (
                           <div className="divide-y divide-gray-100">
@@ -694,7 +699,7 @@ function Header({ userRole, changeRole }) {
                               return (
                                 <button
                                   key={item.id}
-                                  className={`group relative w-full px-6 py-4 text-left transition-all duration-200 hover:bg-white hover:shadow-md hover:scale-[1.01] transform ${
+                                  className={`group relative w-full px-4 sm:px-6 py-3 sm:py-4 text-left transition-all duration-200 hover:bg-white hover:shadow-md hover:scale-[1.01] transform ${
                                     isRead ? 'opacity-60 hover:opacity-80' : 'hover:opacity-100'
                                   }`}
                                   onMouseDown={(e) => e.preventDefault()}
@@ -730,24 +735,26 @@ function Header({ userRole, changeRole }) {
                                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-blue-500 to-indigo-500 transition-all duration-200 group-hover:w-1.5"></div>
                                   )}
 
-                                  <div className="flex items-start gap-4">
+                                  
+                                  <div className="flex items-start gap-3 sm:gap-4">
+
                                     {/* Icon container with hover effect */}
-                                    <div className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${lightBg} ${textColor} transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg`}>
-                                      {statusConfig.icon}
+                                    <div className={`flex h-8 sm:h-10 w-8 sm:w-10 flex-shrink-0 items-center justify-center rounded-lg ${lightBg} ${textColor} transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg`}>
+                                      {React.cloneElement(statusConfig.icon, { className: 'h-4 sm:h-5 w-4 sm:w-5' })}
                                     </div>
 
                                     {/* Content */}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-start justify-between gap-2">
                                         <div className="flex-1">
-                                          <p className={`text-sm font-medium ${isRead ? 'text-gray-600' : 'text-gray-900'} line-clamp-2`}>
+                                          <p className={`text-xs sm:text-sm font-medium ${isRead ? 'text-gray-600' : 'text-gray-900'} line-clamp-2`}>
                                             {item.text}
                                           </p>
-                                          <div className="mt-1 flex items-center gap-2">
-                                            <span className={`inline-flex items-center  px-2 py-1 text-xs font-medium ring-1 ring-inset rounded-full ${lightBg} ${textColor} ring-${statusConfig.color}-200 transition-all duration-200 group-hover:ring-2`}>
+                                          <div className="mt-1 flex flex-wrap items-center gap-1 sm:gap-2">
+                                            <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 text-[10px] sm:text-xs font-medium ring-1 ring-inset rounded-full ${lightBg} ${textColor} ring-${statusConfig.color}-200 transition-all duration-200 group-hover:ring-2`}>
                                               {statusConfig.label}
                                             </span>
-                                            <span className="text-xs text-gray-500">
+                                            <span className="text-[10px] sm:text-xs text-gray-500">
                                               {(() => {
                                                 const readAt = readAtMap[item.id];
                                                 if (readAt) {
@@ -765,7 +772,7 @@ function Header({ userRole, changeRole }) {
                                         </div>
 
                                         {/* Arrow icon with animation */}
-                                        <MdChevronRight className="h-5 w-5 text-gray-400 group-hover:text-gray-600 transition-all duration-200 flex-shrink-0 group-hover:translate-x-1" />
+                                        <MdChevronRight className="h-4 sm:h-5 w-4 sm:w-5 text-gray-400 group-hover:text-gray-600 transition-all duration-200 flex-shrink-0 group-hover:translate-x-1" />
                                       </div>
                                     </div>
                                   </div>
@@ -778,7 +785,7 @@ function Header({ userRole, changeRole }) {
 
                       {/* Footer with view all link */}
                       {sortedVisibleItems.length > 0 && (
-                        <div className="border-t border-gray-100 bg-blue-700  px-6 py-3 ">
+                        <div className="border-t border-gray-100 bg-blue-700 px-4 sm:px-6 py-2 sm:py-3">
 
                           <div className="flex justify-end">
                           <button
@@ -795,15 +802,16 @@ function Header({ userRole, changeRole }) {
                                 localStorage.setItem(key, JSON.stringify(Array.from(allIds)));
                               } catch {}
                             }}
-                            className="text-sm font-medium text-white/80 hover:text-white transition-all duration-200 hover:underline"
+                            className="text-xs sm:text-sm font-medium text-white/80 hover:text-white transition-all duration-200 hover:underline"
                           >
                             ทำเครื่องหมายอ่านทั้งหมด
                           </button>
                         </div>
                       </div>
                       )}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
 

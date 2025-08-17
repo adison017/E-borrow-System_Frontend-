@@ -80,15 +80,15 @@ const ImageCarousel = ({ urls, altBase = 'image' }) => {
       
       {/* Thumbnail navigation */}
       {total > 1 && (
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-2">
+        <div className="mt-3 flex gap-2 overflow-x-auto pb-2 p-3">
           {urls.map((url, i) => (
             <button
               key={i}
               type="button"
               onClick={() => setIndex(i)}
-              className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all duration-300 group ${
+              className={`relative flex-shrink-0 w-20 h-20 overflow-hidden border-5 transition-all duration-300 group ${
                 i === index
-                  ? 'border-blue-500 shadow-lg scale-105'
+                  ? 'border-blue-500 scale-105'
                   : 'border-gray-300 hover:border-gray-400 opacity-70 hover:opacity-100'
               }`}
               aria-label={`ไปยังรูปที่ ${i + 1}`}

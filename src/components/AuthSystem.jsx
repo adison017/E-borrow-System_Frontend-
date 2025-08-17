@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { FaBuilding, FaChartBar, FaCog, FaEnvelope, FaEye, FaEyeSlash, FaGraduationCap, FaIdCard, FaLaptop, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt } from 'react-icons/fa';
 import { GiHandTruck } from "react-icons/gi";
 import { useNavigate } from 'react-router-dom';
+import { API_BASE } from '../utils/api.js';
+import socketService from '../utils/socketService';
 import {
   LoginErrorDialog,
   LoginSuccessDialog,
@@ -12,7 +14,6 @@ import {
 } from './dialog/AlertDialog';
 import Notification from './Notification';
 import OtpDialog from './OtpDialog';
-import { API_BASE } from '../utils/api.js';
 
 const defaultRoutes = {
   admin: '/DashboardAd',
@@ -384,6 +385,12 @@ const AuthSystem = (props) => {
 
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
+        // Ensure socket connects/authenticates immediately in the current tab
+        try {
+          socketService.connect(response.data.token);
+        } catch (err) {
+          // ignore socket errors here; connection will be retried elsewhere
+        }
         setNotification({
           show: true,
           type: 'success',
