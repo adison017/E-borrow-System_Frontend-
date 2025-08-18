@@ -22,6 +22,7 @@ const NewsFormDialog = ({
   isEditing,
   formData,
   handleInputChange,
+  isSubmitting = false,
   // Available categories - can be fetched or defined here/passed as prop
   categories = ['ประกาศ', 'การบำรุงรักษา', 'อุปกรณ์ใหม่', 'กิจกรรม']
 }) => {
@@ -38,7 +39,10 @@ const NewsFormDialog = ({
           <button
             type="button"
             onClick={() => setShowModal(false)}
-            className="text-gray-400 hover:text-blue-600 transition-colors duration-150 rounded-full p-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300"
+            disabled={isSubmitting}
+            className={`text-gray-400 hover:text-blue-600 transition-colors duration-150 rounded-full p-1.5 focus:outline-none focus:ring-2 focus:ring-blue-300 ${
+              isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
             aria-label="ปิด"
           >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -54,7 +58,10 @@ const NewsFormDialog = ({
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-base transition-all duration-150 bg-gray-50"
+              disabled={isSubmitting}
+              className={`block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-base transition-all duration-150 bg-gray-50 ${
+                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               placeholder="กรอกหัวข้อข่าว..."
               required
             />
@@ -66,7 +73,10 @@ const NewsFormDialog = ({
               name="category"
               value={formData.category}
               onChange={handleInputChange}
-              className="block w-full px-4 py-2 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-base transition-all duration-150"
+              disabled={isSubmitting}
+              className={`block w-full px-4 py-2 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-base transition-all duration-150 ${
+                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               required
             >
               <option value="" disabled>เลือกประเภทข่าว</option>
@@ -82,8 +92,11 @@ const NewsFormDialog = ({
               name="content"
               value={formData.content}
               onChange={handleInputChange}
+              disabled={isSubmitting}
               rows="7"
-              className="block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-base transition-all duration-150 bg-gray-50"
+              className={`block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-base transition-all duration-150 bg-gray-50 ${
+                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
               placeholder="กรอกรายละเอียดข่าว..."
               required
             ></textarea>
@@ -93,6 +106,7 @@ const NewsFormDialog = ({
             <div
               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
               onDrop={(e) => {
+                if (isSubmitting) return;
                 e.preventDefault();
                 const dt = e.dataTransfer;
                 if (!dt) return;
@@ -101,8 +115,16 @@ const NewsFormDialog = ({
                 const evt = new CustomEvent('newsImagesSelected', { detail: firstTen });
                 window.dispatchEvent(evt);
               }}
-              className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-colors border-gray-300 hover:border-blue-400 hover:bg-blue-50"
-              onClick={() => document.getElementById('news-images-input')?.click()}
+              className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors border-gray-300 ${
+                isSubmitting
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'cursor-pointer hover:border-blue-400 hover:bg-blue-50'
+              }`}
+              onClick={() => {
+                if (!isSubmitting) {
+                  document.getElementById('news-images-input')?.click();
+                }
+              }}
             >
               <div className="mx-auto h-12 w-12 text-gray-400 mb-2">📷</div>
               <p className="text-sm text-gray-600">ลากและวางรูปภาพที่นี่ หรือคลิกเพื่อเลือกไฟล์</p>
@@ -113,7 +135,9 @@ const NewsFormDialog = ({
               type="file"
               accept="image/*"
               multiple
+              disabled={isSubmitting}
               onChange={(e) => {
+                if (isSubmitting) return;
                 const files = Array.from(e.target.files || []);
                 const firstTen = files.slice(0, 10);
                 const evt = new CustomEvent('newsImagesSelected', { detail: firstTen });
@@ -127,8 +151,15 @@ const NewsFormDialog = ({
                   <span className="text-sm text-gray-600">เลือกรูปแล้ว {formData.image_url.length} รูป</span>
                   <button
                     type="button"
-                    className="text-xs text-red-600 hover:text-red-700"
-                    onClick={() => window.dispatchEvent(new CustomEvent('newsImagesClear'))}
+                    className={`text-xs text-red-600 hover:text-red-700 ${
+                      isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    disabled={isSubmitting}
+                    onClick={() => {
+                      if (!isSubmitting) {
+                        window.dispatchEvent(new CustomEvent('newsImagesClear'));
+                      }
+                    }}
                   >
                     ลบทั้งหมด
                   </button>
@@ -139,8 +170,15 @@ const NewsFormDialog = ({
                       <img src={url} alt={`preview-${idx}`} className="h-28 w-full object-cover rounded-lg shadow border border-gray-200" />
                       <button
                         type="button"
-                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => window.dispatchEvent(new CustomEvent('newsImageRemoveAt', { detail: { index: idx } }))}
+                        className={`absolute top-1 right-1 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity ${
+                          isSubmitting ? 'cursor-not-allowed' : ''
+                        }`}
+                        disabled={isSubmitting}
+                        onClick={() => {
+                          if (!isSubmitting) {
+                            window.dispatchEvent(new CustomEvent('newsImageRemoveAt', { detail: { index: idx } }));
+                          }
+                        }}
                         aria-label={`ลบรูปที่ ${idx + 1}`}
                       >
                         ×
@@ -161,6 +199,7 @@ const NewsFormDialog = ({
                 name="force_show"
                 type="checkbox"
                 checked={!!formData.force_show}
+                disabled={isSubmitting}
                 onChange={(e) => handleInputChange({ target: { name: 'force_show', value: e.target.checked } })}
               />
               <span className="text-sm font-semibold text-gray-700">แสดงตลอด (ปิดไม่ได้)</span>
@@ -173,6 +212,7 @@ const NewsFormDialog = ({
                 name="show_to_all"
                 type="checkbox"
                 checked={!!formData.show_to_all}
+                disabled={isSubmitting}
                 onChange={(e) => handleInputChange({ target: { name: 'show_to_all', value: e.target.checked } })}
               />
               <span className="text-sm font-semibold text-gray-700">แสดงให้ทุกบทบาท (รวมใน 8 ข่าวเด่น)</span>
@@ -182,15 +222,30 @@ const NewsFormDialog = ({
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="px-5 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-150"
+              disabled={isSubmitting}
+              className={`px-5 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400 transition-all duration-150 ${
+                isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               ยกเลิก
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-150"
+              disabled={isSubmitting}
+              className={`px-5 py-2 text-sm font-semibold text-white rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-400 transition-all duration-150 ${
+                isSubmitting
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600'
+              }`}
             >
-              {isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'เพิ่มข่าว'}
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  {isEditing ? 'กำลังอัปเดต...' : 'กำลังเพิ่ม...'}
+                </div>
+              ) : (
+                isEditing ? 'บันทึกการเปลี่ยนแปลง' : 'เพิ่มข่าว'
+              )}
             </button>
           </div>
         </form>

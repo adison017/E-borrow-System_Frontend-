@@ -151,7 +151,15 @@ function ManageCategory() {
   };
 
   const handleAddClick = () => {
-    const newCode = `CAT-${String(categoryList.length + 1).padStart(3, '0')}`;
+    // หารหัสถัดไปที่ไม่ซ้ำ
+    const existingCodes = categoryList.map(cat => cat.category_code);
+    let nextNumber = 1;
+
+    while (existingCodes.includes(`CAT-${String(nextNumber).padStart(3, '0')}`)) {
+      nextNumber++;
+    }
+
+    const newCode = `CAT-${String(nextNumber).padStart(3, '0')}`;
     setAddFormData({
       category_code: newCode,
       name: ""
@@ -168,24 +176,31 @@ function ManageCategory() {
   };
 
   const handleAddCategory = (data) => {
-    // ตรวจสอบชื่อหมวดหมู่ซ้ำ (case-insensitive)
-    const isDuplicate = categoryList.some(cat => cat.name.trim().toLowerCase() === data.name.trim().toLowerCase());
-    if (isDuplicate) {
-      showNotification('add_error', 'หมวดหมู่นี้มีอยู่แล้ว');
-      toast.error('หมวดหมู่นี้มีอยู่แล้ว');
-      return;
-    }
     addCategory(data)
       .then(() => getCategories().then(setCategoryList))
       .then(() => showNotification("add", data.name))
-      .catch(() => showNotification("add_error"));
+      .catch((error) => {
+        // ตรวจสอบ error response จาก backend
+        if (error.response && error.response.data && error.response.data.error) {
+          showNotification('add_error', error.response.data.error);
+        } else {
+          showNotification("add_error");
+        }
+      });
   };
 
   const handleEditCategory = (data) => {
     updateCategory(data.category_id, data)
       .then(() => getCategories().then(setCategoryList))
       .then(() => showNotification("edit", data.name))
-      .catch(() => showNotification("edit_error"));
+      .catch((error) => {
+        // ตรวจสอบ error response จาก backend
+        if (error.response && error.response.data && error.response.data.error) {
+          showNotification('edit_error', error.response.data.error);
+        } else {
+          showNotification("edit_error");
+        }
+      });
   };
 
   const handleDeleteCategory = (category) => {
@@ -372,16 +387,13 @@ function ManageCategory() {
           categoryData={selectedCategory}
           onSave={handleEditCategory}
         />
-        {/* Add Category Dialog Modal */}
-        <AddCategoryDialog
-          open={addDialogOpen}
-          onClose={() => setAddDialogOpen(false)}
-          initialFormData={{
-            category_code: `CAT-${String(categoryList.length + 1).padStart(3, '0')}`,
-            name: ""
-          }}
-          onSave={handleAddCategory}
-        />
+                 {/* Add Category Dialog Modal */}
+         <AddCategoryDialog
+           open={addDialogOpen}
+           onClose={() => setAddDialogOpen(false)}
+           initialFormData={addFormData}
+           onSave={handleAddCategory}
+         />
       </Card>
       {/* Floating Add Category Button */}
       <Tooltip content="เพิ่มหมวดหมู่" placement="left">

@@ -136,6 +136,7 @@ const ReturnList = () => {
 
   // Dialog states
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isOpeningScanner, setIsOpeningScanner] = useState(false);
   const [isReturnFormOpen, setIsReturnFormOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
@@ -570,17 +571,36 @@ const ReturnList = () => {
                 </MenuList>
               </Menu>
               <Button
-                className="flex items-center gap-2 px-4 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200"
-                onClick={() => setIsScannerOpen(true)}
+                className="flex items-center gap-2 px-4 py-3 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200 disabled:opacity-60"
+                onClick={() => { if (!isScannerOpen && !isOpeningScanner) { setIsOpeningScanner(true); setIsScannerOpen(true); setTimeout(()=>setIsOpeningScanner(false), 200); } }}
+                disabled={isScannerOpen || isOpeningScanner}
               >
-                <QrCodeIcon strokeWidth={2} className="h-4 w-4" /> สแกนเพื่อคืน
+                {isScannerOpen || isOpeningScanner ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    กำลังเปิดสแกนเนอร์...
+                  </>
+                ) : (
+                  <>
+                    <QrCodeIcon strokeWidth={2} className="h-4 w-4" /> สแกนเพื่อคืน
+                  </>
+                )}
               </Button>
               <Button
-                className="flex items-center gap-2 px-4 py-3 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 transition-colors duration-200"
+                className="flex items-center gap-2 px-4 py-3 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 transition-colors duration-200 disabled:opacity-60"
                 onClick={openPaymentSettings}
                 disabled={paymentLoading}
               >
-                <BanknotesIcon className="h-4 w-4" /> จัดการการชำระเงิน
+                {paymentLoading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    กำลังโหลด...
+                  </>
+                ) : (
+                  <>
+                    <BanknotesIcon className="h-4 w-4" /> จัดการการชำระเงิน
+                  </>
+                )}
               </Button>
             </div>
           </div>
