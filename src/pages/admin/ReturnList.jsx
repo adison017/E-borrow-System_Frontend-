@@ -249,18 +249,44 @@ const ReturnList = () => {
     return unsubscribe;
   }, [subscribeToBadgeCounts]);
 
+  // ฟังอีเวนต์ให้รีเฟรชเมื่อ dialog อนุมัติสลิป
+  useEffect(() => {
+    const handler = () => {
+      fetchReturns();
+      setNotification({ show: true, message: 'การชำระเงินเสร็จสิ้น', type: 'success' });
+      setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 2500);
+    };
+    window.addEventListener('returnsRefreshRequested', handler);
+    return () => window.removeEventListener('returnsRefreshRequested', handler);
+  }, []);
+
+  // ฟังอีเวนต์การแจ้งเตือนกลาง เพื่อเรียกใช้ Notification.jsx ในหน้านี้
+  useEffect(() => {
+    const notifyHandler = (e) => {
+      const { type = 'info', message = '' } = e.detail || {};
+      setNotification({ show: true, message, type });
+      setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 2500);
+    };
+    window.addEventListener('appNotify', notifyHandler);
+    return () => window.removeEventListener('appNotify', notifyHandler);
+  }, []);
+
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
   };
 
   const fetchReturnDetails = async (borrow_id) => {
-    const res = await fetch(`${UPLOAD_BASE}/api/returns/by-borrow/${borrow_id}`);
+    const res = await authFetch(`${API_BASE}/returns/by-borrow/${borrow_id}`);
     if (!res.ok) return null;
     const data = await res.json();
     // คืน return ล่าสุด (ถ้ามีหลาย record)
     if (Array.isArray(data) && data.length > 0) {
-      // sort by return_date desc
-      return data.sort((a, b) => new Date(b.return_date) - new Date(a.return_date))[0];
+      // เลือกล่าสุดโดยใช้ updated_at > created_at > return_date
+      return data.sort((a, b) => {
+        const ta = new Date(b.updated_at || b.created_at || b.return_date || 0).getTime();
+        const tb = new Date(a.updated_at || a.created_at || a.return_date || 0).getTime();
+        return ta - tb;
+      })[0];
     }
     return null;
   };
@@ -381,10 +407,19 @@ const ReturnList = () => {
     showNotification('บันทึกข้อมูลการคืนสำเร็จ', 'success');
   };
 
-  const handleViewDetails = (returnItem) => {
+  const handleViewDetails = async (returnItem) => {
     console.log('DEBUG returnItem:', returnItem);
     console.log('DEBUG returnItem.status:', returnItem?.status);
-    setSelectedReturnItem(returnItem);
+    let enriched = returnItem;
+    try {
+      if (returnItem?.status === 'waiting_payment') {
+        const paymentDetails = await fetchReturnDetails(returnItem.borrow_id);
+        enriched = { ...returnItem, paymentDetails, proof_image: paymentDetails?.proof_image || returnItem.proof_image };
+      }
+    } catch (e) {
+      // ignore, open dialog anyway
+    }
+    setSelectedReturnItem(enriched);
     setIsDetailsOpen(true);
   };
 
@@ -451,6 +486,8 @@ const ReturnList = () => {
         return <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-gray-700 text-xs font-semibold">ไม่ทราบสถานะ</div>;
     }
   };
+
+  // ลบ badge รอยืนยันชำระแบบพิเศษออก ใช้สถานะหลักเดิมเท่านั้น
 
   const handleStatusFilter = (status) => setStatusFilter(status);
   const countByStatus = returns.reduce((acc, item) => {
@@ -676,16 +713,22 @@ const ReturnList = () => {
                       <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.borrow_date ? new Date(item.borrow_date).toLocaleDateString('th-TH') : "-"}</td>
                       <td className="w-28 px-4 py-4 whitespace-nowrap text-gray-900 text-left">{item.due_date ? new Date(item.due_date).toLocaleDateString('th-TH') : "-"}</td>
                       <td className="w-32 px-4 py-4 whitespace-nowrap text-center">
-
                         {getStatusBadge(item.status)}
                       </td>
                       <td className="w-40 px-4 py-4 whitespace-nowrap text-center">
                         <div className="flex flex-wrap items-center justify-end gap-2">
-                          <Tooltip content="ดูรายละเอียด" placement="top">
-                            <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
-                              <EyeIcon className="h-4 w-4" />
-                            </IconButton>
-                          </Tooltip>
+                          {item.status === 'waiting_payment' && (
+                            <Tooltip content="ตรวจสอบการชำระเงิน" placement="top">
+                              <IconButton
+                                variant="text"
+                                color="blue"
+                                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 p-2 animate-pulse border-2 border-white"
+                                onClick={() => handleViewDetails(item)}
+                              >
+                                <BanknotesIcon className="h-4 w-4" />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                           {item.status !== 'waiting_payment' && (
                             <Tooltip content="คืนครุภัณฑ์" placement="top">
                               <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => {
