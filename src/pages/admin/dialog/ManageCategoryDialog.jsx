@@ -169,8 +169,8 @@ export default function ManageCategoryDialog({ open, onClose, onSaved }) {
           </div>
 
           <div className="bg-gray-50 rounded-lg p-4">
-            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-              <table className="w-full">
+            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+              <table className="w-full min-w-[600px]">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">รหัสหมวดหมู่</th>

@@ -17,7 +17,6 @@ import { API_BASE } from './utils/api';
 // Admin Pages
 import BorrowList from './pages/admin/BorrowList';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
-import ManageCategory from './pages/admin/ManageCategory';
 import ManageEquipment from './pages/admin/ManageEquipment';
 import ManageNews from './pages/admin/ManageNews';
 import ManageRoom from './pages/admin/ManageRoom';
@@ -321,7 +320,6 @@ function AppInner() {
 
                 <Route path="/return-list" element={<ReturnList />} />
                 <Route path="/ReceiveItem" element={<ReceiveItem />} />
-                <Route path="/category" element={<ManageCategory />} />
                 <Route path="/success" element={<Success />} />
                 <Route path="/manage-news" element={<ManageNews />} />
                 <Route path="/edit_profile" element={<Edit_pro />} />

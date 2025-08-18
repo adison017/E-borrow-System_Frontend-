@@ -187,6 +187,16 @@ const customCalendarStyles = `
     transform: translateY(-2px) !important;
     box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
   }
+  
+  /* Event counter styling */
+  .rbc-event .event-counter {
+    background: rgba(255, 255, 255, 0.3) !important;
+    border-radius: 10px !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+    padding: 2px 6px !important;
+    margin-left: 4px !important;
+  }
 `;
 
 // Inject modern styles
@@ -598,10 +608,58 @@ const BorrowCalendar = () => {
     return { style };
   };
 
+  // Custom event component with counter
+  const CustomEvent = ({ event }) => {
+    const eventDate = dayjs(event.start);
+    const weekStart = eventDate.startOf('week');
+    const weekEnd = eventDate.endOf('week');
+    
+    // นับจาก borrows ทั้งหมดในสัปดาห์ (ไม่กรองตามสถานะ)
+    const weekEvents = borrows.filter(borrow => {
+      if (borrow.status === 'completed') return false;
+      const borrowDate = dayjs(borrow.borrow_date || borrow.due_date);
+      return borrowDate.isAfter(weekStart.subtract(1, 'day')) && borrowDate.isBefore(weekEnd.add(1, 'day'));
+    });
+    
+    const isFirstEvent = weekEvents[0]?.borrow_id === event.borrow.borrow_id;
+    const eventCount = weekEvents.length;
+
+    return (
+      <div className="flex items-center justify-between w-full">
+        <span className="truncate flex-1">
+          {event.resource.borrowCode} - {event.resource.borrowerName}
+        </span>
+        {isFirstEvent && eventCount > 1 && (
+          <span className="ml-1 bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-full font-bold flex-shrink-0">
+            +{eventCount - 1}
+          </span>
+        )}
+      </div>
+    );
+  };
+
   // จัดการเมื่อคลิก event
   const handleEventClick = (event) => {
-    setSelectedEvent(event);
-    setShowEventDetails(true);
+    const eventDate = dayjs(event.start);
+    const weekStart = eventDate.startOf('week');
+    const weekEnd = eventDate.endOf('week');
+    
+    // นับจาก borrows ทั้งหมดในสัปดาห์ (ไม่กรองตามสถานะ)
+    const weekEvents = borrows.filter(borrow => {
+      if (borrow.status === 'completed') return false;
+      const borrowDate = dayjs(borrow.borrow_date || borrow.due_date);
+      return borrowDate.isAfter(weekStart.subtract(1, 'day')) && borrowDate.isBefore(weekEnd.add(1, 'day'));
+    });
+    
+    // ถ้ามีหลายรายการในสัปดาห์เดียวกันและอยู่ในมุมมองเดือน ให้เปลี่ยนไปมุมมองสัปดาห์
+    if (weekEvents.length > 1 && view === 'month') {
+      setDate(new Date(event.start));
+      setView('week');
+    } else {
+      // แสดงรายละเอียดตามปกติ
+      setSelectedEvent(event);
+      setShowEventDetails(true);
+    }
   };
 
   // จัดการเมื่อคลิก slot ว่าง
@@ -870,7 +928,8 @@ const BorrowCalendar = () => {
                    showMultiDayTimes={false}
                    components={{
                      timeSlotWrapper: () => null,
-                     timeGutterHeader: () => null
+                     timeGutterHeader: () => null,
+                     event: CustomEvent
                    }}
                    formats={{
                      dayFormat: 'dd',

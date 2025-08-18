@@ -142,8 +142,8 @@ export default function ManagePositionDialog({ open, onClose, onSaved }) {
           </div>
 
           <div className="bg-gray-50 rounded-lg p-4">
-            <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
-              <table className="w-full">
+            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+              <table className="w-full min-w-[400px]">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อตำแหน่ง</th>
