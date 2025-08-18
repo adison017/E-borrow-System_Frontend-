@@ -3,22 +3,19 @@ const getApiBaseUrl = () => {
   // Prefer Vite dev proxy for local development when enabled to avoid CORS
   const useProxy = import.meta.env.DEV && String(import.meta.env.VITE_USE_PROXY) === 'true';
   if (useProxy) return '/api';
-  // In dev, default to localhost backend (never use window.__API_BASE__ to avoid remote CORS)
-  if (import.meta.env.DEV) {
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    return `${base.replace(/\/$/, '')}/api`;
-  }
-  const base = import.meta.env.VITE_API_URL || window.__API_BASE__ || 'http://localhost:5000';
+
+  // Use VITE_API_URL as the single source of truth
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:5000';
   return `${base.replace(/\/$/, '')}/api`;
 };
 
 const getUploadBaseUrl = () => {
   const useProxy = import.meta.env.DEV && String(import.meta.env.VITE_USE_PROXY) === 'true';
   if (useProxy) return '/uploads';
-  if (import.meta.env.DEV) {
-    return (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
-  }
-  return (import.meta.env.VITE_API_URL || window.__API_BASE__ || 'http://localhost:5000').replace(/\/$/, '');
+
+  // Use VITE_API_URL as the single source of truth
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  return base.replace(/\/$/, '');
 };
 
 export const API_BASE = getApiBaseUrl();
