@@ -629,51 +629,39 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                         setIsUploading(true);
                         setUploadError("");
                         setUploadSuccess(false);
-                                                 const formData = new FormData();
-                         formData.append("borrow_code", request.borrow_code);
-                         formData.append("slip", slipFile);
-                         formData.append("borrow_id", request.borrow_id);
-                         try {
-                           // อัปโหลดสลิปไปยัง Cloudinary
-                           const res = await authFetch(`${API_BASE}/returns/upload-slip-cloudinary`, {
-                             method: "POST",
-                             body: formData
-                           });
+                        const formData = new FormData();
+                        formData.append("borrow_code", request.borrow_code);
+                        formData.append("slip", slipFile);
+                        formData.append("borrow_id", request.borrow_id);
+                        try {
+                          // 1) อัปโหลดสลิปไปยัง Cloudinary
+                          const res = await authFetch(`${API_BASE}/returns/upload-slip-cloudinary`, {
+                            method: "POST",
+                            body: formData
+                          });
                           if (!res.ok) throw new Error("อัปโหลดสลิปไม่สำเร็จ");
                           const data = await res.json();
+                          // 2) ส่ง URL เพื่อรอแอดมินตรวจสอบ (pending)
                           setIsConfirming(true);
-                          const confirmRes = await authFetch(`${API_BASE}/returns/confirm-payment`, {
+                          const submitRes = await authFetch(`${API_BASE}/returns/submit-slip`, {
                             method: "POST",
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                               borrow_id: request.borrow_id,
-                              proof_image: data.cloudinary_url || data.filename,
-                              cloudinary_public_id: data.cloudinary_public_id
+                              slip_url: data.cloudinary_url || data.file_path || data.url
                             })
                           });
-                          if (!confirmRes.ok) throw new Error("ยืนยันการจ่ายเงินไม่สำเร็จ");
+                          if (!submitRes.ok) throw new Error("ส่งสลิปเพื่อรอตรวจสอบไม่สำเร็จ");
                           setUploadSuccess(true);
-                          // เรียก PATCH /api/returns/:return_id/pay เพื่อ trigger LINE Notify รายการเสร็จสิ้น
-                          if (request.return_id) {
-                            try {
-                              await authFetch(`${API_BASE}/returns/${request.return_id}/pay`, { method: "PATCH" });
-                              console.log('PATCH request successful');
-                            } catch (patchError) {
-                              console.error('PATCH request failed:', patchError);
-                              // ไม่ throw error เพราะการจ่ายเงินสำเร็จแล้ว แค่ LINE Notify ไม่ทำงาน
-                            }
-                          } else {
-                            console.error('ไม่พบ return_id ใน request, ไม่สามารถ trigger LINE Notify ได้');
-                          }
-                          // แสดง success alert และปิด dialog
+                          toast && toast.success && toast.success('ส่งสลิปสำเร็จ รอแอดมินตรวจสอบ');
+                          // แสดง success alert แบบรอตรวจสอบ แล้วปิด dialog
                           setShowSuccessAlert(true);
-                          // ปิด dialog หลังจากแสดง alert
                           setTimeout(() => {
                             if (afterClose) afterClose(true);
-                          }, 2000); // รอ 2 วินาทีแล้วปิด dialog
+                          }, 1500);
                         } catch (err) {
-                          console.error('Payment error:', err);
-                          setUploadError("เกิดข้อผิดพลาดในการอัปโหลดหรือยืนยันการจ่ายเงิน: " + err.message);
+                          console.error('Submit slip error:', err);
+                          setUploadError("เกิดข้อผิดพลาดในการส่งสลิป: " + err.message);
                         } finally {
                           setIsUploading(false);
                           setIsConfirming(false);
@@ -681,7 +669,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                       }}
                     >
                       <FaMoneyCheckAlt className="text-2xl drop-shadow-md" />
-                      {(isUploading || isConfirming) ? 'กำลังดำเนินการ...' : 'ยืนยันการชำระเงิน'}
+                      {(isUploading || isConfirming) ? 'กำลังดำเนินการ...' : 'ยืนยันการส่งสลิป'}
                     </button>
                   )}
                 </div>
