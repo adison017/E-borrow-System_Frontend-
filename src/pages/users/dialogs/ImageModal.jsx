@@ -1,14 +1,28 @@
 import { MdClose } from "react-icons/md";
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ImageModal = ({ selectedImage, setSelectedImage }) => {
   return (
-    selectedImage && (
-      <div className="modal modal-open">
+    <AnimatePresence>
+    {selectedImage && (
+      <motion.div 
+        className="modal modal-open"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div
           className="fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-300"
           onClick={() => setSelectedImage(null)}
         >
-          <div className="relative max-w-5xl w-full max-h-[90vh]">
+          <motion.div 
+            className="relative max-w-5xl w-full max-h-[90vh]"
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.9 }}
+            transition={{ duration: 0.3 }}
+          >
             <button
               className="absolute top-4 right-4 hover:bg-gray-200 bg-opacity-50 text-white rounded-full p-2 hover:bg-opacity-70 transition-colors z-10"
               onClick={() => setSelectedImage(null)}
@@ -23,10 +37,11 @@ const ImageModal = ({ selectedImage, setSelectedImage }) => {
                 onClick={(e) => e.stopPropagation()}
               />
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
-    )
+      </motion.div>
+    )}
+    </AnimatePresence>
   );
 };
 

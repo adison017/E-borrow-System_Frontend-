@@ -1,31 +1,204 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Card, CardBody, CardHeader, Typography, Button, Chip, Badge } from '@material-tailwind/react';
-import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { Chip, Typography } from '@material-tailwind/react';
+import { format, getDay, parse, startOfWeek } from 'date-fns';
 import { th } from 'date-fns/locale';
-import {
-  MdCalendarMonth,
-  MdPerson,
-  MdLocationOn,
-  MdAccessTime,
-  MdInfo,
-  MdFilterList,
-  MdSearch,
-  MdToday,
-  MdEvent,
-  MdWarning,
-  MdCheckCircle,
-  MdSchedule,
-  MdRefresh,
-  MdViewDay,
-  MdViewWeek,
-  MdViewModule
-} from 'react-icons/md';
-import { getAllBorrows, API_BASE, authFetch } from '../../utils/api';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
+import { useEffect, useMemo, useState } from 'react';
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import {
+  MdAccessTime,
+  MdCheckCircle,
+  MdChevronLeft,
+  MdChevronRight,
+  MdEvent,
+  MdFilterList,
+  MdInfo,
+  MdLocationOn,
+  MdPerson,
+  MdRefresh,
+  MdSchedule,
+  MdSearch,
+  MdToday,
+  MdViewDay,
+  MdViewModule,
+  MdViewWeek,
+  MdWarning
+} from 'react-icons/md';
 import Notification from '../../components/Notification';
+import { API_BASE, getAllBorrows } from '../../utils/api';
+
+// Modern calendar styles
+const customCalendarStyles = `
+  .rbc-calendar {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  }
+  
+  .rbc-header {
+    background: linear-gradient(#000099 100%);
+    border: none;
+    padding: 16px 12px;
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    font-size: 14px;
+  }
+  
+  .rbc-month-view {
+    border: none;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  
+  .rbc-date-cell {
+    padding: 12px;
+    text-align: right;
+    border-right: 1px solid #f1f5f9;
+  }
+  
+  .rbc-date-cell > a {
+    color: #475569;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  .rbc-today {
+    background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%) !important;
+  }
+  
+  .rbc-event {
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    margin: 2px 1px !important;
+    backdrop-filter: blur(10px);
+  }
+  
+  .rbc-toolbar {
+    display: none;
+  }
+  
+  .rbc-month-row {
+    border-bottom: 1px solid #f1f5f9;
+  }
+  
+  .rbc-day-bg {
+    border-right: 1px solid #f1f5f9;
+  }
+  
+  /* Day and Week view - Clean Layout */
+  .rbc-time-view {
+    height: 600px !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .rbc-time-view .rbc-time-header {
+    flex-shrink: 0 !important;
+  }
+  
+  .rbc-time-view .rbc-time-content {
+    flex: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  
+  .rbc-time-view .rbc-time-gutter {
+    display: none !important;
+  }
+  
+  .rbc-time-view .rbc-time-content {
+    margin-left: 0 !important;
+  }
+  
+  .rbc-time-view .rbc-time-column {
+    display: none !important;
+  }
+  
+  .rbc-time-view .rbc-allday-cell {
+    height: calc(100% - 60px) !important;
+    padding: 20px !important;
+    background: #fafafa !important;
+    border-radius: 12px !important;
+    margin: 10px !important;
+    min-height: 500px !important;
+    max-height: 500px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    box-sizing: border-box !important;
+  }
+  
+  .rbc-time-view .rbc-allday-cell::-webkit-scrollbar {
+    width: 6px !important;
+  }
+  
+  .rbc-time-view .rbc-allday-cell::-webkit-scrollbar-track {
+    background: #f1f1f1 !important;
+    border-radius: 3px !important;
+  }
+  
+  .rbc-time-view .rbc-allday-cell::-webkit-scrollbar-thumb {
+    background: #c1c1c1 !important;
+    border-radius: 3px !important;
+  }
+  
+  .rbc-time-view .rbc-allday-cell::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8 !important;
+  }
+  
+  /* Make week/day view header match the month header styling */
+  .rbc-time-view .rbc-header {
+    background: linear-gradient(#000099 100%) !important;
+    border: none !important;
+    padding: 16px 12px !important;
+    font-weight: 600 !important;
+    color: white !important;
+    text-align: center !important;
+    font-size: 14px !important;
+    border-radius: 16px !important;
+    margin: 10px !important;
+  }
+  
+  .rbc-allday-cell .rbc-event {
+    margin: 6px 0 !important;
+    padding: 12px 16px !important;
+    font-size: 13px !important;
+    min-height: 45px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 3px 5px rgba(0,0,0,0.1) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    width: calc(100% - 12px) !important;
+    max-width: calc(100% - 12px) !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+  
+  .rbc-allday-cell .rbc-event:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15) !important;
+  }
+`;
+
+// Inject modern styles
+if (typeof document !== 'undefined') {
+  const existingStyle = document.getElementById('calendar-styles');
+  if (existingStyle) existingStyle.remove();
+  
+  const styleElement = document.createElement('style');
+  styleElement.id = 'calendar-styles';
+  styleElement.textContent = customCalendarStyles;
+  document.head.appendChild(styleElement);
+}
 
 // ตั้งค่า locale เป็นภาษาไทย
 dayjs.locale('th');
@@ -78,47 +251,115 @@ const BorrowCalendar = () => {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationData, setNotificationData] = useState({});
   const [view, setView] = useState('month');
+  const [date, setDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [showEventDetails, setShowEventDetails] = useState(false);
   const [debugInfo, setDebugInfo] = useState('');
 
+  // Navigation functions
+  const navigate = (action) => {
+    const newDate = new Date(date);
+    
+    switch (view) {
+      case 'day':
+        if (action === 'PREV') {
+          newDate.setDate(newDate.getDate() - 1);
+        } else if (action === 'NEXT') {
+          newDate.setDate(newDate.getDate() + 1);
+        } else if (action === 'TODAY') {
+          setDate(new Date());
+          return;
+        }
+        break;
+      case 'week':
+        if (action === 'PREV') {
+          newDate.setDate(newDate.getDate() - 7);
+        } else if (action === 'NEXT') {
+          newDate.setDate(newDate.getDate() + 7);
+        } else if (action === 'TODAY') {
+          setDate(new Date());
+          return;
+        }
+        break;
+      case 'month':
+        if (action === 'PREV') {
+          newDate.setMonth(newDate.getMonth() - 1);
+        } else if (action === 'NEXT') {
+          newDate.setMonth(newDate.getMonth() + 1);
+        } else if (action === 'TODAY') {
+          setDate(new Date());
+          return;
+        }
+        break;
+    }
+    
+    setDate(newDate);
+  };
+
+  // Format date for display
+  const getDateLabel = () => {
+    switch (view) {
+      case 'day':
+        return dayjs(date).format('DD MMMM YYYY');
+      case 'week':
+        const startOfWeek = dayjs(date).startOf('week');
+        const endOfWeek = dayjs(date).endOf('week');
+        return `${startOfWeek.format('DD MMM')} - ${endOfWeek.format('DD MMM YYYY')}`;
+      case 'month':
+        return dayjs(date).format('MMMM YYYY');
+      default:
+        return dayjs(date).format('MMMM YYYY');
+    }
+  };
+
   // สีตามสถานะ
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending':
+    // Normalize to string
+    const s = (status || '').toString();
+    switch (s) {
+      case 'pending': // รอตรวจสอบ
         return '#fbbf24'; // yellow
-      case 'pending_approval':
+      case 'pending_approval': // รออนุมัติ
         return '#fb923c'; // orange
-      case 'carry':
+      case 'carry': // อนุมัติแล้ว (กำลังดำเนินการ)
         return '#3b82f6'; // blue
-      case 'approved':
+      case 'approved': // ส่งมอบแล้ว
         return '#10b981'; // green
-      case 'overdue':
-        return '#ef4444'; // red
-      case 'completed':
+      case 'rejected': // ถูกปฏิเสธ
+        return '#dc2626'; // red-600
+      case 'waiting_payment': // รอการชำระเงิน
+        return '#8b5cf6'; // violet
+      case 'canceled': // ยกเลิก
+        return '#9ca3af'; // gray
+      case 'completed': // เสร็จสิ้น
         return '#6b7280'; // gray
       default:
-        return '#6b7280'; // gray
+        return '#6b7280'; // fallback gray
     }
   };
 
   // ข้อความสถานะภาษาไทย
   const getStatusText = (status) => {
-    switch (status) {
+    const s = (status || '').toString();
+    switch (s) {
       case 'pending':
         return 'รอตรวจสอบ';
       case 'pending_approval':
         return 'รออนุมัติ';
       case 'carry':
-        return 'อนุมัติแล้ว';
+        return 'ส่งมอบ';
       case 'approved':
-        return 'ส่งมอบแล้ว';
-      case 'overdue':
-        return 'เกินกำหนด';
+        return 'อนุมัติ';
+      case 'rejected':
+        return 'ถูกปฏิเสธ';
+      case 'waiting_payment':
+        return 'รอการชำระเงิน';
+      case 'canceled':
+        return 'ยกเลิก';
       case 'completed':
         return 'เสร็จสิ้น';
       default:
-        return status;
+        return s || '-';
     }
   };
 
@@ -305,19 +546,19 @@ const BorrowCalendar = () => {
 
         const event = {
          id: borrow.borrow_id,
-           title: `${borrow.borrow_code}\n${borrowerName}\n${equipmentNames}\nสถานะ: ${statusText}\n${returnLabel}: ${returnDateStr}`,
+         title: `${borrow.borrow_code} - ${borrowerName}`,
          start: startDate,
          end: endDate,
          borrow: borrow,
          status: borrow.status,
-         allDay: true, // เปลี่ยนเป็น allDay เพื่อให้แสดงเต็มวัน
+         allDay: true,
          resource: {
            borrowCode: borrow.borrow_code,
            borrowerName: borrowerName,
            equipmentNames: equipmentNames,
            status: borrow.status,
-            statusText: statusText,
-             returnDateStr
+           statusText: statusText,
+           returnDateStr
          }
        };
 
@@ -336,29 +577,26 @@ const BorrowCalendar = () => {
      return events;
    }, [borrows, filterStatus, searchTerm]);
 
-     // Event Style
-   const eventStyleGetter = (event) => {
-     const backgroundColor = getStatusColor(event.status);
-     const style = {
-       backgroundColor,
-       borderRadius: '8px',
-       opacity: 0.9,
-       color: 'white',
-       border: '2px solid white',
-       display: 'block',
-       fontSize: '11px',
-       fontWeight: 'bold',
-       padding: '4px 8px',
-       margin: '2px 0',
-       boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-       whiteSpace: 'pre-line',
-       lineHeight: '1.3',
-       minHeight: '60px'
-     };
-     return {
-       style
-     };
-   };
+  // Event Style
+  const eventStyleGetter = (event) => {
+    const backgroundColor = getStatusColor(event.status);
+    const style = {
+      backgroundColor,
+      borderRadius: '6px',
+      opacity: 0.95,
+      color: 'white',
+      border: 'none',
+      fontSize: '11px',
+      fontWeight: '500',
+      padding: '2px 6px',
+      margin: '1px 0',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+      whiteSpace: 'nowrap',
+      overflow: 'hidden',
+      textOverflow: 'ellipsis'
+    };
+    return { style };
+  };
 
   // จัดการเมื่อคลิก event
   const handleEventClick = (event) => {
@@ -394,210 +632,227 @@ const BorrowCalendar = () => {
    };
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Modern Header */}
         <div className="mb-8">
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-              <MdCalendarMonth className="text-3xl text-white" />
+            <div>
+              <MdSchedule className="text-black text-4xl" />
             </div>
             <div>
-              <Typography variant="h3" className="text-gray-800 font-bold">
+              <h1 className="text-4xl font-bold text-black bg-clip-text mb-2">
                 ปฏิทินการยืม
-              </Typography>
-              <Typography variant="paragraph" className="text-gray-600">
-                ดูตารางการยืมครุภัณฑ์และกำหนดการคืน
-              </Typography>
+              </h1>
+              <p className="text-gray-500 text-lg">จัดการและติดตามการยืมครุภัณฑ์อย่างมีประสิทธิภาพ</p>
             </div>
           </div>
         </div>
 
-        {/* Filters and Controls */}
-        <Card className="shadow-lg border-0 mb-6">
-          <CardBody className="p-6">
-            <div className="flex flex-wrap gap-4 items-center justify-between">
-              {/* Search */}
-              <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 px-3 py-2">
-                <MdSearch className="text-gray-400" />
+        {/* Modern Legend */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 p-6 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl">
+              <MdInfo className="text-black text-xl" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-900">คำอธิบายสถานะ</h3>
+          </div>
+          
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-2">
+            <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-2xl border border-yellow-200/50">
+              <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: '#fbbf24' }}></div>
+              <span className="font-semibold text-gray-700">รอตรวจสอบ</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-orange-50  rounded-2xl border border-orange-200/50">
+              <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: '#fb923c' }}></div>
+              <span className="font-semibold text-gray-700">รออนุมัติ</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50">
+              <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: '#3b82f6' }}></div>
+              <span className="font-semibold text-gray-700">ส่งมอบ</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-2xl border border-emerald-200/50">
+              <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: '#10b981' }}></div>
+              <span className="font-semibold text-gray-700">อนุมัติ</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-3">
+            
+            <div className="flex items-center gap-3 p-3 bg-red-50 rounded-2xl border border-red-300/50">
+              <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: '#dc2626' }}></div>
+              <span className="font-semibold text-gray-700">ถูกปฏิเสธ</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-2xl border border-violet-200/50">
+              <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: '#8b5cf6' }}></div>
+              <span className="font-semibold text-gray-700">รอการชำระเงิน</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-2xl border border-gray-200/50">
+              <div className="w-4 h-4 rounded-full shadow-lg" style={{ backgroundColor: '#9ca3af' }}></div>
+              <span className="font-semibold text-gray-700">เสร็จสิ้น</span>
+            </div>
+          </div>
+          
+          <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-200/50">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">💡</div>
+              <div>
+                <p className="font-semibold text-blue-900 mb-1">วิธีใช้งาน</p>
+                <p className="text-blue-700">คลิกที่รายการในปฏิทินเพื่อดูรายละเอียดการยืมแบบละเอียด</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modern Control Panel */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl border border-white/20 p-6 mb-8">
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Search Section */}
+            <div className="flex-1">
+              <div className="relative">
+                <MdSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 text-xl" />
                 <input
                   type="text"
                   placeholder="ค้นหารหัสการยืม, ชื่อผู้ยืม, หรือชื่อครุภัณฑ์..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="outline-none text-gray-700 min-w-[300px]"
+                  className="w-full pl-12 pr-4 py-4 bg-gray-50/50 border border-gray-200/50 rounded-2xl text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all"
                 />
               </div>
+            </div>
 
+            {/* Filters and Controls */}
+            <div className="flex flex-wrap gap-4 items-center">
               {/* Status Filter */}
-              <div className="flex items-center gap-2">
-                <MdFilterList className="text-gray-600" />
-                                 <select
-                   value={filterStatus}
-                   onChange={(e) => setFilterStatus(e.target.value)}
-                   className="border border-gray-300 rounded-lg px-3 py-2 text-gray-700 bg-white"
-                 >
-                   <option value="all">สถานะทั้งหมด</option>
-                   <option value="pending">รอตรวจสอบ</option>
-                   <option value="pending_approval">รออนุมัติ</option>
-                   <option value="carry">อนุมัติแล้ว</option>
-                 </select>
+              <div className="relative">
+                <MdFilterList className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="pl-10 pr-8 py-3 bg-gray-50/50 border border-gray-200/50 rounded-xl text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="all">สถานะทั้งหมด</option>
+                  <option value="pending">รอตรวจสอบ</option>
+                  <option value="pending_approval">รออนุมัติ</option>
+                  <option value="carry">อนุมัติ</option>
+                  <option value="approved">ส่งมอบ</option>
+                  <option value="rejected">ถูกปฏิเสธ</option>
+                  <option value="waiting_payment">รอการชำระเงิน</option>
+                  <option value="completed">เสร็จสิ้น</option>
+                </select>
               </div>
 
-              {/* View Controls */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={view === 'day' ? 'filled' : 'outlined'}
-                  size="sm"
+              {/* View Toggle */}
+              <div className="flex bg-gray-100/80 rounded-2xl p-1.5 backdrop-blur-sm">
+                <button
                   onClick={() => setView('day')}
-                  className="flex items-center gap-1"
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    view === 'day' 
+                      ? 'bg-white text-blue-600 shadow-lg shadow-blue-500/20' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                  }`}
                 >
-                  <MdViewDay />
+                  <MdViewDay className="text-lg" />
                   วัน
-                </Button>
-                <Button
-                  variant={view === 'week' ? 'filled' : 'outlined'}
-                  size="sm"
+                </button>
+                <button
                   onClick={() => setView('week')}
-                  className="flex items-center gap-1"
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    view === 'week' 
+                      ? 'bg-white text-blue-600 shadow-lg shadow-blue-500/20' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                  }`}
                 >
-                  <MdViewWeek />
+                  <MdViewWeek className="text-lg" />
                   สัปดาห์
-                </Button>
-                <Button
-                  variant={view === 'month' ? 'filled' : 'outlined'}
-                  size="sm"
+                </button>
+                <button
                   onClick={() => setView('month')}
-                  className="flex items-center gap-1"
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all ${
+                    view === 'month' 
+                      ? 'bg-white text-blue-600 shadow-lg shadow-blue-500/20' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                  }`}
                 >
-                  <MdViewModule />
+                  <MdViewModule className="text-lg" />
                   เดือน
-                </Button>
+                </button>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => {
-                    // สร้างข้อมูลทดสอบ
-                    const testData = [
-                      {
-                        borrow_id: 'demo_1',
-                        borrow_code: 'DEMO001',
-                        borrower: { name: 'สมชาย ใจดี', department: 'IT', position: 'Developer' },
-                        equipment: [{ name: 'Laptop Dell Inspiron', item_code: 'LAP001', quantity: 1 }],
-                        borrow_date: new Date().toISOString().split('T')[0],
-                        return_date: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],
-                        status: 'approved',
-                        purpose: 'งานพัฒนาระบบ'
-                      },
-                      {
-                        borrow_id: 'demo_2',
-                        borrow_code: 'DEMO002',
-                        borrower: { name: 'สมหญิง รักงาน', department: 'Marketing', position: 'Manager' },
-                        equipment: [{ name: 'Projector Epson', item_code: 'PRJ001', quantity: 1 }],
-                        borrow_date: new Date(Date.now() + 2*24*60*60*1000).toISOString().split('T')[0],
-                        return_date: new Date(Date.now() + 5*24*60*60*1000).toISOString().split('T')[0],
-                        status: 'pending_approval',
-                        purpose: 'งานนำเสนอโครงการ'
-                      },
-                      {
-                        borrow_id: 'demo_3',
-                        borrow_code: 'DEMO003',
-                        borrower: { name: 'สมศักดิ์ มั่นคง', department: 'HR', position: 'Officer' },
-                        equipment: [{ name: 'กล้องถ่ายรูป Canon', item_code: 'CAM001', quantity: 1 }],
-                        borrow_date: new Date(Date.now() - 2*24*60*60*1000).toISOString().split('T')[0],
-                        return_date: new Date(Date.now() + 1*24*60*60*1000).toISOString().split('T')[0],
-                        status: 'carry',
-                        purpose: 'ถ่ายภาพกิจกรรมบริษัท'
-                      }
-                    ];
-                    setBorrows(testData);
-                    setDebugInfo(`โหลดข้อมูลทดสอบ: ${testData.length} รายการ`);
-                  }}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
-                >
-                  <MdEvent />
-                  ข้อมูลทดสอบ
-                </Button>
-
-                <Button
+              <div className="flex gap-3">
+                <button
                   onClick={fetchBorrows}
                   disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-2xl flex items-center gap-2 font-semibold shadow-lg shadow-blue-500/25 transition-all transform hover:scale-105 disabled:hover:scale-100"
                 >
-                  <MdRefresh className={loading ? 'animate-spin' : ''} />
+                  <MdRefresh className={`text-lg ${loading ? 'animate-spin' : ''}`} />
                   {loading ? 'กำลังโหลด...' : 'รีเฟรช'}
-                </Button>
+                </button>
               </div>
             </div>
-          </CardBody>
-        </Card>
+          </div>
+        </div>
 
-
-
-                 {/* Calendar Legend */}
-         <Card className="shadow-lg border-0 mb-4">
-           <CardBody className="p-4">
-             <Typography variant="h6" className="text-gray-800 font-semibold mb-3">
-               คำอธิบายสีในปฏิทิน
-             </Typography>
-                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {/* Modern Calendar */}
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden">
+          {/* Custom Calendar Header */}
+          <div className="bg-slate-800 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                {/* Navigation Controls */}
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#fbbf24' }}></div>
-                  <Typography variant="small" className="text-gray-700">รอตรวจสอบ</Typography>
+                  <button
+                    onClick={() => navigate('PREV')}
+                    className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all transform hover:scale-105"
+                  >
+                    <MdChevronLeft className="text-xl" />
+                  </button>
+                  <button
+                    onClick={() => navigate('TODAY')}
+                    className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium transition-all transform hover:scale-105 flex items-center gap-2"
+                  >
+                    <MdToday className="text-lg" />
+                    วันนี้
+                  </button>
+                  <button
+                    onClick={() => navigate('NEXT')}
+                    className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-all transform hover:scale-105"
+                  >
+                    <MdChevronRight className="text-xl" />
+                  </button>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#fb923c' }}></div>
-                  <Typography variant="small" className="text-gray-700">รออนุมัติ</Typography>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded" style={{ backgroundColor: '#3b82f6' }}></div>
-                  <Typography variant="small" className="text-gray-700">อนุมัติแล้ว</Typography>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 rounded bg-yellow-50 border-l-4 border-yellow-500"></div>
-                  <Typography variant="small" className="text-gray-700">วันที่มีรายการรอ</Typography>
+                
+                {/* Date Display */}
+                <div>
+                  <h2 className="text-2xl font-bold text-white">
+                    {getDateLabel()}
+                  </h2>
+                  <div className="flex items-center gap-2 text-white mt-1">
+                    <MdEvent className="text-lg" />
+                    <span className="font-medium">{events.length} รายการ</span>
+                  </div>
                 </div>
               </div>
-             <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-               <Typography variant="small" className="text-blue-800">
-                 💡 <strong>วิธีใช้งาน:</strong> คลิกที่รายการในปฏิทินเพื่อดูรายละเอียดการยืม
-               </Typography>
-             </div>
-           </CardBody>
-         </Card>
-
-         {/* Debug Info */}
-         {debugInfo && (
-           <Card className="shadow-lg border-0 mb-4">
-             <CardBody className="p-4">
-               <Typography variant="small" className="text-gray-600">
-                 Debug: {debugInfo}
-               </Typography>
-               <Typography variant="small" className="text-gray-600">
-                 Events: {events.length} รายการ
-               </Typography>
-               <Typography variant="small" className="text-gray-600">
-                 Borrows: {borrows.length} รายการ
-               </Typography>
-             </CardBody>
-           </Card>
-         )}
-
-         {/* Calendar */}
-          <Card className="shadow-lg border-0 mb-6">
-            <CardBody className="p-6 overflow-hidden">
-              <div className="relative" style={{ height: 'calc(100vh - 260px)' }}>
-                <div className="absolute inset-0 overflow-auto">
-                  <Calendar
+              
+              <div className="text-right text-white">
+                <div className="text-sm">อัพเดทล่าสุด</div>
+                <div className="font-semibold">{dayjs().format('DD/MM/YYYY HH:mm')}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="h-[calc(100vh-400px)] min-h-[600px] p-6 overflow-hidden">
+            <div className="w-full h-full overflow-hidden">
+              <Calendar
                    localizer={localizer}
                    events={events}
                    startAccessor="start"
                    endAccessor="end"
-                    style={{ height: '100%' }}
+                   style={{ height: '100%' }}
                    view={view}
+                   date={date}
                    onView={setView}
+                   onNavigate={setDate}
                    onSelectEvent={handleSelectEvent}
                    onSelectSlot={handleSelectSlot}
                    selectable
@@ -612,9 +867,20 @@ const BorrowCalendar = () => {
                    step={60}
                    timeslots={1}
                    defaultView="month"
-                   min={new Date(2024, 0, 1, 8, 0, 0)}
-                   max={new Date(2024, 11, 31, 18, 0, 0)}
-                                       dayPropGetter={(date) => {
+                   showMultiDayTimes={false}
+                   components={{
+                     timeSlotWrapper: () => null,
+                     timeGutterHeader: () => null
+                   }}
+                   formats={{
+                     dayFormat: 'dd',
+                     dayHeaderFormat: 'eeee dd/MM/yyyy',
+                     dayRangeHeaderFormat: ({ start, end }, culture, localizer) =>
+                       localizer.format(start, 'dd/MM/yyyy', culture) + ' - ' + localizer.format(end, 'dd/MM/yyyy', culture),
+                     timeGutterFormat: () => '',
+                     eventTimeRangeFormat: () => ''
+                   }}
+                   dayPropGetter={(date) => {
                       const dayEvents = events.filter(event => {
                         const eventDate = new Date(event.start);
                         return eventDate.toDateString() === date.toDateString();
@@ -632,13 +898,12 @@ const BorrowCalendar = () => {
                       }
                       return {};
                     }}
-                  />
-                </div>
-             </div>
-           </CardBody>
-         </Card>
+              />
+            </div>
+          </div>
+        </div>
 
-                 {/* Event Details Modal */}
+        {/* Event Details Modal */}
          {showEventDetails && selectedEvent && (
            <div className="modal modal-open">
              <div className="modal-box relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-[150vh] w-full p-5 z-50 overflow-y-auto max-h-[90vh]">

@@ -1,8 +1,47 @@
-import React from "react";
+import { BiGlobe } from "react-icons/bi"; 
+import React, { useState, useEffect } from "react";
 import { FaFacebookF, FaInstagram, FaLine } from "react-icons/fa";
 import { RiMailLine } from "react-icons/ri";
+import { API_BASE } from '../utils/api';
 
 function Footer() {
+  const [footerData, setFooterData] = useState({
+    university_name: 'มหาวิทยาลัยมหาสารคาม',
+    faculty_name: 'คณะวิทยาการสารสนเทศ',
+    address: 'ตำบลขามเรียง อำเภอกันทรวิชัย จังหวัดมหาสารคาม 44150',
+    phone: '+66 4375 4333',
+    email: 'equipment@msu.ac.th',
+    website: 'https://it.msu.ac.th',
+    facebook_url: 'https://facebook.com',
+    line_url: 'https://line.me',
+    instagram_url: 'https://www.instagram.com',
+    copyright_text: 'ระบบยืม-คืนครุภัณฑ์'
+  });
+
+  useEffect(() => {
+    fetchFooterData();
+  }, []);
+
+  const fetchFooterData = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/footer-settings`);
+      
+      // Check if response is ok (status 200-299)
+      if (!response.ok) {
+        console.warn(`Footer settings API returned ${response.status}, using default values`);
+        return; // Use default footer data
+      }
+      
+      const data = await response.json();
+      if (data.success && data.data) {
+        setFooterData(data.data);
+      }
+    } catch (error) {
+      console.warn('Footer settings not available, using default values:', error.message);
+      // Continue with default footer data - don't throw error
+    }
+  };
+
   return (
     <footer className="bg-gradient-to-r from-indigo-950 to-blue-700 text-white pt-1 pb-20  rounded-t-2xl mt-8">
       <div className="container mx-auto max-w-6xl px-4">
@@ -16,9 +55,9 @@ function Footer() {
                 className="h-16 w-16 object-contain"
               />
             </div>
-            <h3 className="text-xl font-bold mb-2 text-blue-200 tracking-wide">Equipment Borrowing System</h3>
+            <h3 className="text-xl font-bold mb-2 text-blue-200 tracking-wide">{footerData.copyright_text}</h3>
             <p className="text-sm text-gray-200">
-              © {new Date().getFullYear()} Mahasarakham University
+              © {new Date().getFullYear()} {footerData.university_name}
             </p>
           </div>
 
@@ -45,48 +84,50 @@ function Footer() {
           <div className="flex flex-col items-center md:items-end">
             <h3 className="text-lg font-semibold mb-3 text-blue-100">Contact Us</h3>
             <p className="text-sm text-gray-200 mb-2 text-center md:text-right">
-              Mahasarakham University<br />
-              Khamriang Sub-District, Kantarawichai District<br />
-              Maha Sarakham 44150, Thailand
+              {footerData.university_name}<br />
+              {footerData.faculty_name}<br />
+              {footerData.address}
             </p>
             <p className="text-sm text-gray-200 mb-3 text-center md:text-right">
-              <span className="font-medium">Tel:</span> +66 4375 4333<br />
-              <span className="font-medium">Email:</span> equipment@msu.ac.th
+              <span className="font-medium">Tel:</span> {footerData.phone}<br />
+              <span className="font-medium">Email:</span> {footerData.email}
             </p>
             <div className="flex space-x-3 mt-2">
               <a
-                href="https://facebook.com"
+                href={footerData.facebook_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white bg-opacity-20 p-2 rounded-full hover:bg-blue-600 hover:text-white transition-all shadow"
+                className="bg-blue-600 bg-opacity-20 p-2 rounded-full hover:bg-blue-700 hover:text-white transition-all shadow"
                 title="Facebook"
               >
                 <FaFacebookF className="w-5 h-5" />
               </a>
               <a
-                href="https://line.me"
+                href={footerData.line_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white bg-opacity-20 p-2 rounded-full hover:bg-green-500 hover:text-white transition-all shadow"
+                className="bg-green-500 bg-opacity-20 p-2 rounded-full hover:bg-green-600 hover:text-white transition-all shadow"
                 title="Line"
               >
                 <FaLine className="w-5 h-5" />
               </a>
               <a
-                href="https://www.instagram.com"
+                href={footerData.instagram_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white bg-opacity-20 p-2 rounded-full hover:bg-pink-500 hover:text-white transition-all shadow"
+                className="bg-pink-500 bg-opacity-20 p-2 rounded-full hover:bg-pink-600 hover:text-white transition-all shadow"
                 title="Instagram"
               >
                 <FaInstagram className="w-5 h-5" />
               </a>
               <a
-                href="mailto:equipment@msu.ac.th"
-                className="bg-white bg-opacity-20 p-2 rounded-full hover:bg-yellow-400 hover:text-white transition-all shadow"
+                href={footerData.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-blue-500 bg-opacity-20 p-2 rounded-full hover:bg-blue-600 hover:text-white transition-all shadow"
                 title="Contact Us"
               >
-                <RiMailLine className="w-5 h-5" />
+                <BiGlobe className="w-5 h-5" />
               </a>
             </div>
           </div>

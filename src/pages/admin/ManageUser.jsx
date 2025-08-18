@@ -435,6 +435,8 @@ function ManageUser() {
               </Typography>
             </div>
           </div>
+          
+          
           <div className="flex flex-col md:flex-row items-center justify-between gap-y-4 md:gap-x-4">
             <div className="w-full md:flex-grow relative flex flex-col md:flex-row gap-2 md:gap-4">
               <div className="flex-1 relative">
@@ -470,26 +472,36 @@ function ManageUser() {
                   </>
                 )}
               </Button>
-              <Button
-                variant="outlined"
-                className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
-                onClick={() => !isSubmitting && setManageBranchOpen(true)}
-                disabled={isSubmitting}
-              >
-                จัดการสาขา
-              </Button>
-              <Button
-                variant="outlined"
-                className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
-                onClick={() => !isSubmitting && setManagePositionOpen(true)}
-                disabled={isSubmitting}
-              >
-                จัดการตำแหน่ง
-              </Button>
             </div>
           </div>
+
+          {/* Management Buttons Section */}
+          <div className="mb-3 flex flex-wrap justify-center gap-4 mt-4">
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 px-6 py-3 text-base font-semibold normal-case transform hover:scale-105 transition-all duration-200 border-0"
+              onClick={() => !isSubmitting && setManageBranchOpen(true)}
+              disabled={isSubmitting}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+              </svg>
+              จัดการสาขา
+            </Button>
+            <Button
+              className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 px-6 py-3 text-base font-semibold normal-case transform hover:scale-105 transition-all duration-200 border-0"
+              onClick={() => !isSubmitting && setManagePositionOpen(true)}
+              disabled={isSubmitting}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              จัดการตำแหน่ง
+            </Button>
+          </div>
+
+          
+          {/* Filter Dropdowns */}
           <div className="mt-4 flex flex-wrap items-center gap-2 justify-center">
-            {/* Filter Dropdowns */}
             <Menu>
               <MenuHandler>
                 <Button

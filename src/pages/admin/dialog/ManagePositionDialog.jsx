@@ -111,7 +111,7 @@ export default function ManagePositionDialog({ open, onClose, onSaved }) {
 
   return (
     <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
-      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 transform animate-slideUp">
+      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-auto transform animate-slideUp">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
             <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -146,15 +146,13 @@ export default function ManagePositionDialog({ open, onClose, onSaved }) {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ลำดับ</th>
-                    <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อตำแหน่ง</th>
+                    <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ชื่อตำแหน่ง</th>
                     <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {positions.map((p, index) => (
                     <tr key={p.position_id} className="hover:bg-gray-50 transition-colors animate-fadeInUp" style={{animationDelay: `${index * 0.1}s`}}>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-600">{p.position_id}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{p.position_name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         <div className="flex gap-2 justify-center">

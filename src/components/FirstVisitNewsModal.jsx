@@ -17,7 +17,16 @@ export default function FirstVisitNewsModal({ userId }) {
         const data = await getNews();
         if (!Array.isArray(data) || data.length === 0) return;
         const flagTrue = (v) => v === 1 || v === '1' || v === true || v === 'true';
-        let list = data.filter(n => flagTrue(n.show_to_all) && n.image_url);
+        const hasValidImages = (imageUrl) => {
+          if (!imageUrl) return false;
+          try {
+            const urls = Array.isArray(imageUrl) ? imageUrl : JSON.parse(imageUrl);
+            return Array.isArray(urls) && urls.length > 0;
+          } catch {
+            return typeof imageUrl === 'string' && imageUrl.trim() !== '';
+          }
+        };
+        let list = data.filter(n => flagTrue(n.show_to_all) && hasValidImages(n.image_url));
         list.sort((a, b) => new Date(b.date) - new Date(a.date));
         list = list.slice(0, 8);
         setNewsItems(list);

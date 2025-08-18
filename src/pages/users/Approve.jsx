@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from "react";
+import { motion } from 'framer-motion';
 import BorrowingRequestDialog from "./dialogs/BorrowingRequestDialog";
 import { authFetch, API_BASE } from '../../utils/api';
 
@@ -72,17 +73,42 @@ const RequirementList = () => {
     setSelectedRequest(null);
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"
+      />
+    </div>
+  );
 
   // กรองเฉพาะ carry (อนุมัติแล้ว)
   const carryList = borrowList.filter(req => req.status === 'carry');
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">รายการอนุมัติการยืมครุภัณฑ์</h1>
+    <motion.div 
+      className="container mx-auto px-4 py-8"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <motion.h1 
+        className="text-2xl font-bold text-gray-800 mb-6"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        รายการอนุมัติการยืมครุภัณฑ์
+      </motion.h1>
       <div className="space-y-6">
         {carryList.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12">
+          <motion.div 
+            className="flex flex-col items-center justify-center py-12"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+          >
             <div className="bg-green-100 rounded-full p-6 mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
@@ -90,15 +116,22 @@ const RequirementList = () => {
             </div>
             <h3 className="text-xl font-bold text-green-600 mb-2">ไม่พบรายการอนุมัติ</h3>
             <p className="text-gray-500 text-base">คุณไม่มีรายการอนุมัติในขณะนี้</p>
-          </div>
+          </motion.div>
         )}
-        {carryList.map((request) => {
+        {carryList.map((request, index) => {
           const currentIndex = currentImageIndices[request.borrow_id] || 0;
           const items = request.equipment || [];
           const currentItem = items[currentIndex];
           const total = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
           return (
-            <div key={request.borrow_id} className="card bg-white shadow-xl overflow-hidden ">
+            <motion.div 
+              key={request.borrow_id} 
+              className="card bg-white shadow-xl overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 + 0.4 }}
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+            >
               <div className="flex flex-col md:flex-row">
                 {/* Image Carousel Section */}
                 <div className="relative group md:w-1/3 w-full h-full md:h-auto flex items-center justify-center transition-transform duration-300 hover:scale-[1.01]">
@@ -190,7 +223,10 @@ const RequirementList = () => {
                         <div className="flex gap-2 w-full md:w-auto">
                           <button
                             className="btn btn-outline btn-sm md:btn-md flex-2 md:flex-none rounded-xl hover:bg-green-600 hover:border-green-500 border-gray-200 bg-gray-200 transition-colors"
-                            onClick={() => openDialog(request)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDialog(request);
+                            }}
                           >
                             รับครุภัณฑ์
                           </button>
@@ -200,18 +236,19 @@ const RequirementList = () => {
                   </div>
                 </div>
               </div>
-              {/* Dialog for showing details */}
-              {isDialogOpen && selectedRequest?.borrow_id === request.borrow_id && (
-                <BorrowingRequestDialog
-                  request={selectedRequest}
-                  onClose={closeDialog}
-                />
-              )}
-            </div>
+            </motion.div>
           );
         })}
       </div>
-    </div>
+      
+      {/* Dialog for showing details */}
+      {isDialogOpen && selectedRequest && (
+        <BorrowingRequestDialog
+          request={selectedRequest}
+          onClose={closeDialog}
+        />
+      )}
+    </motion.div>
   );
 };
 

@@ -6,7 +6,8 @@ import {
   MagnifyingGlassIcon,
   TrashIcon,
   WrenchIcon,
-  PrinterIcon
+  PrinterIcon,
+  QrCodeIcon
 } from "@heroicons/react/24/outline";
 import {
   CheckCircleIcon,
@@ -39,6 +40,8 @@ import DeleteEquipmentDialog from "./dialog/DeleteEquipmentDialog";
 import EditEquipmentDialog from "./dialog/EditEquipmentDialog";
 import InspectRepairedEquipmentDialog from './dialog/InspectRepairedEquipmentDialog';
 import RepairRequestDialog from "./dialog/RepairRequestDialog";
+import ManageCategoryDialog from "./dialog/ManageCategoryDialog";
+import QRScannerDialog from "./dialog/QRScannerDialog";
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -112,6 +115,8 @@ function ManageEquipment() {
   const [statusFilter, setStatusFilter] = useState("ทั้งหมด");
   const [categoryFilter, setCategoryFilter] = useState("ทั้งหมด");
   const [showInspectDialog, setShowInspectDialog] = useState(false);
+  const [manageCategoryOpen, setManageCategoryOpen] = useState(false);
+  const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
@@ -1065,6 +1070,12 @@ function ManageEquipment() {
   };
 
   // ฟังก์ชันหลักสำหรับสร้าง PDF ที่มี QR Code จริง
+  const handleQRScannerResult = (equipment) => {
+    setSelectedEquipment(equipment);
+    setEditDialogOpen(true);
+    showAlertMessage(`พบครุภัณฑ์: ${equipment.name}`, "success");
+  };
+
   const handleDownloadRealQRCodesFinal = async () => {
     console.log('Downloading real QR Codes as PDF (final version)...');
 
@@ -2222,6 +2233,7 @@ function ManageEquipment() {
               </Typography>
             </div>
           </div>
+          
           <div className="flex flex-col md:flex-row items-center justify-between gap-y-4 md:gap-x-4">
            <div className="w-full md:flex-grow relative">
             <label htmlFor="search" className="sr-only"> {/* Screen reader only label */}
@@ -2241,21 +2253,41 @@ function ManageEquipment() {
               />
             </div>
            </div>
-                       <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
-             <Button
-               variant="outlined"
-               className="border-purple-300 text-purple-700 hover:bg-purple-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
-               onClick={() => setPreviewAllQRCodesOpen(true)}
-             >
-               <ArrowDownTrayIcon className="w-4 h-4" />
-               ดาวน์โหลด QR Code ครุภัณฑ์
-             </Button>
-             <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
-               <ArrowDownTrayIcon className="w-4 h-4" />
-               ส่งออก Excel
-             </Button>
+            <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
+              <Button 
+                onClick={() => setQrScannerOpen(true)}
+                className="bg-blue-700 hover:bg-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
+              >
+                <QrCodeIcon className="w-4 h-4" />
+                สแกน QR
+              </Button>
+              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
+                <ArrowDownTrayIcon className="w-4 h-4" />
+                ส่งออก Excel
+              </Button>
            </div>
         </div>
+
+        {/* Management Buttons Section */}
+          <div className="mb-3 flex flex-wrap justify-center gap-4 mt-4">
+            <Button
+              className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 px-6 py-3 text-base font-semibold normal-case transform hover:scale-105 transition-all duration-200 border-0"
+              onClick={() => setManageCategoryOpen(true)}
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              จัดการหมวดหมู่
+            </Button>
+            <Button
+               className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 px-6 py-3 text-base font-semibold normal-case transform hover:scale-105 transition-all duration-200 border-0"
+               onClick={() => setPreviewAllQRCodesOpen(true)}
+             >
+               <ArrowDownTrayIcon className="w-6 h-6" />
+               QR Code ครุภัณฑ์ทั้งหมด
+             </Button>
+          </div>
+
         <div className="flex flex-row items-center gap-2 justify-center mt-5">
               <Menu>
               <MenuHandler>
@@ -2368,69 +2400,72 @@ function ManageEquipment() {
                     const { pic, item_code, name, category, quantity, status, unit } = item;
                     return (
                       <tr key={item_code} className="hover:bg-gray-50">
-                        <td className="w-15 px-3 py-4 whitespace-nowrap text-center">
+                        <td className="px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
                             <img
-                              className="h-full w-18 object-contain rounded"
+                              className="h-16 w-16 object-cover rounded-lg shadow-sm"
                               src={pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"}
                               alt={name}
                               onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
                             />
                           </div>
                         </td>
-                        <td className="w-24 px-3 py-4 whitespace-nowrap text-center">
+                        <td className="px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex flex-col items-center justify-center space-y-2">
-                            <div className="bg-white p-2 rounded-lg shadow-sm border border-gray-200">
-                              <QRCode
-                                value={item_code}
-                                size={60}
-                                level="M"
-                                fgColor="#000000"
-                                bgColor="#FFFFFF"
-                              />
-                            </div>
-                            <span className="text-xs font-medium text-gray-700 text-center break-all">
-                              {item_code}
-                            </span>
+                            <span className="text-sm font-bold text-gray-900">{item_code}</span>
+                            <Tooltip content="คลิกเพื่อดาวน์โหลด QR Code">
+                              <div 
+                                className="bg-white p-1 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-purple-300 transition-all duration-200"
+                                onClick={() => handlePrintQRCode(item)}
+                              >
+                                <QRCode
+                                  value={item_code}
+                                  size={50}
+                                  level="M"
+                                  fgColor="#000000"
+                                  bgColor="#FFFFFF"
+                                />
+                              </div>
+                            </Tooltip>
                           </div>
                         </td>
-                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700text-gray-900 text-left truncate">{name}</td>
-                        <td className="w-20 px-3 py-4 whitespace-nowrap text-md text-gray-700 text-left truncate">{category}</td>
-                        <td className="w-10 px-3 py-4 whitespace-nowrap text-md text-gray-900 text-right">{quantity}{unit ? ` ${unit}` : ''}</td>
-                        <td className="w-20 px-3 py-4 whitespace-nowrap text-center text-gray-700">
+                        <td className="px-3 py-4 whitespace-nowrap text-md text-gray-900 font-medium">{name}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-700">{category}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">{quantity}{unit ? ` ${unit}` : ''}</td>
+                        <td className="px-3 py-4 whitespace-nowrap text-center text-gray-700">
                           <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-sm ${statusConfig[status]?.backgroundColor || "bg-gray-200"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
                             {status}
                           </span>
                         </td>
-                        <td className="w-25 px-3 py-4 whitespace-nowrap text-center">
-                          <div className="flex flex-wrap items-center justify-end gap-2">
-                            <Tooltip content="พิมพ์ QR Code" placement="top">
-                              <IconButton variant="text" color="purple" className="bg-purple-50 hover:bg-purple-100 shadow-sm transition-all duration-200 p-2" onClick={() => handlePrintQRCode(item)}>
-                                <PrinterIcon className="h-5 w-5" />
+                        <td className="px-3 py-4 whitespace-nowrap text-center">
+                          <div className="flex gap-1 justify-center">
+                            <Tooltip content="พิมพ์ QR Code">
+                              <IconButton variant="text" color="purple" className="bg-purple-50 hover:bg-purple-100" onClick={() => handlePrintQRCode(item)}>
+                                <PrinterIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
                             {status === 'ชำรุด' && (
-                              <Tooltip content="แจ้งซ่อม" placement="top">
-                                <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleRepairRequest(item)}>
-                                  <WrenchIcon className="h-5 w-5" />
+                              <Tooltip content="แจ้งซ่อม">
+                                <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100" onClick={() => handleRepairRequest(item)}>
+                                  <WrenchIcon className="h-4 w-4" />
                                 </IconButton>
                               </Tooltip>
                             )}
                             {status === 'กำลังซ่อม' && (
-                              <Tooltip content="ตรวจรับครุภัณฑ์" placement="top">
-                                <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleInspectEquipment(item)}>
-                                  <CheckCircleIcon className="h-6 w-6" />
+                              <Tooltip content="ตรวจรับครุภัณฑ์">
+                                <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100" onClick={() => handleInspectEquipment(item)}>
+                                  <CheckCircleIcon className="h-4 w-4" />
                                 </IconButton>
                               </Tooltip>
                             )}
-                            <Tooltip content="แก้ไข" placement="top">
-                              <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleEditClick(item)}>
-                                <PencilIcon className="h-5 w-5" />
+                            <Tooltip content="แก้ไข">
+                              <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100" onClick={() => handleEditClick(item)}>
+                                <PencilIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip content="ลบ" placement="top">
-                              <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDeleteClick(item)}>
-                                <TrashIcon className="h-5 w-5" />
+                            <Tooltip content="ลบ">
+                              <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100" onClick={() => handleDeleteClick(item)}>
+                                <TrashIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
                           </div>
@@ -2622,6 +2657,20 @@ function ManageEquipment() {
           onClose={() => setShowInspectDialog(false)}
           equipment={selectedEquipment}
           onSubmit={handleInspectSubmit}
+        />
+        <ManageCategoryDialog
+          open={manageCategoryOpen}
+          onClose={() => setManageCategoryOpen(false)}
+          onSaved={() => {
+            setManageCategoryOpen(false);
+            getEquipment().then(setEquipmentList);
+          }}
+        />
+
+        <QRScannerDialog
+          isOpen={qrScannerOpen}
+          onClose={() => setQrScannerOpen(false)}
+          onEquipmentFound={handleQRScannerResult}
         />
 
         {/* Preview All QR Codes Dialog */}

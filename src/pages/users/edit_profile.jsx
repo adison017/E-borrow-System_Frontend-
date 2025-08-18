@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { isCloudinaryUrl, getOptimizedCloudinaryUrl } from '../../utils/cloudinaryUtils';
 import { uploadFileToCloudinary } from '../../utils/cloudinaryUtils';
 import { API_BASE } from '../../utils/api';
@@ -500,8 +501,19 @@ const PersonalInfoEdit = () => {
   }, []);
 
   return (
-    <div data-theme="light" className="container mx-auto max-w-8xl py-10 px-4 sm:px-6">
-      <div className="card bg-white rounded-2xl overflow-hidden">
+    <motion.div 
+      data-theme="light" 
+      className="container mx-auto max-w-8xl py-10 px-4 sm:px-6"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+    >
+      <motion.div 
+        className="card bg-white rounded-2xl overflow-hidden"
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+      >
         <div className="card-body p-6 md:p-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-10 gap-4 border-b-0 pb-6">
             <div>
@@ -858,7 +870,7 @@ const PersonalInfoEdit = () => {
       />
           </form>
         </div>
-      </div>
+      </motion.div>
 
       {/* แจ้งเตือนด้วย Notification */}
       <Notification
@@ -875,7 +887,7 @@ const PersonalInfoEdit = () => {
         message={errorMessage}
         onClose={() => setErrorMessage("")}
       />
-    </div>
+    </motion.div>
   );
 };
 
