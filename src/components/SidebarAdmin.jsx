@@ -18,17 +18,17 @@ import { useBadgeCounts } from '../hooks/useSocket';
 
 const menuItems = [
   { to: '/DashboardAd', icon: <BsGraphUp size={22} />, label: 'รายงาน', key: 'dashboardAd' },
+  { to: '/manage-news', icon: <FaNewspaper  size={22} />, label: 'จัดการประกาศ', key: 'manageNews' },
   { to: '/members', icon: <MdManageAccounts size={22} />, label: 'จัดการผู้ใช้งาน', key: 'members' },
   { to: '/equipment', icon: <BiPackage size={22} />, label: 'จัดการครุภัณฑ์', key: 'equipment' },
-  { to: '/manage-news', icon: <FaNewspaper  size={22} />, label: 'จัดการประกาศ', key: 'manageNews' },
-  { to: '/category', icon: <TbPackages size={22} />, label: 'จัดการประเภท', key: 'category' },
   { to: '/rooms', icon: <FaBuilding size={22} />, label: 'จัดการห้อง', key: 'rooms' },
   { to: '/borrow-list', icon: <BsFillClipboardPlusFill size={22} />, label: 'รายการขอยืมครุภัณฑ์', key: 'borrowList' },
   { to: '/ReceiveItem', icon: <GiHandTruck size={30} />, label: 'ส่งมอบครุภัณฑ์', key: 'receiveItem' },
   { to: '/return-list', icon: <GiBackForth size={23} />, label: 'รายการคืนครุภัณฑ์', key: 'returnList' },
   { to: '/success', icon: <BsClipboardCheckFill size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
   { to: '/borrow-calendar', icon: <MdCalendarMonth size={22} />, label: 'ปฏิทินการยืม', key: 'borrowCalendar' },
-  { to: '/qr-scanner', icon: <QrCodeIcon className="w-6 h-6" />, label: 'สแกน QR Code ครุภัณฑ์', key: 'qrScanner' },
+  { to: '/footer-settings', icon: <MdOutlineEditNote size={22} />, label: 'จัดการ Footer', key: 'footerSettings' },
+
 ];
 
 function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }) {

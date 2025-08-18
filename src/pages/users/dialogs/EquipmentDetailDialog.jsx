@@ -1,4 +1,5 @@
 import { MdClose } from "react-icons/md";
+import { motion, AnimatePresence } from 'framer-motion';
 
 const EquipmentDetailDialog = ({
   showDetailDialog,
@@ -8,10 +9,23 @@ const EquipmentDetailDialog = ({
   getStatusBadge
 }) => {
   return (
-    showDetailDialog && selectedEquipment && (
-      <div className="modal modal-open">
+    <AnimatePresence>
+    {showDetailDialog && selectedEquipment && (
+      <motion.div 
+        className="modal modal-open"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div className="fixed inset-0 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl xl:max-w-6xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
+          <motion.div 
+            className="bg-white rounded-xl shadow-xl w-full max-w-4xl xl:max-w-6xl max-h-[90vh] overflow-y-auto"
+            initial={{ scale: 0.9, y: 50 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: 50 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
             <div className="p-6">
               {/* Header */}
               <div className="bg-gradient-to-r from-indigo-950 to-blue-700 -mx-6 -mt-6 px-6 py-6 rounded-t-xl mb-8">
@@ -88,10 +102,11 @@ const EquipmentDetailDialog = ({
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
-    )
+      </motion.div>
+    )}
+    </AnimatePresence>
   );
 };
 

@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { getNews } from '../../utils/api';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import {
+  MdCalendarToday,
+  MdCampaign,
   MdChevronLeft,
   MdChevronRight,
   MdClose,
-  MdCalendarToday,
-  MdLocalOffer,
-  MdCampaign,
-  MdNewReleases,
   MdEvent,
+  MdLocalOffer,
+  MdNewReleases,
   MdNotifications,
   MdRemoveRedEye
 } from 'react-icons/md';
-import { motion, AnimatePresence } from 'framer-motion';
+import { getNews } from '../../utils/api';
 
 // Enhanced image carousel with better UI
 const ImageCarousel = ({ urls, altBase = 'image' }) => {
@@ -240,20 +240,15 @@ const NewsPage = () => {
     ? newsItems 
     : newsItems.filter(item => item.category === selectedCategory);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center h-96">
-            <div className="relative">
-              <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-200"></div>
-              <div className="absolute top-0 animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+    if (loading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"
+      />
+    </div>
+  );
 
   if (error) {
     return (
@@ -359,8 +354,9 @@ const NewsPage = () => {
                   return urls.length > 0;
                 })();
                 
-                const isFeatured = index === 0;
-                const isWide = index % 5 === 0 && index !== 0;
+                // Only mark items as featured/wide when they actually have images
+                const isFeatured = index === 0 && hasImages;
+                const isWide = index % 5 === 0 && index !== 0 && hasImages;
                 const isTall = hasImages && index % 3 === 0;
                 
                 let gridClass = "";
@@ -383,7 +379,7 @@ const NewsPage = () => {
                     className={`bg-white shadow-xl overflow-hidden border border-gray-100 hover:shadow-2xl transition-shadow duration-300 rounded-4xl flex flex-col ${gridClass}`}
                   >
                     {/* News Header */}
-                    <div className={`p-6 ${isFeatured ? 'lg:p-8' : ''} flex-grow flex flex-col`}>
+                    <div className={`p-6 ${isFeatured ? 'lg:p-8' : ''} flex flex-col`}>
                       <div className="flex items-start justify-between mb-2">
                         <div className={`inline-flex items-center space-x-2 px-3 py-1.5 rounded-full ${getCategoryStyle(item.category)}`}>
                           {getCategoryIcon(item.category)}

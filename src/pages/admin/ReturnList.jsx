@@ -533,14 +533,6 @@ const ReturnList = () => {
                 </Typography>
                 {/* Badge แสดงจำนวนรายการที่คืนแล้ว */}
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                    <CheckCircleSolidIcon className="h-3 w-3" />
-                    คืนแล้ว: {returns.filter(r => r.status === 'completed').length}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                    <ClockIcon className="h-3 w-3" />
-                    ทั้งหมด: {returns.filter(r => displayableStatusKeys.includes(r.status)).length}
-                  </span>
                 </div>
               </div>
               <Typography color="gray" className="mt-1 font-normal text-sm text-gray-600">

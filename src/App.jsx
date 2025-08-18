@@ -22,12 +22,13 @@ import ManageEquipment from './pages/admin/ManageEquipment';
 import ManageNews from './pages/admin/ManageNews';
 import ManageRoom from './pages/admin/ManageRoom';
 import ManageUser from './pages/admin/ManageUser';
-import QRScanner from './pages/admin/QRScanner';
+
 import ReceiveItem from './pages/admin/ReceiveItem';
 import ReturnList from './pages/admin/ReturnList';
 import Success from './pages/admin/Success';
 import SystemSettings from './pages/admin/SystemSettings';
 import BorrowCalendar from './pages/admin/BorrowCalendar';
+import FooterSettings from './pages/admin/FooterSettings';
 
 // Executive Pages
 import BorrowApprovalList from './pages/executive/BorrowApprovalList';
@@ -317,7 +318,7 @@ function AppInner() {
                 <Route path="/equipment" element={<ManageEquipment />} />
                 <Route path="/rooms" element={<ManageRoom />} />
                 <Route path="/members" element={<ManageUser />} />
-                <Route path="/qr-scanner" element={<QRScanner />} />
+
                 <Route path="/return-list" element={<ReturnList />} />
                 <Route path="/ReceiveItem" element={<ReceiveItem />} />
                 <Route path="/category" element={<ManageCategory />} />
@@ -326,6 +327,7 @@ function AppInner() {
                 <Route path="/edit_profile" element={<Edit_pro />} />
                 <Route path="/system-settings" element={<SystemSettings />} />
                 <Route path="/borrow-calendar" element={<BorrowCalendar />} />
+                <Route path="/footer-settings" element={<FooterSettings />} />
                 <Route path="/reports" element={<DashboardAdmin />} />
                 <Route path="*" element={<Navigate to="/DashboardAd" replace />} />
               </>

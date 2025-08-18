@@ -1,6 +1,7 @@
 import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const BorrowDialog = ({
   showBorrowDialog,
@@ -192,10 +193,23 @@ const BorrowDialog = ({
   };
 
   return (
-    showBorrowDialog && (
-      <div className="modal modal-open">
+    <AnimatePresence>
+    {showBorrowDialog && (
+      <motion.div 
+        className="modal modal-open"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
         <div className="fixed inset-0 flex items-center justify-center z-50 p-2 transition-opacity duration-300">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] transform transition-all duration-300 flex flex-col relative">
+          <motion.div 
+            className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative"
+            initial={{ scale: 0.9, y: 50 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.9, y: 50 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+          >
             {/* Loading Overlay */}
             {isSubmitting && (
               <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center z-10 rounded-xl">
@@ -469,10 +483,11 @@ const BorrowDialog = ({
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
-      </div>
-    )
+      </motion.div>
+    )}
+    </AnimatePresence>
   );
 };
 
