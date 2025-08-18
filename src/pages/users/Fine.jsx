@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { motion } from 'framer-motion';
 import { MdContentCopy } from "react-icons/md";
 import BorrowingRequestDialog from "./dialogs/BorrowingRequestDialog";
 // import { globalUserData } from '../../components/Header';
@@ -155,7 +156,15 @@ const Fine = () => {
     }
   }
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center min-h-screen">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full"
+      />
+    </div>
+  );
 
   // ป้องกัน error .filter is not a function
   const safeFineList = Array.isArray(fineList) ? fineList : [];
@@ -163,9 +172,19 @@ const Fine = () => {
   // const paidList = fineList.filter(req => req.pay_status === 'paid'); // ลบส่วนนี้ออก
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <motion.div 
+      className="container mx-auto px-4 py-8"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Payment Method Section */}
-      <div className="mb-6">
+      <motion.div 
+        className="mb-6"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -276,7 +295,7 @@ const Fine = () => {
             <div className="text-xs text-gray-500 mt-2">กำลังโหลดข้อมูลช่องทางชำระเงิน...</div>
           )}
         </div>
-      </div>
+      </motion.div>
       {/* Success Notification */}
       <AlertDialog
         show={showSuccessAlert}
@@ -297,7 +316,12 @@ const Fine = () => {
 
       <div className="space-y-6">
         {pendingList.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-12">
+          <motion.div 
+            className="flex flex-col items-center justify-center py-12"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.4 }}
+          >
             <div className="bg-red-100 rounded-full p-6 mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
@@ -305,15 +329,22 @@ const Fine = () => {
             </div>
             <h3 className="text-xl font-bold text-red-600 mb-2">ไม่พบรายการค้างชำระเงิน</h3>
             <p className="text-gray-500 text-base">คุณไม่มีรายการค้างชำระเงินในขณะนี้</p>
-          </div>
+          </motion.div>
         )}
-        {pendingList.map((request) => {
+        {pendingList.map((request, index) => {
           const currentIndex = currentImageIndices[request.borrow_id] || 0;
           const items = request.equipment || [];
           const currentItem = items[currentIndex];
           const total = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
           return (
-            <div key={request.borrow_id} className="card bg-white shadow-xl overflow-hidden ">
+            <motion.div 
+              key={request.borrow_id} 
+              className="card bg-white shadow-xl overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 + 0.5 }}
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
+            >
               <div className="flex flex-col md:flex-row">
                 {/* Image Carousel Section */}
                 <div className="relative group md:w-1/3 w-full h-full md:h-auto flex items-center justify-center transition-transform duration-300 hover:scale-[1.01]">
@@ -427,48 +458,37 @@ const Fine = () => {
                         <div className="text-gray-700 font-medium text-sm md:text-base">
                           รวมทั้งหมด {total} ชิ้น
                         </div>
-                        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto md:items-center">
-                          {request.pay_status !== 'failed' && !request.proof_image && (
-                            <button
-                              className="bg-gradient-to-r from-emerald-400 to-green-600 text-white font-bold py-2 px-8 rounded-full shadow-lg text-lg tracking-wide transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-pink-200 animate-pulse flex items-center justify-center gap-2"
-                              onClick={() => openDialog(request)}
-                            >
-                              <FaMoneyCheckAlt className="w-6 h-6" />
-                              ชำระเงิน
-                            </button>
-                          )}
-                          {request.pay_status === 'failed' && (
-                            <button
-                              className="bg-gradient-to-r from-rose-400 to-red-600 text-white font-bold py-2 px-8 rounded-full shadow-lg text-lg tracking-wide transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-rose-200 flex items-center justify-center gap-2"
-                              onClick={() => openDialog(request)}
-                            >
-                              <FaMoneyCheckAlt className="w-6 h-6" />
-                              ทำรายการใหม่
-                            </button>
-                          )}
-
+                        <div className="flex gap-2 w-full md:w-auto">
+                          <button
+                            className="bg-gradient-to-r from-emerald-400 to-green-600 text-white font-bold py-2 px-8 rounded-full shadow-lg text-lg tracking-wide transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-pink-200 animate-pulse flex items-center justify-center gap-2"
+                            onClick={() => openDialog(request)}
+                          >
+                            <FaMoneyCheckAlt className="w-6 h-6" />
+                            ชำระเงิน
+                          </button>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-              {/* Dialog for showing details (optional, if you want to keep) */}
-              {isDialogOpen && selectedRequest?.borrow_id === request.borrow_id && (
-                <BorrowingRequestDialog
-                  request={selectedRequest}
-                  onClose={() => setDialogShouldClose(true)}
-                  activeStep={activeStep}
-                  dialogShouldClose={dialogShouldClose}
-                  forceOpen={isDialogOpen}
-                  afterClose={(showAlert) => closeDialog(showAlert)}
-                />
-              )}
-            </div>
+            </motion.div>
           );
         })}
       </div>
-    </div>
+      
+      {/* Dialog for showing details */}
+      {isDialogOpen && selectedRequest && (
+        <BorrowingRequestDialog
+          request={selectedRequest}
+          onClose={() => setDialogShouldClose(true)}
+          activeStep={activeStep}
+          dialogShouldClose={dialogShouldClose}
+          forceOpen={isDialogOpen}
+          afterClose={(showAlert) => closeDialog(showAlert)}
+        />
+      )}
+    </motion.div>
   );
 };
 

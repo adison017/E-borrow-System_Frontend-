@@ -423,11 +423,6 @@ const ManageNews = () => {
     e.preventDefault();
   setIsSubmitting(true);
     try {
-      console.log('=== Starting submit process ===');
-      console.log('Form data:', formData);
-      console.log('Pending images:', pendingImages);
-
-      // Prepare image URLs: keep existing (non-blob) + upload new pending
       const currentUrls = Array.isArray(formData.image_url)
         ? formData.image_url
         : (formData.image_url ? [formData.image_url] : []);
