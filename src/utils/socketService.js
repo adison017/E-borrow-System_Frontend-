@@ -34,12 +34,8 @@ class SocketService {
     }
 
     // Create socket instance. Avoid connecting without token to prevent server-side "Token required" errors
-    try {
-      const base = (
-        import.meta?.env?.DEV
-          ? (import.meta?.env?.VITE_SOCKET_URL || 'http://localhost:5000')
-          : (import.meta?.env?.VITE_API_URL || window.__API_BASE__ || 'http://localhost:5000')
-      ).replace(/\/$/, '');
+try {
+    const base = (import.meta?.env?.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
       const hasToken = Boolean(this.authToken);
       this.socket = io(base, {
         transports: ['websocket', 'polling'],
@@ -79,7 +75,7 @@ class SocketService {
     }
 
     this.authToken = token;
-    
+
     return new Promise((resolve, reject) => {
       // ตั้ง timeout สำหรับ authentication
       const authTimeout = setTimeout(() => {
@@ -140,7 +136,7 @@ class SocketService {
       console.log('✅ Socket connected:', this.socket.id);
       this.isConnected = true;
       this.reconnectAttempts = 0;
-      
+
       // ถ้ามี token ให้ authenticate อัตโนมัติ
       if (this.authToken) {
         try {
@@ -177,7 +173,7 @@ class SocketService {
     this.socket.on('reconnect', (attemptNumber) => {
       console.log('🔄 Socket reconnected after', attemptNumber, 'attempts');
       this.isConnected = true;
-      
+
       // ถ้ามี token ให้ authenticate อัตโนมัติ
       if (this.authToken) {
         try {

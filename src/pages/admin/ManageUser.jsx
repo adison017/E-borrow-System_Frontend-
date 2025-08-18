@@ -119,6 +119,9 @@ function ManageUser() {
   const [positions, setPositions] = useState([]);
 
   const [showAddUserSuccess, setShowAddUserSuccess] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [togglingUserId, setTogglingUserId] = useState(null);
 
   // ฟังก์ชันรวมคำอธิบายแจ้งเตือน (เหมือน borrowlist/news)
   const getUserNotifyMessage = (action, extra) => {
@@ -243,6 +246,8 @@ function ManageUser() {
   };
 
   const confirmDelete = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const response = await axios.delete(`${API_BASE}/users/id/${selectedUser.user_id}`, {
         headers: getAuthHeaders()
@@ -258,6 +263,8 @@ function ManageUser() {
     } catch (error) {
       console.error('เกิดข้อผิดพลาดในการลบผู้ใช้:', error);
       notifyUserAction('delete_error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -378,23 +385,28 @@ function ManageUser() {
 
   // ฟังก์ชันสำหรับ export Excel
   const handleExportExcel = () => {
-    // เตรียมข้อมูลเฉพาะที่แสดงผล (filteredUsers)
-    const exportData = filteredUsers.map(user => ({
-      'รหัสนิสิต': user.student_id || user.user_code || '',
-      'ชื่อผู้ใช้': user.username || '',
-      'ชื่อ-นามสกุล': user.Fullname || '',
-      'อีเมล': user.email || '',
-      'เบอร์โทรศัพท์': user.phone || '',
-      'ตำแหน่ง': user.position_name || '',
-      'สาขา': user.branch_name || '',
-      'แจ้งเตือน LINE': user.line_notify_enabled === 1 ? 'เปิด' : 'ปิด',
-    }));
-    const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
-    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
-    saveAs(blob, 'users.xlsx');
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const exportData = filteredUsers.map(user => ({
+        'รหัสนิสิต': user.student_id || user.user_code || '',
+        'ชื่อผู้ใช้': user.username || '',
+        'ชื่อ-นามสกุล': user.Fullname || '',
+        'อีเมล': user.email || '',
+        'เบอร์โทรศัพท์': user.phone || '',
+        'ตำแหน่ง': user.position_name || '',
+        'สาขา': user.branch_name || '',
+        'แจ้งเตือน LINE': user.line_notify_enabled === 1 ? 'เปิด' : 'ปิด',
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+      saveAs(blob, 'users.xlsx');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -444,22 +456,33 @@ function ManageUser() {
             </div>
             <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
               <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case" onClick={handleExportExcel}>
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                  <path fillRule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm7.586 2.586L14.5 7H12V4.5h.086ZM11 10a.75.75 0 0 1 .75.75v1.5h1.5a.75.75 0 0 1 0 1.5h-1.5v1.5a.75.75 0 0 1-1.5 0v-1.5h-1.5a.75.75 0 0 1 0-1.5h1.5v-1.5A.75.75 0 0 1 11 10Z" clipRule="evenodd" />
-                </svg>
-                ส่งออก Excel
+                {isExporting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    กำลังส่งออก...
+                  </>
+                ) : (
+                  <>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+                      <path fillRule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm7.586 2.586L14.5 7H12V4.5h.086ZM11 10a.75.75 0 0 1 .75.75v1.5h1.5a.75.75 0 0 1 0 1.5h-1.5v1.5a.75.75 0 0 1-1.5 0v-1.5h-1.5a.75.75 0 0 1 0-1.5h1.5v-1.5A.75.75 0 0 1 11 10Z" clipRule="evenodd" />
+                    </svg>
+                    ส่งออก Excel
+                  </>
+                )}
               </Button>
               <Button
                 variant="outlined"
                 className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
-                onClick={() => setManageBranchOpen(true)}
+                onClick={() => !isSubmitting && setManageBranchOpen(true)}
+                disabled={isSubmitting}
               >
                 จัดการสาขา
               </Button>
               <Button
                 variant="outlined"
                 className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
-                onClick={() => setManagePositionOpen(true)}
+                onClick={() => !isSubmitting && setManagePositionOpen(true)}
+                disabled={isSubmitting}
               >
                 จัดการตำแหน่ง
               </Button>
@@ -659,11 +682,13 @@ function ManageUser() {
                             <div className="flex flex-col items-center justify-center gap-1">
                               <button
                                 type="button"
-                                className={`line-notify-switch relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none border-2 cursor-pointer ${line_notify_enabled ? 'bg-green-400 border-green-500' : 'bg-white border-gray-400'}`}
+                                className={`line-notify-switch relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none border-2 cursor-pointer ${line_notify_enabled ? 'bg-green-400 border-green-500' : 'bg-white border-gray-400'} ${togglingUserId===user_id ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 aria-pressed={!!line_notify_enabled}
                                 onClick={async (e) => {
                                   e.stopPropagation();
+                                  if (togglingUserId) return;
                                   try {
+                                    setTogglingUserId(user_id);
                                     const newValue = !line_notify_enabled ? 1 : 0;
                                     console.log('กำลังสลับการแจ้งเตือน LINE สำหรับผู้ใช้:', user_id, 'เป็น:', newValue);
 
@@ -689,13 +714,19 @@ function ManageUser() {
                                     console.error('เกิดข้อผิดพลาดในการสลับแจ้งเตือน LINE:', error);
                                     console.error('การตอบกลับข้อผิดพลาด:', error.response?.data);
                                     toast.error('เกิดข้อผิดพลาดในการอัปเดตแจ้งเตือน LINE: ' + (error.response?.data?.message || error.message));
+                                  } finally {
+                                    setTogglingUserId(null);
                                   }
                                 }}
                               >
                                 <span
                                   className={`absolute left-1 top-0.5 w-6 h-6 rounded-full bg-white shadow-md flex items-center justify-center transition-transform duration-300 ${line_notify_enabled ? 'translate-x-6' : 'translate-x-0'}`}
                                 >
-                                  <ImMail4 className={`w-5 h-5 ${line_notify_enabled ? 'text-green-600' :  'text-black'} transition-colors duration-300`} />
+                                  {togglingUserId===user_id ? (
+                                    <svg className="animate-spin h-4 w-4 text-gray-600" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                  ) : (
+                                    <ImMail4 className={`w-5 h-5 ${line_notify_enabled ? 'text-green-600' :  'text-black'} transition-colors duration-300`} />
+                                  )}
                                 </span>
                               </button>
                               <span

@@ -102,6 +102,7 @@ function ManageEquipment() {
   const [selectedEquipmentForPrint, setSelectedEquipmentForPrint] = useState(null);
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [previewAllQRCodesOpen, setPreviewAllQRCodesOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
@@ -137,11 +138,22 @@ function ManageEquipment() {
   };
 
   // ฟังก์ชั่นสำหรับลบ
-  const confirmDelete = () => {
-    deleteEquipment(selectedEquipment.item_code).then(() => getEquipment().then(setEquipmentList));
-    setDeleteDialogOpen(false);
-    showAlertMessage(`ลบครุภัณฑ์ ${selectedEquipment.name} เรียบร้อยแล้ว`, "delete");
-    setSelectedEquipment(null);
+  const confirmDelete = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    showAlertMessage('⏳ กำลังลบครุภัณฑ์...', 'info');
+    try {
+      await deleteEquipment(selectedEquipment.item_code);
+      getEquipment().then(setEquipmentList);
+      setDeleteDialogOpen(false);
+      showAlertMessage(`✅ ลบครุภัณฑ์ ${selectedEquipment.name} เรียบร้อยแล้ว`, "success");
+      setSelectedEquipment(null);
+    } catch (error) {
+      console.error('Error deleting equipment:', error);
+      showAlertMessage('❌ เกิดข้อผิดพลาดในการลบครุภัณฑ์', "error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEditClick = (equipment) => {
@@ -312,7 +324,10 @@ function ManageEquipment() {
     setPrintDialogOpen(true);
   };
 
-    const handleDownloadQRCode = () => {
+    const handleDownloadQRCode = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    showAlertMessage('⏳ กำลังดาวน์โหลด QR Code...', 'info');
     const equipment = selectedEquipmentForPrint;
     console.log('Downloading QR Code for:', equipment);
 
@@ -322,21 +337,27 @@ function ManageEquipment() {
     canvas.height = 340;
     const ctx = canvas.getContext('2d');
 
-    // ตั้งค่าพื้นหลังสีขาว
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    try {
+      // ตั้งค่าพื้นหลังสีขาว
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // สร้าง QR Code โดยใช้ react-qr-code ที่มีอยู่แล้ว
-    const qrCodeSvg = document.querySelector('.qr-code-preview svg');
-    if (qrCodeSvg) {
-      // แปลง SVG เป็น data URL
-      const svgData = new XMLSerializer().serializeToString(qrCodeSvg);
-      const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
-      const svgUrl = URL.createObjectURL(svgBlob);
+      // สร้าง QR Code โดยใช้ react-qr-code ที่มีอยู่แล้ว
+      const qrCodeSvg = document.querySelector('.qr-code-preview svg');
+      if (qrCodeSvg) {
+        // แปลง SVG เป็น data URL
+        const svgData = new XMLSerializer().serializeToString(qrCodeSvg);
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+        const svgUrl = URL.createObjectURL(svgBlob);
 
-      // สร้าง image จาก SVG
-      const img = new Image();
-      img.onload = () => {
+        // สร้าง image จาก SVG
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = svgUrl;
+        });
+
         // วาดกรอบด้านนอกแบบสวยงาม
         ctx.strokeStyle = '#34495E'; // สีน้ำเงินเข้ม
         ctx.lineWidth = 3;
@@ -395,11 +416,17 @@ function ManageEquipment() {
 
           setPrintDialogOpen(false);
           setSelectedEquipmentForPrint(null);
+          showAlertMessage('✅ ดาวน์โหลด QR Code เรียบร้อยแล้ว');
         }, 'image/png');
-      };
-      img.src = svgUrl;
-    } else {
-      console.error('QR Code SVG not found');
+      } else {
+        console.error('QR Code SVG not found');
+        showAlertMessage('❌ ไม่พบ QR Code สำหรับดาวน์โหลด', 'error');
+      }
+    } catch (error) {
+      console.error('Error downloading QR Code:', error);
+      showAlertMessage('❌ เกิดข้อผิดพลาดในการดาวน์โหลด QR Code', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -625,6 +652,9 @@ function ManageEquipment() {
 
   // New improved PDF download function
   const handleDownloadAllQRCodesImproved = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    showAlertMessage('⏳ กำลังสร้าง PDF QR Code ทั้งหมด...', 'info');
     console.log('Downloading all QR Codes as PDF (improved version)...');
 
     try {
@@ -724,16 +754,18 @@ function ManageEquipment() {
           URL.revokeObjectURL(svgUrl);
         } catch (error) {
           console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
-          // Continue with next equipment even if one fails
+          showAlertMessage(`❌ เกิดข้อผิดพลาดในการสร้าง QR Code สำหรับ ${equipment.item_code}`, 'error');
         }
       }
 
       // สร้างและดาวน์โหลด PDF file
       pdf.save('QR_Codes_All.pdf');
-      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+      showAlertMessage('✅ ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
     } catch (error) {
       console.error('Error generating PDF:', error);
-      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+      showAlertMessage('❌ เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -830,6 +862,9 @@ function ManageEquipment() {
 
     // Final working solution - simple and reliable
   const handleDownloadAllQRCodesFinal = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    showAlertMessage('⏳ กำลังสร้าง PDF QR Code ทั้งหมด...', 'info');
     console.log('Downloading all QR Codes as PDF (final version)...');
 
     try {
@@ -918,16 +953,18 @@ function ManageEquipment() {
           }
         } catch (error) {
           console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
-          // Continue with next equipment even if one fails
+          showAlertMessage(`❌ เกิดข้อผิดพลาดในการสร้าง QR Code สำหรับ ${equipment.item_code}`, 'error');
         }
       }
 
       // สร้างและดาวน์โหลด PDF file
       pdf.save('QR_Codes_All.pdf');
-      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+      showAlertMessage('✅ ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
     } catch (error) {
       console.error('Error generating PDF:', error);
-      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+      showAlertMessage('❌ เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -2509,8 +2546,16 @@ function ManageEquipment() {
                     color="purple"
                     onClick={handleDownloadQRCode}
                     className="px-4 py-2"
+                    disabled={isSubmitting}
                   >
-                    ดาวน์โหลด
+                    {isSubmitting ? (
+                      <span className="inline-flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        กำลังดาวน์โหลด...
+                      </span>
+                    ) : (
+                      'ดาวน์โหลด'
+                    )}
                   </Button>
                 </div>
               </div>

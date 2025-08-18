@@ -16,6 +16,7 @@ import { GiOfficeChair } from "react-icons/gi";
 import { MdClose, MdCloudUpload } from "react-icons/md";
 import Swal from 'sweetalert2';
 import 'react-toastify/dist/ReactToastify.css';
+import { toast } from 'react-toastify';
 import PinDialog from "../../../components/dialog/PinDialog";
 import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
 
@@ -93,7 +94,21 @@ export default function AddUserDialog({
         setPositions(positionsResponse.data);
         setBranches(branchesResponse.data);
         setRoles(rolesResponse.data);
-        setProvinces(provincesResponse);
+
+        // ดึงข้อมูลจังหวัด/อำเภอ/ตำบลจาก dataset สาธารณะ
+        try {
+          const res = await fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json');
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) {
+            setProvinces(data);
+          } else {
+            console.warn('Provinces dataset returned unexpected format');
+            setProvinces([]);
+          }
+        } catch (addrErr) {
+          console.error('Error fetching provinces dataset:', addrErr);
+          setProvinces([]);
+        }
 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -332,6 +347,28 @@ export default function AddUserDialog({
       const branch = branches.find(b => b.branch_name === formData.branch_name);
       const role = roles.find(r => r.role_name === formData.role_name);
 
+      // ตรวจสอบข้อมูลเบื้องต้นเพื่อหลีกเลี่ยง 400
+      if (!formData.user_code || String(formData.user_code).length !== 11) {
+        toast.error('กรุณากรอกรหัสนิสิตให้ครบ 11 หลัก');
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.phone || String(formData.phone).length !== 10) {
+        toast.error('กรุณากรอกเบอร์โทรศัพท์ให้ครบ 10 หลัก');
+        setIsLoading(false);
+        return;
+      }
+      if (!formData.password) {
+        toast.error('กรุณากรอกรหัสผ่าน');
+        setIsLoading(false);
+        return;
+      }
+      if (!position?.position_id || !branch?.branch_id || !role?.role_id) {
+        toast.error('กรุณาเลือก ตำแหน่ง / สาขา / บทบาท ให้ครบถ้วน');
+        setIsLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem('token');
       if (!token) {
         toast.error('ไม่พบ token กรุณา login ใหม่');
@@ -406,6 +443,7 @@ export default function AddUserDialog({
       onSave(userDataToSave); // ส่ง object user ที่จะบันทึก
       onClose();
     } catch (error) {
+      console.error('Add user error:', error.response?.data || error.message);
       toast.error(error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการเพิ่มผู้ใช้งาน');
     } finally {
       setIsLoading(false);
