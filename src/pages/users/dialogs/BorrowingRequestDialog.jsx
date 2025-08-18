@@ -16,6 +16,8 @@ import { RiArrowGoBackLine } from "react-icons/ri";
 import QRCode from "react-qr-code";
 import AlertDialog from '../../../components/Notification.jsx';
 import { API_BASE, authFetch } from '../../../utils/api';
+import { MdContentCopy } from "react-icons/md";
+import { toast } from 'react-toastify';
 
 // เพิ่มฟังก์ชัน formatThaiDate ในไฟล์นี้
 function formatThaiDate(dateStr) {
@@ -198,6 +200,27 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
   // คำนวณค่าปรับรวม
   const totalFine = Number(request.late_fine || 0) + Number(request.damage_fine || 0);
 
+  // สร้างค่า QR ตามช่องทางที่เลือก
+  const paymentMethod = request.paymentMethod || 'promptpay';
+  const paymentInfo = request.paymentInfo || {};
+  const buildPaymentQRValue = () => {
+    if (paymentMethod === 'promptpay' && paymentInfo.promptpay_number) {
+      return generatePromptPayPayload(String(paymentInfo.promptpay_number || ''), totalFine);
+    }
+    // ไม่สร้าง QR สำหรับวิธีโอนบัญชีธนาคาร
+    return '';
+  };
+
+  const qrValueDynamic = buildPaymentQRValue();
+
+  const copyText = async (text) => {
+    try {
+      if (!text) return;
+      await navigator.clipboard.writeText(text);
+      toast.success('คัดลอกแล้ว');
+    } catch (_) {}
+  };
+
   // ฟังก์ชันแปลง QR Code เป็นไฟล์ภาพและดาวน์โหลด
   const downloadQRCode = async () => {
     if (!qrCodeRef.current || isDownloadingQR) return;
@@ -245,7 +268,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
          ctx.fillStyle = '#2C3E50'; // สีน้ำเงินเข้ม
          ctx.font = 'bold 24px Arial';
          ctx.textAlign = 'center';
-         ctx.fillText('PromptPay QR Code', 200, 380);
+         ctx.fillText(paymentMethod === 'promptpay' ? 'PromptPay QR Code' : 'Bank Transfer QR', 200, 380);
 
          // วาดข้อความยอดเงิน
          ctx.fillStyle = '#E74C3C'; // สีแดง
@@ -259,7 +282,8 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
-          link.download = `PromptPay_QR_${request.borrow_code}_${Date.now()}.png`;
+          const filePrefix = paymentMethod === 'promptpay' ? 'PromptPay_QR' : 'Bank_QR';
+          link.download = `${filePrefix}_${request.borrow_code}_${Date.now()}.png`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -274,7 +298,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
         // ลองใช้วิธีสำรอง
         try {
           // สร้าง QR Code ใหม่โดยตรง
-          const qrValue = generatePromptPayPayload('0929103592', totalFine);
+          const qrValue = qrValueDynamic || '';
           const fallbackSvg = `
             <svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300">
               <rect width="300" height="300" fill="white"/>
@@ -305,7 +329,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
              ctx.fillStyle = '#2C3E50';
              ctx.font = 'bold 24px Arial';
              ctx.textAlign = 'center';
-             ctx.fillText('PromptPay QR Code', 200, 380);
+             ctx.fillText(paymentMethod === 'promptpay' ? 'PromptPay QR Code' : 'Bank Transfer QR', 200, 380);
 
              // วาดข้อความยอดเงิน
              ctx.fillStyle = '#E74C3C';
@@ -317,7 +341,8 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
               const downloadUrl = URL.createObjectURL(blob);
               const link = document.createElement('a');
               link.href = downloadUrl;
-              link.download = `PromptPay_QR_${request.borrow_code}_${Date.now()}.png`;
+              const filePrefix = paymentMethod === 'promptpay' ? 'PromptPay_QR' : 'Bank_QR';
+              link.download = `${filePrefix}_${request.borrow_code}_${Date.now()}.png`;
               document.body.appendChild(link);
               link.click();
               document.body.removeChild(link);
@@ -503,25 +528,52 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                   )}
                 </div>
 
-                {/* PromptPay QR Code + Slip Upload */}
+                {/* Payment QR Code + Slip Upload */}
                 <div className="mt-8 flex flex-col items-center justify-center">
-                  <h4 className="font-medium text-gray-700 mb-3 text-center">ชำระค่าปรับผ่าน PromptPay</h4>
-                  <div ref={qrCodeRef} className="relative">
-                    <QRCode value={generatePromptPayPayload('0929103592', totalFine)} size={180} level="H" />
-                  </div>
+                  <h4 className="font-medium text-gray-700 mb-3 text-center">
+                    {paymentMethod === 'promptpay' ? 'ชำระค่าปรับผ่าน PromptPay' : 'ชำระค่าปรับด้วยการโอนบัญชีธนาคาร'}
+                  </h4>
+                  {paymentMethod === 'promptpay' && paymentInfo.promptpay_number ? (
+                    <div ref={qrCodeRef} className="relative">
+                      <QRCode value={qrValueDynamic} size={180} level="H" />
+                    </div>
+                  ) : null}
                   <div className="text-center text-gray-700 text-sm mt-2">
-                    <div>PromptPay: <span className="font-bold text-blue-700">092-910-3592</span></div>
+                    {paymentMethod === 'promptpay' ? (
+                      <div>
+                        หมายเลข PromptPay: <span className="font-bold text-blue-700">{paymentInfo.promptpay_number || '-'}</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-0.5">
+                        <div>ธนาคาร: <span className="font-bold text-blue-700">{paymentInfo.bank_name || '-'}</span></div>
+                        <div>ชื่อบัญชี: <span className="font-bold text-blue-700">{paymentInfo.account_name || '-'}</span></div>
+                        <div className="flex items-center gap-2">
+                          <span>เลขที่บัญชี: </span>
+                          <span className="font-bold text-blue-700">{paymentInfo.account_number || '-'}</span>
+                          {paymentInfo.account_number ? (
+                            <button
+                              className="ml-1 inline-flex items-center gap-1 text-blue-700 text-xs border border-blue-300 px-2 py-0.5 rounded hover:bg-blue-50"
+                              onClick={() => copyText(paymentInfo.account_number)}
+                            >
+                              <MdContentCopy /> คัดลอก
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    )}
                     <div>ยอดเงิน: <span className="font-bold text-amber-700">{totalFine.toLocaleString()} บาท</span></div>
                   </div>
                   {/* ปุ่มดาวน์โหลด QR Code */}
-                  <button
-                    onClick={downloadQRCode}
-                    disabled={isDownloadingQR}
-                    className="mt-4 w-full max-w-xs mx-auto py-2 px-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold flex items-center justify-center gap-2 text-sm shadow-lg hover:scale-105 transition-transform disabled:opacity-50"
-                  >
-                    <FaDownload className="text-lg" />
-                    {isDownloadingQR ? 'กำลังดาวน์โหลด...' : 'ดาวน์โหลด QR Code'}
-                  </button>
+                  {paymentMethod === 'promptpay' && paymentInfo.promptpay_number ? (
+                    <button
+                      onClick={downloadQRCode}
+                      disabled={isDownloadingQR}
+                      className="mt-4 w-full max-w-xs mx-auto py-2 px-4 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold flex items-center justify-center gap-2 text-sm shadow-lg hover:scale-105 transition-transform disabled:opacity-50"
+                    >
+                      <FaDownload className="text-lg" />
+                      {isDownloadingQR ? 'กำลังดาวน์โหลด...' : 'ดาวน์โหลด QR Code'}
+                    </button>
+                  ) : null}
                   {/* ปุ่มอัปโหลด/เปลี่ยนสลิป */}
                   <label
                     htmlFor="slip-upload"
@@ -603,15 +655,25 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                           setUploadSuccess(true);
                           // เรียก PATCH /api/returns/:return_id/pay เพื่อ trigger LINE Notify รายการเสร็จสิ้น
                           if (request.return_id) {
-                            await authFetch(`${API_BASE}/returns/${request.return_id}/pay`, { method: "PATCH" });
+                            try {
+                              await authFetch(`${API_BASE}/returns/${request.return_id}/pay`, { method: "PATCH" });
+                              console.log('PATCH request successful');
+                            } catch (patchError) {
+                              console.error('PATCH request failed:', patchError);
+                              // ไม่ throw error เพราะการจ่ายเงินสำเร็จแล้ว แค่ LINE Notify ไม่ทำงาน
+                            }
                           } else {
                             console.error('ไม่พบ return_id ใน request, ไม่สามารถ trigger LINE Notify ได้');
                           }
-                          // แสดง success alert
+                          // แสดง success alert และปิด dialog
                           setShowSuccessAlert(true);
-                          if (afterClose) afterClose(true);
+                          // ปิด dialog หลังจากแสดง alert
+                          setTimeout(() => {
+                            if (afterClose) afterClose(true);
+                          }, 2000); // รอ 2 วินาทีแล้วปิด dialog
                         } catch (err) {
-                          setUploadError("เกิดข้อผิดพลาดในการอัปโหลดหรือยืนยันการจ่ายเงิน");
+                          console.error('Payment error:', err);
+                          setUploadError("เกิดข้อผิดพลาดในการอัปโหลดหรือยืนยันการจ่ายเงิน: " + err.message);
                         } finally {
                           setIsUploading(false);
                           setIsConfirming(false);
@@ -762,14 +824,24 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
       {/* Success Alert */}
       <AlertDialog
         show={showSuccessAlert}
-        message="🎉 ชำระเงินเสร็จสิ้น! ขอบคุณสำหรับการใช้บริการ รายการยืมของคุณได้เสร็จสิ้นเรียบร้อยแล้ว"
+        title="🎉 ชำระเงินสำเร็จ!"
+        message="การชำระค่าปรับเสร็จสิ้นแล้ว ขอบคุณที่ใช้บริการ รายการยืมของคุณได้เสร็จสิ้นเรียบร้อยแล้ว"
         type="success"
+        duration={3000}
         onClose={() => {
           console.log('AlertDialog onClose called');
           setShowSuccessAlert(false);
           if (onClose) onClose();
         }}
-        buttonText="ตกลง"
+        actions={[
+          {
+            label: 'ตกลง',
+            onClick: () => {
+              setShowSuccessAlert(false);
+              if (onClose) onClose();
+            }
+          }
+        ]}
       />
     </div>
   );

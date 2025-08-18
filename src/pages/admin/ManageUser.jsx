@@ -1,10 +1,10 @@
-import { ImMail4 } from "react-icons/im";
 import {
   MagnifyingGlassIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
+import { ImMail4 } from "react-icons/im";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -27,14 +27,15 @@ import {
   Tooltip,
   Typography
 } from "@material-tailwind/react";
-import { BsChatDots } from "react-icons/bs";
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
+import { API_BASE, UPLOAD_BASE } from '../../utils/api';
 import AddUserDialog from "./dialog/AddUserDialog";
 import DeleteUserDialog from "./dialog/DeleteUserDialog";
 import EditUserDialog from "./dialog/EditUserDialog";
+import ManageBranchDialog from "./dialog/ManageBranchDialog";
+import ManagePositionDialog from "./dialog/ManagePositionDialog";
 import ViewUserDialog from "./dialog/ViewUserDialog";
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
-import { API_BASE, UPLOAD_BASE } from '../../utils/api';
 // กำหนด theme สีพื้นฐานเป็นสีดำ
 const theme = {
   typography: {
@@ -104,6 +105,8 @@ function ManageUser() {
   const [searchTerm, setSearchTerm] = useState("");
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewUser, setViewUser] = useState(null);
+  const [manageBranchOpen, setManageBranchOpen] = useState(false);
+  const [managePositionOpen, setManagePositionOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -163,10 +166,10 @@ function ManageUser() {
       if (response.data && Array.isArray(response.data)) {
         setUserList(response.data);
       } else {
-        throw new Error('Invalid data format received');
+        throw new Error('รูปแบบข้อมูลที่ได้รับไม่ถูกต้อง');
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้:', error);
       if (error.code === 'ECONNABORTED') {
         notifyUserAction('การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง', 'error');
       } else if (error.response?.status === 401) {
@@ -216,7 +219,7 @@ function ManageUser() {
         setBranches(branchesRes.data || []);
         setPositions(positionsRes.data || []);
       } catch (err) {
-        console.error('Error fetching filter data:', err);
+        console.error('เกิดข้อผิดพลาดในการดึงข้อมูลตัวกรอง:', err);
         // Set empty arrays as fallback
         setRoles([]);
         setBranches([]);
@@ -245,7 +248,7 @@ function ManageUser() {
         headers: getAuthHeaders()
       });
 
-      if (!response.data) throw new Error('Failed to delete user');
+      if (!response.data) throw new Error('ลบผู้ใช้ไม่สำเร็จ');
 
       // Update the list immediately
       setUserList(prevList => prevList.filter(item => item.user_id !== selectedUser.user_id));
@@ -253,7 +256,7 @@ function ManageUser() {
       setSelectedUser(null);
       notifyUserAction("delete", selectedUser.Fullname);
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error('เกิดข้อผิดพลาดในการลบผู้ใช้:', error);
       notifyUserAction('delete_error');
     }
   };
@@ -445,6 +448,20 @@ function ManageUser() {
                   <path fillRule="evenodd" d="M4.5 2A1.5 1.5 0 0 0 3 3.5v13A1.5 1.5 0 0 0 4.5 18h11a1.5 1.5 0 0 0 1.5-1.5V7.621a1.5 1.5 0 0 0-.44-1.06l-4.12-4.122A1.5 1.5 0 0 0 11.378 2H4.5Zm7.586 2.586L14.5 7H12V4.5h.086ZM11 10a.75.75 0 0 1 .75.75v1.5h1.5a.75.75 0 0 1 0 1.5h-1.5v1.5a.75.75 0 0 1-1.5 0v-1.5h-1.5a.75.75 0 0 1 0-1.5h1.5v-1.5A.75.75 0 0 1 11 10Z" clipRule="evenodd" />
                 </svg>
                 ส่งออก Excel
+              </Button>
+              <Button
+                variant="outlined"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
+                onClick={() => setManageBranchOpen(true)}
+              >
+                จัดการสาขา
+              </Button>
+              <Button
+                variant="outlined"
+                className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
+                onClick={() => setManagePositionOpen(true)}
+              >
+                จัดการตำแหน่ง
               </Button>
             </div>
           </div>
@@ -642,18 +659,37 @@ function ManageUser() {
                             <div className="flex flex-col items-center justify-center gap-1">
                               <button
                                 type="button"
-                                className={`line-notify-switch relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none border-2 ${line_notify_enabled ? 'bg-green-400 border-green-500' : 'bg-white border-gray-400'}`}
+                                className={`line-notify-switch relative w-14 h-8 rounded-full transition-colors duration-300 focus:outline-none border-2 cursor-pointer ${line_notify_enabled ? 'bg-green-400 border-green-500' : 'bg-white border-gray-400'}`}
                                 aria-pressed={!!line_notify_enabled}
                                 onClick={async (e) => {
                                   e.stopPropagation();
-                                  const newValue = !line_notify_enabled ? 1 : 0;
-                                  await axios.patch(`${API_BASE}/users/${user_id}/line-notify`, { line_notify_enabled: newValue }, {
-                                    headers: getAuthHeaders()
-                                  });
-                                  setUserList(prevList => prevList.map(u =>
-                                    u.user_id === user_id ? { ...u, line_notify_enabled: newValue } : u
-                                  ));
-                                                                     toast.success(newValue ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
+                                  try {
+                                    const newValue = !line_notify_enabled ? 1 : 0;
+                                    console.log('กำลังสลับการแจ้งเตือน LINE สำหรับผู้ใช้:', user_id, 'เป็น:', newValue);
+
+                                    const response = await axios.patch(`${API_BASE}/users/${user_id}/line-notify`,
+                                      { line_notify_enabled: newValue },
+                                      {
+                                        headers: {
+                                          ...getAuthHeaders(),
+                                          'Content-Type': 'application/json'
+                                        },
+                                        withCredentials: true
+                                      }
+                                    );
+
+                                    console.log('การตอบกลับการสลับแจ้งเตือน LINE:', response.data);
+
+                                    setUserList(prevList => prevList.map(u =>
+                                      u.user_id === user_id ? { ...u, line_notify_enabled: newValue } : u
+                                    ));
+
+                                    toast.success(newValue ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
+                                  } catch (error) {
+                                    console.error('เกิดข้อผิดพลาดในการสลับแจ้งเตือน LINE:', error);
+                                    console.error('การตอบกลับข้อผิดพลาด:', error.response?.data);
+                                    toast.error('เกิดข้อผิดพลาดในการอัปเดตแจ้งเตือน LINE: ' + (error.response?.data?.message || error.message));
+                                  }
                                 }}
                               >
                                 <span
@@ -777,6 +813,27 @@ function ManageUser() {
           onSave={handleAddUser}
         />
         <ViewUserDialog open={viewDialogOpen} onClose={() => setViewDialogOpen(false)} userData={viewUser} />
+        <ManageBranchDialog
+          open={manageBranchOpen}
+          onClose={() => setManageBranchOpen(false)}
+          onSaved={() => {
+            setManageBranchOpen(false);
+            // refresh branch filters and users
+            axios.get(`${API_BASE}/users/branches`, { headers: getAuthHeaders() }).then(res => setBranches(res.data || [])).catch(()=>{});
+            fetchUsers();
+          }}
+        />
+
+        <ManagePositionDialog
+          open={managePositionOpen}
+          onClose={() => setManagePositionOpen(false)}
+          onSaved={() => {
+            setManagePositionOpen(false);
+            // refresh position filters and users
+            axios.get(`${API_BASE}/users/positions`, { headers: getAuthHeaders() }).then(res => setPositions(res.data || [])).catch(()=>{});
+            fetchUsers();
+          }}
+        />
       </Card>
       {/* Floating Add User Button */}
       <Tooltip content="เพิ่มผู้ใช้งาน" placement="left">

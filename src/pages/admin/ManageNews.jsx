@@ -343,38 +343,70 @@ const ManageNews = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      console.log('=== Starting submit process ===');
+      console.log('Form data:', formData);
+      console.log('Pending images:', pendingImages);
+
       // Prepare image URLs: keep existing (non-blob) + upload new pending
       const currentUrls = Array.isArray(formData.image_url)
         ? formData.image_url
         : (formData.image_url ? [formData.image_url] : []);
       const existingCloudUrls = currentUrls.filter(u => typeof u === 'string' && !u.startsWith('blob:'));
 
+      console.log('Current URLs:', currentUrls);
+      console.log('Existing cloud URLs:', existingCloudUrls);
+
       let uploadedUrls = [];
       if (pendingImages.length > 0) {
-        const res = await uploadMultipleFilesToCloudinary(pendingImages, 'e-borrow/news');
-        if (!res || !res.success) throw new Error('Upload images failed');
-        uploadedUrls = (res.data || []).filter(r => r.success).map(r => r.url);
+        try {
+          console.log('Starting upload of', pendingImages.length, 'images...');
+          const res = await uploadMultipleFilesToCloudinary(pendingImages, 'e-borrow/news');
+          console.log('Upload response:', res);
+
+          // Handle different response formats
+          if (Array.isArray(res)) {
+            uploadedUrls = res.filter(r => r.success && r.url).map(r => r.url);
+          } else if (res && res.success && Array.isArray(res.data)) {
+            uploadedUrls = res.data.filter(r => r.success && r.url).map(r => r.url);
+          } else {
+            throw new Error('Invalid upload response format');
+          }
+
+          console.log('Extracted URLs:', uploadedUrls);
+        } catch (uploadError) {
+          console.error('Upload error:', uploadError);
+          throw new Error(`เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ: ${uploadError.message}`);
+        }
       }
+
       const cloudUrls = [...existingCloudUrls, ...uploadedUrls];
+      console.log('Final cloud URLs:', cloudUrls);
 
       if (isEditing && currentItem) {
+        console.log('Updating existing news item:', currentItem.id);
         const payload = normalizeNewsPayload({ ...formData, image_url: cloudUrls });
+        console.log('Update payload:', payload);
         const updated = await updateNewsApi(currentItem.id, payload);
         setNewsItems(prevItems => prevItems.map(item => item.id === currentItem.id ? updated : item));
         notifyNewsAction("edit");
       } else {
+        console.log('Creating new news item');
         const payload = normalizeNewsPayload({ ...formData, image_url: cloudUrls });
+        console.log('Create payload:', payload);
         const created = await createNews(payload);
         setNewsItems(prev => [created, ...prev]);
         notifyNewsAction("add");
       }
+
       setShowModal(false);
       // Cleanup and reset
       previewUrls.forEach((u) => { if (u?.startsWith('blob:')) URL.revokeObjectURL(u); });
       setPendingImages([]);
       setPreviewUrls([]);
       setFormData({ title: '', content: '', category: 'ประกาศ', image_url: [], force_show: false, show_to_all: false });
+      console.log('=== Submit process completed successfully ===');
     } catch (err) {
+      console.error('Submit error:', err);
       if (isEditing) {
         notifyNewsAction("edit_error");
       } else {

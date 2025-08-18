@@ -140,6 +140,17 @@ const ReturnList = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
+  // Payment settings dialog states
+  const [isPaymentSettingsOpen, setIsPaymentSettingsOpen] = useState(false);
+  const [paymentSettings, setPaymentSettings] = useState({
+    method: 'promptpay',
+    promptpay_number: '',
+    bank_name: '',
+    account_name: '',
+    account_number: ''
+  });
+  const [paymentLoading, setPaymentLoading] = useState(false);
+
   // Current data states
   const [selectedBorrowedItem, setSelectedBorrowedItem] = useState(null);
   const [selectedReturnItem, setSelectedReturnItem] = useState(null);
@@ -298,6 +309,66 @@ const ReturnList = () => {
       setIsReturnFormOpen(true);
     } else {
       showNotification('ไม่พบข้อมูลการยืมที่ตรงกับรหัสที่ค้นหา', 'error');
+    }
+  };
+
+  // --- Payment Settings handlers ---
+  const openPaymentSettings = async () => {
+    try {
+      setPaymentLoading(true);
+      const res = await authFetch(`${API_BASE}/payment-settings`);
+      const data = await res.json();
+      if (data?.success && data?.data) {
+        setPaymentSettings({
+          method: data.data.method || 'promptpay',
+          promptpay_number: data.data.promptpay_number || '',
+          bank_name: data.data.bank_name || '',
+          account_name: data.data.account_name || '',
+          account_number: data.data.account_number || ''
+        });
+      }
+      setIsPaymentSettingsOpen(true);
+    } catch (e) {
+      showNotification('ไม่สามารถดึงการตั้งค่าชำระเงินได้', 'error');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const savePaymentSettings = async () => {
+    try {
+      setPaymentLoading(true);
+      // basic validation
+      if (paymentSettings.method === 'promptpay') {
+        if (!paymentSettings.promptpay_number?.trim()) {
+          showNotification('กรุณากรอกหมายเลข PromptPay', 'error');
+          setPaymentLoading(false);
+          return;
+        }
+      } else if (paymentSettings.method === 'bank') {
+        if (!paymentSettings.bank_name?.trim() || !paymentSettings.account_name?.trim() || !paymentSettings.account_number?.trim()) {
+          showNotification('กรุณากรอกข้อมูลบัญชีธนาคารให้ครบถ้วน', 'error');
+          setPaymentLoading(false);
+          return;
+        }
+      }
+
+      const res = await authFetch(`${API_BASE}/payment-settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(paymentSettings)
+      });
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        showNotification('บันทึกการตั้งค่าชำระเงินสำเร็จ', 'success');
+        setIsPaymentSettingsOpen(false);
+      } else {
+        showNotification(data?.message || 'บันทึกการตั้งค่าชำระเงินไม่สำเร็จ', 'error');
+      }
+    } catch (e) {
+      showNotification('เกิดข้อผิดพลาดในการบันทึกการตั้งค่าชำระเงิน', 'error');
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
@@ -504,6 +575,13 @@ const ReturnList = () => {
               >
                 <QrCodeIcon strokeWidth={2} className="h-4 w-4" /> สแกนเพื่อคืน
               </Button>
+              <Button
+                className="flex items-center gap-2 px-4 py-3 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 transition-colors duration-200"
+                onClick={openPaymentSettings}
+                disabled={paymentLoading}
+              >
+                <BanknotesIcon className="h-4 w-4" /> จัดการการชำระเงิน
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -704,6 +782,111 @@ const ReturnList = () => {
           title="ยืนยันการลบ"
           message="คุณต้องการลบรายการคืนนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
         />
+
+        {/* Payment Settings Dialog (inline) */}
+        {isPaymentSettingsOpen && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <Typography variant="h6" className="font-semibold text-gray-800">จัดการการชำระเงิน</Typography>
+                <button
+                  onClick={() => setIsPaymentSettingsOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                  aria-label="ปิด"
+                >✕</button>
+              </div>
+              <div className="px-6 py-5 space-y-5">
+                {/* Method */}
+                <div>
+                  <label className="text-sm font-semibold text-gray-700">วิธีชำระเงิน</label>
+                  <div className="mt-2 flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="method"
+                        checked={paymentSettings.method === 'promptpay'}
+                        onChange={() => setPaymentSettings(ps => ({ ...ps, method: 'promptpay' }))}
+                      />
+                      PromptPay
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input
+                        type="radio"
+                        name="method"
+                        checked={paymentSettings.method === 'bank'}
+                        onChange={() => setPaymentSettings(ps => ({ ...ps, method: 'bank' }))}
+                      />
+                      โอนผ่านบัญชีธนาคาร
+                    </label>
+                  </div>
+                </div>
+
+                {paymentSettings.method === 'promptpay' ? (
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700">หมายเลข PromptPay</label>
+                    <input
+                      type="text"
+                      className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                      placeholder="เช่น 0812345678 / 1xxxxxxxxxxxxx"
+                      value={paymentSettings.promptpay_number}
+                      onChange={(e) => setPaymentSettings(ps => ({ ...ps, promptpay_number: e.target.value }))}
+                    />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-700">ธนาคาร</label>
+                      <input
+                        type="text"
+                        className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="เช่น KBANK / SCB"
+                        value={paymentSettings.bank_name}
+                        onChange={(e) => setPaymentSettings(ps => ({ ...ps, bank_name: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-semibold text-gray-700">ชื่อบัญชี</label>
+                      <input
+                        type="text"
+                        className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="ชื่อบัญชีธนาคาร"
+                        value={paymentSettings.account_name}
+                        onChange={(e) => setPaymentSettings(ps => ({ ...ps, account_name: e.target.value }))}
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <label className="text-sm font-semibold text-gray-700">เลขที่บัญชี</label>
+                      <input
+                        type="text"
+                        className="w-full h-10 px-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                        placeholder="เช่น 123-4-56789-0"
+                        value={paymentSettings.account_number}
+                        onChange={(e) => setPaymentSettings(ps => ({ ...ps, account_number: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-end gap-3">
+                <Button
+                  variant="outlined"
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                  onClick={() => setIsPaymentSettingsOpen(false)}
+                  disabled={paymentLoading}
+                >
+                  ปิด
+                </Button>
+                <Button
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  onClick={savePaymentSettings}
+                  disabled={paymentLoading}
+                >
+                  {paymentLoading ? 'กำลังบันทึก...' : 'บันทึกการตั้งค่า'}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
     </ThemeProvider>
   );
