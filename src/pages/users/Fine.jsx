@@ -461,7 +461,10 @@ const Fine = () => {
                         <div className="flex gap-2 w-full md:w-auto">
                           <button
                             className="bg-gradient-to-r from-emerald-400 to-green-600 text-white font-bold py-2 px-8 rounded-full shadow-lg text-lg tracking-wide transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-pink-200 animate-pulse flex items-center justify-center gap-2"
-                            onClick={() => openDialog(request)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDialog(request);
+                            }}
                           >
                             <FaMoneyCheckAlt className="w-6 h-6" />
                             ชำระเงิน
