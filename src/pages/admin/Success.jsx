@@ -116,10 +116,12 @@ function Success() {
       return_date: borrow.return_date,
       status: borrow.status,
       condition: "good",
-      fine_amount: 0,
+      fine_amount: borrow.fine_amount || 0,
       signature_image: borrow.signature_image,
       handover_photo: borrow.handover_photo,
       proof_image: borrow.proof_image,
+      pay_status: borrow.pay_status || 'paid',
+      payment_method: borrow.payment_method || 'cash',
       important_documents: borrow.important_documents || []
     };
 
@@ -342,6 +344,13 @@ function Success() {
             returnItem={selectedBorrow}
             isOpen={isDetailsOpen}
             onClose={() => setIsDetailsOpen(false)}
+            paymentDetails={{
+              pay_status: selectedBorrow?.pay_status || 'paid',
+              return_date: selectedBorrow?.return_date,
+              payment_method: selectedBorrow?.payment_method || 'cash',
+              fine_amount: selectedBorrow?.fine_amount || 0,
+              proof_image: selectedBorrow?.proof_image || null,
+            }}
           />
         )}
       </Card>
