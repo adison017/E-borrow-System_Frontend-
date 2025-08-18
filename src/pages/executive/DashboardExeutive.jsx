@@ -92,9 +92,9 @@ const DashboardExeutive = () => {
     {
       title: 'ค่าใช้จ่ายซ่อมแซมรวม',
       value: Number((data.totalRepairCost && (typeof data.totalRepairCost.total_repair_cost === 'string' ? parseFloat(data.totalRepairCost.total_repair_cost) : data.totalRepairCost.total_repair_cost)) ?? 0),
-      color: 'orange',
-      bgGradient: 'from-orange-500 to-orange-600',
-      icon: <FaTools className="text-4xl text-orange-500" />,
+      color: 'purple',
+      bgGradient: 'from-purple-500 to-purple-600',
+      icon: <FaTools className="text-4xl text-purple-500" />,
       unit: ' บาท',
     },
     {
@@ -122,41 +122,43 @@ const DashboardExeutive = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100">
       <motion.div 
-        className="px-2 sm:px-4 md:px-8 py-8 max-w-[1600px] mx-auto" 
+        className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto" 
         initial="hidden" 
         animate="visible" 
         variants={containerVariants}
       >
         {/* Header Section */}
         <motion.div className="mb-8" variants={itemVariants}>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-2">
-            <h1 className="text-3xl md:text-4xl font-bold bg-black bg-clip-text text-transparent">
-              แดชบอร์ดผู้บริหาร
-            </h1>
-          </div>
-          <p className="text-slate-500 text-base md:text-lg">ภาพรวมและการวิเคราะห์การจัดการอุปกรณ์</p>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2">
+            แดชบอร์ดผู้บริหาร
+          </h1>
+          <p className="text-slate-600 text-sm sm:text-base">ภาพรวมและการวิเคราะห์การจัดการอุปกรณ์</p>
         </motion.div>
 
         {/* Enhanced Summary Cards */}
-        <motion.div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8 mb-14" variants={containerVariants}>
+        <motion.div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10" variants={containerVariants}>
           {summaryCards.map((card, idx) => (
             <motion.div 
               key={card.title} 
               className="group relative overflow-hidden"
               variants={itemVariants} 
-              whileHover={{ scale: 1.04, transition: { duration: 0.16 } }}
+              whileHover={{ scale: 1.02, y: -4, transition: { duration: 0.2 } }}
             >
-              <div className={`bg-white rounded-2xl shadow-md hover:shadow-2xl border border-slate-100 transition-all duration-300 p-8 flex flex-col justify-between h-full relative overflow-hidden`}> 
+              <div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-all duration-300 p-6 h-full relative overflow-hidden"> 
                 {/* Gradient overlay */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} opacity-10 group-hover:opacity-20 transition-opacity duration-300 rounded-2xl pointer-events-none`}></div>
-                <div className="relative z-10 flex flex-col gap-4 h-full ">
-                  <div className="flex items-center gap-3 mb-2 ">
-                    <span>{card.icon}</span>
-                    <h3 className="text-slate-700 text-lg font-bold leading-tight">{card.title}</h3>
+                <div className={`absolute inset-0 bg-gradient-to-br ${card.bgGradient} opacity-5 group-hover:opacity-10 transition-opacity duration-300 rounded-2xl pointer-events-none`}></div>
+                <div className="relative z-10 flex flex-col h-full">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-12 h-12 rounded-xl bg-${card.color}-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
+                      <div className="text-xl">{card.icon}</div>
+                    </div>
                   </div>
-                  <div className="flex items-end gap-2 mt-auto">
-                    <span className={`text-4xl font-extrabold text-${card.color}-600 drop-shadow`}>{card.value.toLocaleString()}</span>
-                    <span className="text-slate-500 text-lg font-medium">{card.unit}</span>
+                  <div className="flex-1">
+                    <h3 className="text-slate-700 text-sm font-medium leading-tight mb-3">{card.title}</h3>
+                    <div className="flex items-end gap-1">
+                      <span className={`text-2xl sm:text-3xl font-bold text-${card.color}-600`}>{card.value.toLocaleString()}</span>
+                      <span className="text-slate-500 text-sm font-medium">{card.unit}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -165,14 +167,14 @@ const DashboardExeutive = () => {
         </motion.div>
 
         {/* Main Analytics Grid */}
-        <motion.div className="grid grid-cols-1 xl:grid-cols-3 gap-10 mb-14" variants={containerVariants}>
+        <motion.div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-10" variants={containerVariants}>
           {/* Return Status */}
-          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-6" variants={itemVariants}>
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
               <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <h2 className="text-xl font-semibold text-slate-800">สถานะครุภัณฑ์</h2>
+              <h2 className="text-lg font-semibold text-slate-800">สถานะครุภัณฑ์</h2>
             </div>
-            <div className="h-80">
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -180,8 +182,8 @@ const DashboardExeutive = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    outerRadius={100}
-                    innerRadius={50}
+                    outerRadius={90}
+                    innerRadius={45}
                     dataKey="value"
                     label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
@@ -189,7 +191,11 @@ const DashboardExeutive = () => {
                       <Cell key={`cell-${index}`} fill={entry.color || colorPalette[index % colorPalette.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} />
+                  <Tooltip 
+                    formatter={(value, name) => [`${value}`, name]}
+                    labelFormatter={(label) => `สถานะ: ${label}`}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} 
+                  />
                   <Legend verticalAlign="bottom" height={36} iconSize={12} />
                 </PieChart>
               </ResponsiveContainer>
@@ -197,12 +203,12 @@ const DashboardExeutive = () => {
           </motion.div>
 
           {/* Monthly Borrow Trend */}
-          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-6" variants={itemVariants}>
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <h2 className="text-xl font-semibold text-slate-800">แนวโน้มการยืม-คืน</h2>
+              <div className="w-3 h-3 bg-teal-500 rounded-full"></div>
+              <h2 className="text-lg font-semibold text-slate-800">แนวโน้มการยืม-คืน</h2>
             </div>
-            <div className="h-80">
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={Array.isArray(data.monthlyBorrow) ? data.monthlyBorrow.map(row => ({
@@ -217,6 +223,8 @@ const DashboardExeutive = () => {
                   <XAxis dataKey="month" fontSize={12} />
                   <YAxis fontSize={12} />
                   <Tooltip 
+                    formatter={(value, name) => [`${value} ครั้ง`, name]}
+                    labelFormatter={(label) => `เดือน: ${label}`}
                     contentStyle={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.9)', 
                       border: '1px solid #e0e0e0',
@@ -225,26 +233,30 @@ const DashboardExeutive = () => {
                     }} 
                   />
                   <Legend verticalAlign="bottom" height={36} iconSize={12} />
-                  <Bar dataKey="การยืม" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={15} />
-                  <Bar dataKey="การคืน" fill="#10b981" radius={[4, 4, 0, 0]} barSize={15} />
+                  <Bar dataKey="การยืม" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={20} />
+                  <Bar dataKey="การคืน" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </motion.div>
 
           {/* Top Borrowed Equipment */}
-          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-6" variants={itemVariants}>
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
               <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-              <h2 className="text-xl font-semibold text-slate-800">อุปกรณ์ยอดนิยม</h2>
+              <h2 className="text-lg font-semibold text-slate-800">อุปกรณ์ยอดนิยม</h2>
             </div>
-            <div className="h-80">
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={data.topBorrowedEquipment || []} layout="vertical" margin={{ top: 5, right: 20, left: 80, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                   <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} />
                   <YAxis dataKey="name" type="category" width={80} tick={{ fontSize: 11, fill: '#64748b' }} />
-                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} />
+                  <Tooltip 
+                    formatter={(value, name) => [`${value} ครั้ง`, `อุปกรณ์: ${name}`]}
+                    labelFormatter={(label) => `${label}`}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} 
+                  />
                   <Bar dataKey="count" radius={[0, 8, 8, 0]} barSize={20}>
                     {(data.topBorrowedEquipment || []).map((entry, idx) => (
                       <Cell key={idx} fill={colorPalette[idx % colorPalette.length]} />
@@ -257,14 +269,14 @@ const DashboardExeutive = () => {
         </motion.div>
 
         {/* Secondary Analytics Grid */}
-        <motion.div className="grid grid-cols-1 xl:grid-cols-2 gap-10 mb-14" variants={containerVariants}>
-          {/* Repair Status (PieChart) */}
-          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+        <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10" variants={containerVariants}>
+          {/* Repair Status */}
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-6" variants={itemVariants}>
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
               <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-              <h2 className="text-xl font-semibold text-slate-800">สถานะการซ่อมแซม</h2>
+              <h2 className="text-lg font-semibold text-slate-800">สถานะการซ่อมแซม</h2>
             </div>
-            <div className="h-80">
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -272,35 +284,77 @@ const DashboardExeutive = () => {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    outerRadius={100}
-                    innerRadius={50}
+                    outerRadius={90}
+                    innerRadius={45}
                     dataKey="count"
                     nameKey="status"
-                    label={({ status, percent }) => `${status}: ${(percent * 100).toFixed(0)}%`}
+                    label={({ status, percent }) => `${status === 'approved' ? 'อนุมัติ' : status}: ${(percent * 100).toFixed(0)}%`}
                   >
                     {(data.repairStatus || []).map((entry, idx) => (
                       <Cell key={idx} fill={colorPalette[idx % colorPalette.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} />
-                  <Legend verticalAlign="bottom" height={36} iconSize={12} />
+                  <Tooltip 
+                    formatter={(value, name) => [`${value} รายการ`, `สถานะ: ${name === 'approved' ? 'อนุมัติ' : name}`]}
+                    labelFormatter={(label) => `${label}`}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} 
+                  />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36} 
+                    iconSize={12} 
+                    formatter={(value) => value === 'approved' ? 'อนุมัติ' : value}
+                  />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </motion.div>
 
+          {/* Branch Summary */}
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-6" variants={itemVariants}>
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+              <h2 className="text-lg font-semibold text-slate-800">สรุปการยืมตามสาขา</h2>
+            </div>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data.branchBorrowSummary || []}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={90}
+                    innerRadius={45}
+                    dataKey="borrow_count"
+                    nameKey="branch_name"
+                    label={({ branch_name, percent }) => `${branch_name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {(data.branchBorrowSummary || []).map((entry, idx) => (
+                      <Cell key={idx} fill={colorPalette[idx % colorPalette.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value, name) => [`${value} ครั้ง`, `สาขา: ${name}`]}
+                    labelFormatter={(label) => `${label}`}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} 
+                  />
+                  <Legend verticalAlign="bottom" height={36} iconSize={12} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
         </motion.div>
 
-
         {/* Additional Analytics Grid */}
-        <motion.div className="grid grid-cols-1 xl:grid-cols-2 gap-10 mb-14" variants={containerVariants}>
+        <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10" variants={containerVariants}>
           {/* Top Fine Categories */}
-          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-6" variants={itemVariants}>
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
               <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-              <h2 className="text-xl font-semibold text-slate-800">หมวดหมู่ค่าปรับสูงสุด</h2>
+              <h2 className="text-lg font-semibold text-slate-800">หมวดหมู่ค่าปรับสูงสุด</h2>
             </div>
-            <div className="h-80">
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={
@@ -316,9 +370,9 @@ const DashboardExeutive = () => {
                   <XAxis dataKey="category" tick={{ fontSize: 12, fill: '#64748b' }} />
                   <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
                   <Tooltip 
-                    formatter={(value, name, props) => [`${value.toLocaleString()} บาท`, `หมวดหมู่: ${props.payload.category}`]}
-                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} 
+                    formatter={(value) => [`${value.toLocaleString()} บาท`, 'ค่าปรับรวม']}
                     labelFormatter={(label) => `หมวดหมู่: ${label}`}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} 
                   />
                   <Bar dataKey="total_fine" radius={[8, 8, 0, 0]} barSize={40}>
                     {(Array.isArray(data.topFineCategories) ? data.topFineCategories : []).map((entry, idx) => (
@@ -327,33 +381,26 @@ const DashboardExeutive = () => {
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-              {Array.isArray(data.topFineCategories) && data.topFineCategories.length === 0 && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center text-slate-400">
-                    <div className="text-3xl mb-2">📊</div>
-                    <p>ไม่มีข้อมูล</p>
-                  </div>
-                </div>
-              )}
             </div>
           </motion.div>
-        </motion.div>
 
-        {/* Final Analytics Grid */}
-        <motion.div className="grid grid-cols-1 xl:grid-cols-2 gap-10 mb-14" variants={containerVariants}>
           {/* Top Damaged Equipment */}
-          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-8 flex flex-col" variants={itemVariants}>
+          <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-6" variants={itemVariants}>
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
               <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-              <h2 className="text-xl font-semibold text-slate-800">อุปกรณ์เสียหายซ้ำ</h2>
+              <h2 className="text-lg font-semibold text-slate-800">อุปกรณ์เสียหายซ้ำ</h2>
             </div>
-            <div className="h-80">
+            <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.topDamagedEquipment || []} layout="vertical" margin={{ top: 5, right: 20, left: 100, bottom: 5 }}>
+                <BarChart data={data.topDamagedEquipment || []} layout="vertical" margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                   <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} />
                   <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: '#64748b' }} />
-                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} />
+                  <Tooltip 
+                    formatter={(value, name) => [`${value} ครั้ง`, 'จำนวนเสียหาย']}
+                    labelFormatter={(label) => `อุปกรณ์: ${label}`}
+                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} 
+                  />
                   <Bar dataKey="damage_count" radius={[0, 8, 8, 0]} barSize={20}>
                     {(data.topDamagedEquipment || []).map((entry, idx) => (
                       <Cell key={idx} fill={colorPalette[idx % colorPalette.length]} />
@@ -363,78 +410,37 @@ const DashboardExeutive = () => {
               </ResponsiveContainer>
             </div>
           </motion.div>
-
-          {/* Branch Summary (PieChart) */}
-          <motion.div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-8" variants={itemVariants}>
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-              <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-              <h2 className="text-xl font-semibold text-slate-800">สรุปการยืมตามสาขา</h2>
-            </div>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data.branchBorrowSummary || []}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={100}
-                    innerRadius={50}
-                    dataKey="borrow_count"
-                    nameKey="branch_name"
-                    label={({ branch_name, percent }) => `${branch_name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {(data.branchBorrowSummary || []).map((entry, idx) => (
-                      <Cell key={idx} fill={colorPalette[idx % colorPalette.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }} />
-                  <Legend verticalAlign="bottom" height={36} iconSize={12} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </motion.div>
         </motion.div>
 
-        {/* Advanced Analytics Grid */}
-        <motion.div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-10" variants={containerVariants}>
-          {/* Depreciation Trend (ปรับให้เข้าใจง่าย) */}
-          <motion.div className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300 p-8" variants={itemVariants}>
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
-              <div className="w-3 h-3 bg-teal-500 rounded-full"></div>
-              <h2 className="text-xl font-semibold text-slate-800">ค่าเสื่อมราคาทรัพย์สินรายปี (บาท)</h2>
-            </div>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.depreciation || []} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ef" />
-                  <XAxis dataKey="year" tick={{ fontSize: 13, fill: '#334155' }} label={{ value: 'ปี', position: 'insideBottom', offset: -5, fontSize: 14, fill: '#334155' }} />
-                  <YAxis tick={{ fontSize: 13, fill: '#334155' }} tickFormatter={v => v.toLocaleString()} label={{ value: 'ค่าเสื่อมราคา (บาท)', angle: -90, position: 'insideLeft', fontSize: 14, fill: '#334155' }} />
-                  <Tooltip 
-                    formatter={v => `${Number(v).toLocaleString()} บาท`}
-                    labelFormatter={label => `ปี ${label}`}
-                    contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="depreciation" 
-                    stroke="#0ea5e9" 
-                    strokeWidth={4} 
-                    dot={{ fill: '#0ea5e9', stroke: '#fff', strokeWidth: 2, r: 7 }}
-                    activeDot={{ r: 10, fill: '#0ea5e9', stroke: '#fff', strokeWidth: 3 }}
-                    label={({ x, y, value }) => (
-                      <text x={x} y={y - 10} textAnchor="middle" fontSize={13} fill="#0ea5e9">{Number(value).toLocaleString()}</text>
-                    )}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </motion.div>
-
+        {/* Depreciation Trend */}
+        <motion.div className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 transition-shadow duration-300 p-6 mb-10" variants={itemVariants}>
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+            <div className="w-3 h-3 bg-teal-500 rounded-full"></div>
+            <h2 className="text-lg font-semibold text-slate-800">ค่าเสื่อมราคาทรัพย์สินรายปี (บาท)</h2>
+          </div>
+          <div className="h-[350px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data.depreciation || []} margin={{ top: 10, right: 20, left: 0, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ef" />
+                <XAxis dataKey="year" tick={{ fontSize: 13, fill: '#334155' }} label={{ value: 'ปี', position: 'insideBottom', offset: -5, fontSize: 14, fill: '#334155' }} />
+                <YAxis tick={{ fontSize: 13, fill: '#334155' }} tickFormatter={v => v.toLocaleString()} label={{ value: 'ค่าเสื่อมราคา (บาท)', angle: -90, position: 'insideLeft', fontSize: 14, fill: '#334155' }} />
+                <Tooltip 
+                  formatter={v => [`${Number(v).toLocaleString()} บาท`, 'ค่าเสื่อมราคา']}
+                  labelFormatter={label => `ปี ${label}`}
+                  contentStyle={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="depreciation" 
+                  stroke="#0ea5e9" 
+                  strokeWidth={4} 
+                  dot={{ fill: '#0ea5e9', stroke: '#fff', strokeWidth: 2, r: 7 }}
+                  activeDot={{ r: 10, fill: '#0ea5e9', stroke: '#fff', strokeWidth: 3 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </motion.div>
-
-        {/* Footer */}
-        
       </motion.div>
     </div>
   );

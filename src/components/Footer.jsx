@@ -43,92 +43,95 @@ function Footer() {
   };
 
   return (
-    <footer className="bg-gradient-to-r from-indigo-950 to-blue-700 text-white pt-1 pb-20  rounded-t-2xl mt-8">
-      <div className="container mx-auto max-w-6xl px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+    <footer className="bg-gradient-to-br from-indigo-950 via-blue-900 to-blue-700 text-white pt-12 pb-20 rounded-t-3xl mt-8 shadow-2xl">
+      <div className="container mx-auto max-w-5xl px-6 ">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 shadow-2xl p-5 rounded-4xl">
           {/* University Logo and Basic Info */}
           <div className="flex flex-col items-center md:items-start">
-            <div className="bg-white p-3 rounded-full mb-3 shadow-md flex items-center justify-center">
+            <div className="mt-5 bg-white p-4 rounded-2xl mb-4 shadow-xl border-2 border-blue-200 flex items-center justify-center transform hover:scale-105 transition-transform">
               <img
                 src="/msu.png"
                 alt="Mahasarakham University Logo"
-                className="h-16 w-16 object-contain"
+                className="h-30 w-30 object-contain"
               />
             </div>
-            <h3 className="text-xl font-bold mb-2 text-blue-200 tracking-wide">{footerData.copyright_text}</h3>
-            <p className="text-sm text-gray-200">
+            <h3 className="text-2xl font-bold text-blue-100 tracking-wide text-center md:text-left">{footerData.copyright_text}</h3>
+            <p className="text-sm text-blue-200 font-medium mb-4">
               © {new Date().getFullYear()} {footerData.university_name}
             </p>
           </div>
 
-          {/* Quick Links */}
-          <div className="flex flex-col items-center md:items-center">
-            <h3 className="text-lg font-semibold mb-3 text-blue-100">Quick Links</h3>
-            <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-              <a href="/about" className="px-4 py-1 rounded-full bg-blue-800/60 hover:bg-blue-600 text-white text-sm font-medium transition-all shadow">
-                About System
-              </a>
-              <a href="/how-to-use" className="px-4 py-1 rounded-full bg-blue-800/60 hover:bg-blue-600 text-white text-sm font-medium transition-all shadow">
-                How to Use
-              </a>
-              <a href="/faq" className="px-4 py-1 rounded-full bg-blue-800/60 hover:bg-blue-600 text-white text-sm font-medium transition-all shadow">
-                FAQ
-              </a>
-              <a href="/contact" className="px-4 py-1 rounded-full bg-blue-800/60 hover:bg-blue-600 text-white text-sm font-medium transition-all shadow">
-                Contact Support
-              </a>
+          {/* Service Hours */}
+          <div className="flex flex-col items-center">
+            <h3 className="text-2xl font-semibold text-blue-100 ">เวลาให้บริการ</h3>
+            <div className="bg-gradient-to-br from-blue-800/40 to-indigo-800/40 mt-4 rounded-2xl">
+              <div className="text-center text-sm space-y-3">
+                <div className="bg-blue-700/50 p-2 rounded-xl">
+                  <p className="font-bold text-blue-100 text-base">วันจันทร์ - วันศุกร์</p>
+                  <p className="text-white font-medium text-md">08:30 - 16:30 น.</p>
+                </div>
+                <div className="bg-red-700/50 p-2 rounded-xl">
+                  <p className="font-bold text-red-100 text-base">วันเสาร์ - วันอาทิตย์</p>
+                  <p className="text-red-200 text-xs">ปิดให้บริการ</p>
+                </div>
+                <div className="mb-4 p-2 bg-amber-400/50 rounded-full">
+                  <p className="text-xs text-green-100 font-medium">💡 หมายเหตุ: สามารถยืม-คืนออนไลน์ได้ตลอด 24 ชั่วโมง</p>
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Contact Info and Social Media */}
           <div className="flex flex-col items-center md:items-end">
-            <h3 className="text-lg font-semibold mb-3 text-blue-100">Contact Us</h3>
-            <p className="text-sm text-gray-200 mb-2 text-center md:text-right">
-              {footerData.university_name}<br />
-              {footerData.faculty_name}<br />
-              {footerData.address}
-            </p>
-            <p className="text-sm text-gray-200 mb-3 text-center md:text-right">
-              <span className="font-medium">Tel:</span> {footerData.phone}<br />
-              <span className="font-medium">Email:</span> {footerData.email}
-            </p>
-            <div className="flex space-x-3 mt-2">
-              <a
-                href={footerData.facebook_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-blue-600 bg-opacity-20 p-2 rounded-full hover:bg-blue-700 hover:text-white transition-all shadow"
-                title="Facebook"
-              >
-                <FaFacebookF className="w-5 h-5" />
-              </a>
-              <a
-                href={footerData.line_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-green-500 bg-opacity-20 p-2 rounded-full hover:bg-green-600 hover:text-white transition-all shadow"
-                title="Line"
-              >
-                <FaLine className="w-5 h-5" />
-              </a>
-              <a
-                href={footerData.instagram_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-pink-500 bg-opacity-20 p-2 rounded-full hover:bg-pink-600 hover:text-white transition-all shadow"
-                title="Instagram"
-              >
-                <FaInstagram className="w-5 h-5" />
-              </a>
-              <a
-                href={footerData.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-blue-500 bg-opacity-20 p-2 rounded-full hover:bg-blue-600 hover:text-white transition-all shadow"
-                title="Contact Us"
-              >
-                <BiGlobe className="w-5 h-5" />
-              </a>
+            <h3 className="text-2xl font-semibold mt-1 text-blue-100">ติดต่อเรา</h3>
+            <div className="bg-gradient-to-br from-blue-800/40 to-indigo-800/40 mt-3 rounded-2xl w-full">
+              <div className="text-sm text-blue-100 mb-4 text-center md:text-right space-y-1">
+                <p className="font-bold text-base text-white">{footerData.university_name}</p>
+                <p className="text-blue-200">{footerData.faculty_name}</p>
+                <p className="text-blue-200 leading-relaxed">{footerData.address}</p>
+              </div>
+              <div className="text-sm text-blue-100 mb-4 text-center md:text-right space-y-1">
+                <p><span className="font-semibold text-blue-200">📞 Tel:</span> <span className="text-white">{footerData.phone}</span></p>
+                <p><span className="font-semibold text-blue-200">✉️ Email:</span> <span className="text-white">{footerData.email}</span></p>
+              </div>
+              <div className="flex justify-center md:justify-end space-x-3 mt-4">
+                <a
+                  href={footerData.facebook_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-br from-blue-600 to-blue-700 p-3 rounded-xl hover:from-blue-500 hover:to-blue-600 transform hover:scale-110 transition-all shadow-lg border border-blue-400/50"
+                  title="Facebook"
+                >
+                  <FaFacebookF className="w-5 h-5 text-white" />
+                </a>
+                <a
+                  href={footerData.line_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-br from-green-500 to-green-600 p-3 rounded-xl hover:from-green-400 hover:to-green-500 transform hover:scale-110 transition-all shadow-lg border border-green-400/50"
+                  title="Line"
+                >
+                  <FaLine className="w-5 h-5 text-white" />
+                </a>
+                <a
+                  href={footerData.instagram_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-br from-pink-500 to-pink-600 p-3 rounded-xl hover:from-pink-400 hover:to-pink-500 transform hover:scale-110 transition-all shadow-lg border border-pink-400/50"
+                  title="Instagram"
+                >
+                  <FaInstagram className="w-5 h-5 text-white" />
+                </a>
+                <a
+                  href={footerData.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gradient-to-br from-indigo-500 to-indigo-600 p-3 rounded-xl hover:from-indigo-400 hover:to-indigo-500 transform hover:scale-110 transition-all shadow-lg border border-indigo-400/50"
+                  title="Website"
+                >
+                  <BiGlobe className="w-5 h-5 text-white" />
+                </a>
+              </div>
             </div>
           </div>
         </div>

@@ -101,6 +101,15 @@ const DashboardAdmin = () => {
       path: '/equipment'
     },
     {
+      id: 2,
+      category: 'จัดการผู้ใช้งาน',
+      icon: <PeopleIcon className="text-purple-500" />,
+      count: stats.totalUsers,
+      status: '',
+      statusColor: 'text-purple-500',
+      path: '/members'
+    },
+    {
       id: 3,
       category: 'รายการยืม (รอตรวจสอบ)',
       icon: <ListAltIcon className="text-yellow-500" />,
@@ -135,28 +144,6 @@ const DashboardAdmin = () => {
       status: stats.borrowedEquipment ? `${((stats.lateReturns / stats.borrowedEquipment) * 100).toFixed(0)}% ของที่ยืม` : '',
       statusColor: 'text-red-500',
       path: '/return-list'
-    }
-  ];
-
-  // Additional items for the expanded view
-  const additionalSummaryItems = [
-    {
-      id: 2,
-      category: 'จัดการผู้ใช้งาน',
-      icon: <PeopleIcon className="text-purple-500" />,
-      count: stats.totalUsers,
-      status: '',
-      statusColor: 'text-green-500',
-      path: '/members'
-    },
-    {
-      id: 6,
-      category: 'จัดการหมวดหมู่',
-      icon: <CategoryIcon className="text-amber-500" />,
-      count: stats.totalCategories,
-      status: '',
-      statusColor: '',
-      path: '/category'
     }
   ];
 
@@ -201,112 +188,63 @@ const DashboardAdmin = () => {
     { field: 'Fullname', headerName: 'ชื่อผู้ใช้', width: 160 },
     { field: 'damage_count', headerName: 'จำนวนคืนของเสีย', width: 120 },
   ];
+  
   return (
-    <motion.div
-      className="p-6 md:p-8 flex-grow bg-gray-50 text-gray-800 min-h-screen"
-      initial="hidden"
-      animate="visible"
-      variants={containerVariants}
-    >
-      <div className="max-w-7xl mx-auto">
-        <motion.h1
-          className="text-3xl font-bold mb-10 text-gray-800 pl-2"
-          variants={itemVariants}
-        >
-          แดชบอร์ดผู้ดูแลระบบ
-        </motion.h1>
-
-        {/* Summary Table - Now with integrated navigation */}
-        <motion.div
-          className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 mb-8"
-          variants={itemVariants}
-        >
-          <h2 className="text-xl font-semibold mb-4 text-gray-700 flex items-center">
-            <ListAltIcon className="mr-2 text-blue-600" />
-            ภาพรวมและทางลัด
-          </h2>
-
-          <div className="grid grid-cols-1 gap-3">
-            {summaryTableData.map((item) => (
-              <motion.div
-                key={item.id}
-                className={`flex items-center justify-between p-3 rounded-lg transition-colors duration-150 ${item.path ? 'cursor-pointer hover:bg-blue-50/40' : ''}`}
-                onClick={() => item.path && navigate(item.path)}
-                whileHover={item.path ? { scale: 1.01 } : {}}
-                variants={itemVariants}
-              >
-                <div className="flex items-center space-x-3">
-                  <div className={`w-10 h-10 flex items-center justify-center rounded-full ${item.statusColor?.replace('text-', 'bg-').replace('-500', '-100')}`}>
-                    {item.icon}
-                  </div>
-                  <span className="font-semibold">{item.category}</span>
-                </div>
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center justify-center min-w-[60px]">
-                    <span className="font-bold text-xl text-gray-700">{item.count}</span>
-                  </div>
-                  <div className="min-w-[120px] text-right">
-                    {item.status ? (
-                      <span className={`inline-flex px-3 py-1 rounded-full text-sm ${item.statusColor?.replace('text-', 'bg-').replace('-500', '-50')} ${item.statusColor}`}>
-                        {item.status}
-                      </span>
-                    ) : (
-                      <span className="text-gray-400">-</span>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-100">
+      <motion.div
+        className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        {/* Header */}
+        <motion.div className="mb-8" variants={itemVariants}>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2">
+            แดชบอร์ดผู้ดูแลระบบ
+          </h1>
+          <p className="text-slate-600 text-sm sm:text-base">ภาพรวมการจัดการระบบและทางลัด</p>
         </motion.div>
 
-
-
-        {/* Additional Management Options */}
-        <motion.div
-          className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 mb-8"
-          variants={itemVariants}
-        >
-          <h2 className="text-xl font-semibold mb-6 text-gray-700 pb-3 flex items-center border-b border-gray-100">
-            <CategoryIcon className="mr-2 text-amber-600" />
-            การจัดการระบบเพิ่มเติม
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {additionalSummaryItems.map((item) => (
-              <motion.div
-                key={item.id}
-                className="flex items-center gap-4 p-4 rounded-lg hover:bg-blue-50 transition-all duration-200 cursor-pointer"
-                variants={itemVariants}
-                whileHover={{ x: 5 }}
-                onClick={() => item.path && navigate(item.path)}
-              >
-                <div className="p-3 rounded-full bg-gray-100">
-                  {item.icon}
+        {/* Quick Actions Grid */}
+        <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 sm:gap-6 mb-8" variants={containerVariants}>
+          {summaryTableData.map((item) => (
+            <motion.div
+              key={item.id}
+              className="group bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 cursor-pointer border border-slate-100"
+              onClick={() => item.path && navigate(item.path)}
+              whileHover={{ scale: 1.02, y: -4 }}
+              variants={itemVariants}
+            >
+              <div className="flex flex-col items-center text-center space-y-4">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${item.statusColor?.replace('text-', 'bg-').replace('-500', '-100')} group-hover:scale-110 transition-transform duration-300`}>
+                  <div className="text-2xl">{item.icon}</div>
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-800">{item.category}</h3>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-lg font-bold text-gray-700">{item.count}</span>
-                    <span className={`text-xs ${item.statusColor}`}>{item.status}</span>
-                  </div>
+                  <h3 className="font-bold text-2xl text-slate-800 mb-1">{item.count}</h3>
+                  <p className="text-sm font-medium text-slate-600 leading-tight">{item.category}</p>
+                  {item.status && (
+                    <span className={`inline-block mt-2 px-2 py-1 rounded-full text-xs font-medium ${item.statusColor?.replace('text-', 'bg-').replace('-500', '-100')} ${item.statusColor}`}>
+                      {item.status}
+                    </span>
+                  )}
                 </div>
-              </motion.div>
-            ))}
-          </div>
+              </div>
+            </motion.div>
+          ))}
         </motion.div>
         
-        {/* Dashboard Charts Section - Responsive and Balanced Layout */}
-        <motion.div className="grid grid-cols-1 xl:grid-cols-4 gap-8 mb-12" variants={containerVariants}>
+        {/* Dashboard Charts Section */}
+        <motion.div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6 mb-10" variants={containerVariants}>
           {/* Equipment Status PieChart */}
           <motion.div 
-            className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center min-h-[370px]"
+            className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 border border-slate-100"
             variants={itemVariants}
           >
-            <h2 className="text-xl font-semibold mb-6 text-gray-700 pb-3 flex items-center border-b border-gray-100 w-full">
-              <PieChartOutlineIcon className="mr-2 text-indigo-500" />
-              สถานะครุภัณฑ์
-            </h2>
-            <div className="h-[220px] w-full flex items-center justify-center">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+              <h2 className="text-lg font-semibold text-slate-800">สถานะครุภัณฑ์</h2>
+            </div>
+            <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -337,6 +275,8 @@ const DashboardAdmin = () => {
                     ))}
                   </Pie>
                   <Tooltip 
+                    formatter={(value, name) => [`${value}`, name]}
+                    labelFormatter={(label) => `สถานะ: ${label}`}
                     contentStyle={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.97)', 
                       border: '1px solid #e0e0e0',
@@ -352,14 +292,14 @@ const DashboardAdmin = () => {
 
           {/* Borrow/Return Trends BarChart */}
           <motion.div 
-            className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center min-h-[370px]"
+            className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 border border-slate-100"
             variants={itemVariants}
           >
-            <h2 className="text-xl font-semibold mb-6 text-gray-700 pb-3 flex items-center border-b border-gray-100 w-full">
-              <TrendingUpIcon className="mr-2 text-teal-500" />
-              แนวโน้มการยืม-คืน
-            </h2>
-            <div className="h-[220px] w-full flex items-center justify-center">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-teal-500 rounded-full"></div>
+              <h2 className="text-lg font-semibold text-slate-800">แนวโน้มการยืม-คืน</h2>
+            </div>
+            <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={borrowReturnData.map(row => ({
@@ -374,6 +314,8 @@ const DashboardAdmin = () => {
                   <XAxis dataKey="month" fontSize={12} />
                   <YAxis fontSize={12} />
                   <Tooltip 
+                    formatter={(value, name) => [`${value} ครั้ง`, name]}
+                    labelFormatter={(label) => `เดือน: ${label}`}
                     contentStyle={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.9)', 
                       border: '1px solid #e0e0e0',
@@ -391,14 +333,14 @@ const DashboardAdmin = () => {
 
           {/* Branch Borrow Summary PieChart */}
           <motion.div 
-            className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center min-h-[370px]"
+            className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 border border-slate-100"
             variants={itemVariants}
           >
-            <h2 className="text-xl font-semibold mb-6 text-gray-700 pb-3 flex items-center border-b border-gray-100 w-full">
-              <AssignmentReturnIcon className="mr-2 text-indigo-500" />
-              สรุปการยืมตามสาขา
-            </h2>
-            <div className="h-[220px] w-full flex items-center justify-center">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+              <h2 className="text-lg font-semibold text-slate-800">สรุปการยืมตามสาขา</h2>
+            </div>
+            <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -420,6 +362,8 @@ const DashboardAdmin = () => {
                     ))}
                   </Pie>
                   <Tooltip 
+                    formatter={(value, name) => [`${value} ครั้ง`, `สาขา: ${name}`]}
+                    labelFormatter={(label) => `${label}`}
                     contentStyle={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.97)', 
                       border: '1px solid #e0e0e0',
@@ -433,26 +377,28 @@ const DashboardAdmin = () => {
             </div>
           </motion.div>
 
-          {/* Top Borrowed Equipment BarChart (from executive) */}
+          {/* Top Borrowed Equipment BarChart */}
           <motion.div 
-            className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 flex flex-col items-center justify-center min-h-[370px]"
+            className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 border border-slate-100"
             variants={itemVariants}
           >
-            <h2 className="text-xl font-semibold mb-6 text-gray-700 pb-3 flex items-center border-b border-gray-100 w-full">
-              <AssignmentReturnIcon className="mr-2 text-sky-500" />
-              อุปกรณ์ที่ถูกยืมบ่อยสุด
-            </h2>
-            <div className="h-[220px] w-full flex items-center justify-center">
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+              <div className="w-3 h-3 bg-sky-500 rounded-full"></div>
+              <h2 className="text-lg font-semibold text-slate-800">อุปกรณ์ที่ถูกยืมบ่อยสุด</h2>
+            </div>
+            <div className="h-[280px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   layout="vertical"
                   data={topBorrowedItems}
-                  margin={{ top: 5, right: 20, left: 120, bottom: 5 }}
+                  margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={false} />
                   <XAxis type="number" fontSize={12} />
                   <YAxis dataKey="name" type="category" width={120} fontSize={12} tick={{ textAnchor: 'end' }} />
                   <Tooltip 
+                    formatter={(value, name) => [`${value} ครั้ง`, `อุปกรณ์: ${name}`]}
+                    labelFormatter={(label) => `${label}`}
                     contentStyle={{ 
                       backgroundColor: 'rgba(255, 255, 255, 0.9)', 
                       border: '1px solid #e0e0e0',
@@ -466,94 +412,95 @@ const DashboardAdmin = () => {
             </div>
           </motion.div>
         </motion.div>
-      </div>
-      {/* Risk Users Table - Improved UI */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 mb-10" variants={itemVariants}>
-        <h2 className="text-xl font-semibold text-gray-700 pb-3 flex items-center border-gray-100">
-          <WarningIcon className="mr-2 text-red-500" />
-          ผู้ใช้กลุ่มเสี่ยง
-        </h2>
-        <div className="overflow-x-auto">
-          {Array.isArray(topRiskUsers) && topRiskUsers.length > 0 ? (
-            <table className="w-full rounded-lg overflow-hidden shadow-sm">
-              <thead>
-                <tr className="bg-red-100">
-                  <th className="py-3 px-6 text-xs font-bold text-red-700 uppercase tracking-wider text-left">อันดับ</th>
-                  {topRiskUsersColumns.map(col => (
-                    <th key={col.field} className="py-3 px-6 text-xs font-bold text-slate-700 uppercase tracking-wider text-left">{col.headerName}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {topRiskUsers.map((row, idx) => (
-                  <tr key={idx} className={`transition-all duration-150 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-orange-50`}>
-                    <td className="py-3 px-6 text-left align-middle">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-base font-bold shadow ${idx === 0 ? 'bg-red-600' : idx === 1 ? 'bg-orange-500' : idx === 2 ? 'bg-yellow-400 text-slate-800' : 'bg-orange-300 text-slate-800'}`}>
-                        {idx + 1}
-                      </div>
-                    </td>
-                    {topRiskUsersColumns.map(col => (
-                      <td key={col.field} className="py-3 px-6 text-sm text-slate-700 font-medium align-middle">
-                        {col.field === 'total_fine' ? <span className="font-bold text-red-500">{Number(row[col.field]).toLocaleString()} บาท</span> : row[col.field]}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="text-center text-slate-400 py-16">
-              <div className="text-4xl mb-4">📊</div>
-              <p>ไม่มีข้อมูล</p>
-            </div>
-          )}
-        </div>
-      </motion.div>
 
-      {/* Frequent Damage Users Table - Improved UI */}
-      <motion.div className="bg-white p-6 rounded-xl shadow-md hover:shadow-xl transition-shadow duration-300 mb-10" variants={itemVariants}>
-        <h2 className="text-xl font-semibold text-gray-700 pb-3 flex items-center border-b border-gray-100">
-          <WarningIcon className="mr-2 text-yellow-500" />
-          ผู้ใช้คืนของเสียบ่อย
-        </h2>
-        <div className="overflow-x-auto">
-          {Array.isArray(frequentDamageUsers) && frequentDamageUsers.length > 0 ? (
-            <table className="w-full rounded-lg overflow-hidden shadow-sm">
-              <thead>
-                <tr className="bg-yellow-100">
-                  <th className="py-3 px-6 text-xs font-bold text-yellow-700 uppercase tracking-wider text-left">อันดับ</th>
-                  {frequentDamageUsersColumns.map(col => (
-                    <th key={col.field} className="py-3 px-6 text-xs font-bold text-slate-700 uppercase tracking-wider text-left">{col.headerName}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {frequentDamageUsers.map((row, idx) => (
-                  <tr key={idx} className={`transition-all duration-150 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-yellow-50`}>
-                    <td className="py-3 px-6 text-left align-middle">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-base font-bold shadow ${idx === 0 ? 'bg-yellow-500' : idx === 1 ? 'bg-orange-400' : idx === 2 ? 'bg-orange-300 text-slate-800' : 'bg-yellow-200 text-slate-800'}`}>
-                        {idx + 1}
-                      </div>
-                    </td>
-                    {frequentDamageUsersColumns.map(col => (
-                      <td key={col.field} className="py-3 px-6 text-sm text-slate-700 font-medium align-middle">
-                        {row[col.field]}
-                      </td>
+        {/* Risk Users Table */}
+        <motion.div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 mb-8 border border-slate-100" variants={itemVariants}>
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+            <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+            <h2 className="text-lg font-semibold text-slate-800">ผู้ใช้กลุ่มเสี่ยง</h2>
+          </div>
+          <div className="overflow-x-auto">
+            {Array.isArray(topRiskUsers) && topRiskUsers.length > 0 ? (
+              <table className="w-full rounded-lg overflow-hidden shadow-sm">
+                <thead>
+                  <tr className="bg-red-100">
+                    <th className="py-3 px-6 text-xs font-bold text-red-700 uppercase tracking-wider text-left">อันดับ</th>
+                    {topRiskUsersColumns.map(col => (
+                      <th key={col.field} className="py-3 px-6 text-xs font-bold text-slate-700 uppercase tracking-wider text-left">{col.headerName}</th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <div className="text-center text-slate-400 py-12">
-              <div className="text-3xl mb-2">📊</div>
-              <p>ไม่มีข้อมูล</p>
-            </div>
-          )}
-        </div>
+                </thead>
+                <tbody>
+                  {topRiskUsers.map((row, idx) => (
+                    <tr key={idx} className={`transition-all duration-150 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-orange-50`}>
+                      <td className="py-3 px-6 text-left align-middle">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-base font-bold shadow ${idx === 0 ? 'bg-red-600' : idx === 1 ? 'bg-orange-500' : idx === 2 ? 'bg-yellow-400 text-slate-800' : 'bg-orange-300 text-slate-800'}`}>
+                          {idx + 1}
+                        </div>
+                      </td>
+                      {topRiskUsersColumns.map(col => (
+                        <td key={col.field} className="py-3 px-6 text-sm text-slate-700 font-medium align-middle">
+                          {col.field === 'total_fine' ? <span className="font-bold text-red-500">{Number(row[col.field]).toLocaleString()} บาท</span> : row[col.field]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="text-center text-slate-400 py-16">
+                <div className="text-4xl mb-4">📊</div>
+                <p>ไม่มีข้อมูล</p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Frequent Damage Users Table */}
+        <motion.div className="bg-white p-6 rounded-2xl shadow-md hover:shadow-xl transition-shadow duration-300 mb-8 border border-slate-100" variants={itemVariants}>
+          <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+            <h2 className="text-lg font-semibold text-slate-800">ผู้ใช้คืนของเสียบ่อย</h2>
+          </div>
+          <div className="overflow-x-auto">
+            {Array.isArray(frequentDamageUsers) && frequentDamageUsers.length > 0 ? (
+              <table className="w-full rounded-lg overflow-hidden shadow-sm">
+                <thead>
+                  <tr className="bg-yellow-100">
+                    <th className="py-3 px-6 text-xs font-bold text-yellow-700 uppercase tracking-wider text-left">อันดับ</th>
+                    {frequentDamageUsersColumns.map(col => (
+                      <th key={col.field} className="py-3 px-6 text-xs font-bold text-slate-700 uppercase tracking-wider text-left">{col.headerName}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {frequentDamageUsers.map((row, idx) => (
+                    <tr key={idx} className={`transition-all duration-150 ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'} hover:bg-yellow-50`}>
+                      <td className="py-3 px-6 text-left align-middle">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-base font-bold shadow ${idx === 0 ? 'bg-yellow-500' : idx === 1 ? 'bg-orange-400' : idx === 2 ? 'bg-orange-300 text-slate-800' : 'bg-yellow-200 text-slate-800'}`}>
+                          {idx + 1}
+                        </div>
+                      </td>
+                      {frequentDamageUsersColumns.map(col => (
+                        <td key={col.field} className="py-3 px-6 text-sm text-slate-700 font-medium align-middle">
+                          {row[col.field]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="text-center text-slate-400 py-12">
+                <div className="text-3xl mb-2">📊</div>
+                <p>ไม่มีข้อมูล</p>
+              </div>
+            )}
+          </div>
+        </motion.div>
       </motion.div>
-    </motion.div>
-    );
+    </div>
+  );
 }
 
 export default DashboardAdmin;

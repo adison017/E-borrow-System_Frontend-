@@ -540,17 +540,24 @@ function Header({ userRole, changeRole }) {
       <header className="bg-gradient-to-r from-indigo-950 to-blue-700 text-white py-4 px-10 mb-1">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
           {/* Logo + System Name */}
-          <div className="flex flex-col sm:flex-row items-center gap-2">
-            <div className="flex items-center justify-center p-1 w-30 h-20 cursor-pointer" onClick={handleLogoClick} title="ไปหน้าแรก">
-              <img
-                src="/logo_it.png"
-                alt="Logo"
-                className="object-contain md:w-40 md:h-50"
-              />
+          <div className="flex items-center cursor-pointer group transition-all duration-300 hover:scale-105" onClick={handleLogoClick} title="ไปหน้าแรก">
+            <div className="relative mr-4">
+              <div className="relative transition-all duration-300">
+                <img
+                  src="/logo_it.png"
+                  alt="Logo"
+                  className="h-20 w-20 object-contain filter drop-shadow-lg"
+                />
+              </div>
             </div>
-            <h1 className="text-lg md:text-2xl lg:text-3xl font-bold tracking-tight drop-shadow-sm whitespace-nowrap">
-              ระบบยืม-คืนครุภัณฑ์
-            </h1>
+            <div className="text-white">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-wide group-hover:text-red-600 transition-colors duration-300 drop-shadow-lg">
+                E-BORROW
+              </h1>
+              <p className="text-sm md:text-base text-blue-100 font-medium group-hover:text-white transition-colors duration-300">
+                ระบบยืม-คืนครุภัณฑ์
+              </p>
+            </div>
           </div>
 
           {/* Right side container */}
