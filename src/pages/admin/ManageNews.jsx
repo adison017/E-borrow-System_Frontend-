@@ -217,9 +217,13 @@ const ManageNews = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newsToDelete, setNewsToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
+<<<<<<< Updated upstream
   const [isSubmitting, setIsSubmitting] = useState(false);
   // ลบ state error เดิม (ใช้ react-toastify แทน)
   // ฟังก์ชันกลางสำหรับแจ้งเตือน (เหมือน borrowlist)
+=======
+
+>>>>>>> Stashed changes
   const notifyNewsAction = (action, extra) => {
     let message = "";
     let type = "info";
