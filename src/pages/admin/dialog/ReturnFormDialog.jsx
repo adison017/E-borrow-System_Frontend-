@@ -366,19 +366,32 @@ const ReturnFormDialog = ({
     const file = e.target.files[0];
     setSlipFile(file);
     setIsVerifyingSlip(true);
-    // ตัวอย่าง: ส่งไฟล์ไป backend เพื่อตรวจสอบกับ Easy Slip
-    const formData = new FormData();
-    formData.append("slip", file);
     try {
-      const res = await fetch(`${API_BASE}/verify-slip`, {
-        method: "POST",
-        body: formData
+      // 1) อัปโหลดไฟล์สลิปไป cloudinary
+      const fd = new FormData();
+      fd.append('slip', file);
+      fd.append('borrow_code', borrowedItem?.borrow_code || 'unknown');
+      const uploadRes = await authFetch(`${API_BASE}/returns/upload-slip-cloudinary`, {
+        method: 'POST',
+        body: fd
       });
-      const result = await res.json();
-      setSlipVerifyResult(result);
-      setIsVerifyingSlip(false);
+      const uploadJson = await uploadRes.json();
+      if (!uploadRes.ok) throw new Error(uploadJson?.message || 'อัปโหลดสลิปไม่สำเร็จ');
+      const slipUrl = uploadJson.cloudinary_url || uploadJson.file_path || uploadJson.url;
+
+      // 2) ส่ง URL ให้ backend บันทึก และตั้งสถานะเป็น pending เพื่อรอแอดมินตรวจสอบ
+      const submitRes = await authFetch(`${API_BASE}/returns/submit-slip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ borrow_id: borrowedItem?.borrow_id, slip_url: slipUrl })
+      });
+      const submitJson = await submitRes.json();
+      if (!submitRes.ok) throw new Error(submitJson?.message || 'ส่งสลิปไม่สำเร็จ');
+
+      setSlipVerifyResult({ success: true, message: 'อัปโหลดและส่งสลิปสำเร็จ รอแอดมินตรวจสอบ' });
     } catch (err) {
-      setSlipVerifyResult({ success: false, message: "เกิดข้อผิดพลาดในการตรวจสอบสลิป" });
+      setSlipVerifyResult({ success: false, message: err.message || "เกิดข้อผิดพลาดในการอัปโหลดสลิป" });
+    } finally {
       setIsVerifyingSlip(false);
     }
   };

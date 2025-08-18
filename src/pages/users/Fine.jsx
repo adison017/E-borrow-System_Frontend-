@@ -104,17 +104,23 @@ const Fine = () => {
     if (shouldShowAlert) setShowSuccessAlert(true);
     // รีเฟรช fineList ทันที
     const user_id = globalUserData?.user_id;
-    if (user_id) {
-      setLoading(true);
-      authFetch(`${API_BASE}/returns/summary?user_id=${user_id}`)
-        .then(res => res.json())
-        .then(data => {
-          setFineList(data);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
-    }
+    if (user_id) refreshFines();
   };
+
+  const refreshFines = () => {
+    const user_id = globalUserData?.user_id;
+    if (!user_id) return;
+    setLoading(true);
+    authFetch(`${API_BASE}/returns/summary?user_id=${user_id}`)
+      .then(res => res.json())
+      .then(data => {
+        setFineList(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  };
+
+
 
   function renderPaymentMethod(method) {
     if (method === "online") return "โอนผ่าน PromptPay";
@@ -153,7 +159,7 @@ const Fine = () => {
 
   // ป้องกัน error .filter is not a function
   const safeFineList = Array.isArray(fineList) ? fineList : [];
-  const pendingList = safeFineList.filter(req => req.pay_status === 'pending');
+  const pendingList = safeFineList.filter(req => ['pending','failed'].includes(req.pay_status));
   // const paidList = fineList.filter(req => req.pay_status === 'paid'); // ลบส่วนนี้ออก
 
   return (
@@ -358,8 +364,8 @@ const Fine = () => {
                       {request.borrow_code}
                     </span>
                       </div>
-                      <div className={`badge badge-error text-white md:text-base px-4 py-4 rounded-full text-sm font-medium`}>
-                        ค้างชำระเงิน
+                      <div className={`badge ${request.pay_status === 'failed' ? 'badge-error' : (request.proof_image ? 'badge-warning' : 'badge-error')} text-white md:text-base px-4 py-4 rounded-full text-sm font-medium`}>
+                        {request.pay_status === 'failed' ? 'การชำระผิดพลาด' : (request.proof_image ? 'รอยืนยันชำระ' : 'ค้างชำระเงิน')}
                       </div>
                     </div>
 
@@ -421,14 +427,26 @@ const Fine = () => {
                         <div className="text-gray-700 font-medium text-sm md:text-base">
                           รวมทั้งหมด {total} ชิ้น
                         </div>
-                        <div className="flex gap-2 w-full md:w-auto">
-                          <button
-                            className="bg-gradient-to-r from-emerald-400 to-green-600 text-white font-bold py-2 px-8 rounded-full shadow-lg text-lg tracking-wide transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-pink-200 animate-pulse flex items-center justify-center gap-2"
-                            onClick={() => openDialog(request)}
-                          >
-                            <FaMoneyCheckAlt className="w-6 h-6" />
-                            ชำระเงิน
-                          </button>
+                        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto md:items-center">
+                          {request.pay_status !== 'failed' && !request.proof_image && (
+                            <button
+                              className="bg-gradient-to-r from-emerald-400 to-green-600 text-white font-bold py-2 px-8 rounded-full shadow-lg text-lg tracking-wide transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-pink-200 animate-pulse flex items-center justify-center gap-2"
+                              onClick={() => openDialog(request)}
+                            >
+                              <FaMoneyCheckAlt className="w-6 h-6" />
+                              ชำระเงิน
+                            </button>
+                          )}
+                          {request.pay_status === 'failed' && (
+                            <button
+                              className="bg-gradient-to-r from-rose-400 to-red-600 text-white font-bold py-2 px-8 rounded-full shadow-lg text-lg tracking-wide transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-rose-200 flex items-center justify-center gap-2"
+                              onClick={() => openDialog(request)}
+                            >
+                              <FaMoneyCheckAlt className="w-6 h-6" />
+                              ทำรายการใหม่
+                            </button>
+                          )}
+
                         </div>
                       </div>
                     </div>
