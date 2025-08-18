@@ -442,7 +442,7 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                      <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
                        <span className="text-sm text-gray-600">วันที่คืนจริง</span>
                        <span className="font-medium text-blue-700">
-                         {returnItem.return_date ? new Date(returnItem.return_date).toLocaleString('th-TH') : '-'}
+                         {(paymentDetails?.return_date || returnItem?.return_date) ? new Date(paymentDetails?.return_date || returnItem?.return_date).toLocaleString('th-TH') : '-'}
                        </span>
                      </div>
                    </div>
