@@ -28,6 +28,7 @@ import { toast } from 'react-toastify';
 import axios from 'axios';
 import Notification from '../../components/Notification';
 import { API_BASE } from '../../utils/api';
+import DeleteRoomDialog from './dialog/DeleteRoomDialog';
 
 // กำหนด theme สีพื้นฐานเป็นสีดำ เหมือน ManageEquipment
 const theme = {
@@ -51,6 +52,8 @@ const ManageRoom = () => {
   const [itemsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState('');
   const [addressFilter, setAddressFilter] = useState('ทั้งหมด');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedRoom, setSelectedRoom] = useState(null);
 
   const [formData, setFormData] = useState({
     room_code: '',
@@ -182,20 +185,25 @@ const ManageRoom = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (roomId) => {
-    if (window.confirm('คุณต้องการลบห้องนี้หรือไม่?')) {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.delete(`${API_BASE}/rooms/${roomId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        showAlertMessage('ลบห้องเรียบร้อยแล้ว');
-        fetchRooms();
-      } catch (error) {
-        console.error('Error deleting room:', error);
-        showAlertMessage('เกิดข้อผิดพลาดในการลบห้อง', 'error');
-      }
+  const handleDeleteClick = (room) => {
+    setSelectedRoom(room);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(`${API_BASE}/rooms/${selectedRoom.room_id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      showAlertMessage(`ลบห้อง ${selectedRoom.room_name} เรียบร้อยแล้ว`);
+      fetchRooms();
+    } catch (error) {
+      console.error('Error deleting room:', error);
+      showAlertMessage('เกิดข้อผิดพลาดในการลบห้อง', 'error');
     }
+    setDeleteDialogOpen(false);
+    setSelectedRoom(null);
   };
 
   const resetForm = () => {
@@ -539,7 +547,7 @@ const ManageRoom = () => {
                                 </IconButton>
                             </Tooltip>
                               <Tooltip content="ลบ" placement="top">
-                                <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDelete(room.room_id)}>
+                                <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDeleteClick(room)}>
                                   <TrashIcon className="h-5 w-5" />
                                 </IconButton>
                             </Tooltip>
@@ -816,6 +824,7 @@ const ManageRoom = () => {
                     className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
                     placeholder="เช่น RM-001"
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
                 <div className="group">
@@ -829,6 +838,7 @@ const ManageRoom = () => {
                     className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
                     placeholder="เช่น ห้องทำงาน"
                     required
+                    disabled={isSubmitting}
                   />
                 </div>
                   </div>
@@ -844,6 +854,7 @@ const ManageRoom = () => {
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
                   placeholder="เช่น ชั้น 3 อาคารหลัก"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -855,6 +866,7 @@ const ManageRoom = () => {
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
                           placeholder="รายละเอียดเพิ่มเติมของห้อง"
                   rows={3}
+                  disabled={isSubmitting}
                         />
                       </div>
 
@@ -866,6 +878,7 @@ const ManageRoom = () => {
                   className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
                           placeholder="หมายเหตุเพิ่มเติม"
                   rows={2}
+                  disabled={isSubmitting}
                         />
                       </div>
 
@@ -945,6 +958,14 @@ const ManageRoom = () => {
           </svg>
         </button>
       </Tooltip>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteRoomDialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        selectedRoom={selectedRoom}
+        onConfirm={confirmDelete}
+      />
     </ThemeProvider>
   );
 };

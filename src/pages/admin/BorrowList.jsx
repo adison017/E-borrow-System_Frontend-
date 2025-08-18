@@ -108,6 +108,7 @@ const BorrowList = () => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedBorrow, setSelectedBorrow] = useState(null);
   const [selectedBorrowId, setSelectedBorrowId] = useState(null);
+  const [isOpeningDetails, setIsOpeningDetails] = useState(false);
   // ลบ state notification เดิม (ใช้ react-toastify แทน)
 
   const { subscribeToBadgeCounts } = useBadgeCounts();
@@ -168,7 +169,7 @@ const BorrowList = () => {
   };
 
   const handleSearch = (e) => setSearchTerm(e.target.value);
-  const handleViewDetails = (borrow) => { setSelectedBorrow(borrow); setIsDetailsOpen(true); };
+  const handleViewDetails = (borrow) => { if (isOpeningDetails) return; setIsOpeningDetails(true); setSelectedBorrow(borrow); setIsDetailsOpen(true); setTimeout(()=>setIsOpeningDetails(false), 200); };
   const handleReviewRequest = (borrowId) => { setSelectedBorrowId(borrowId); setIsConfirmOpen(true); };
   const confirmReview = () => {
     const updatedBorrows = borrows.map(item =>
@@ -421,8 +422,12 @@ const BorrowList = () => {
                         <div className="flex flex-wrap items-center justify-center gap-2">
                           {item.status === "pending" && (
                             <Tooltip content="ตรวจสอบข้อมูล" placement="top">
-                              <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleViewDetails(item)}>
-                                <CheckCircleSolidIcon className="h-6 w-6" />
+                              <IconButton variant="text" color="green" className={`bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2 ${isOpeningDetails ? 'opacity-60 cursor-not-allowed' : ''}`} onClick={() => handleViewDetails(item)} disabled={isOpeningDetails}>
+                                {isOpeningDetails ? (
+                                  <svg className="animate-spin h-5 w-5 text-green-700" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                                ) : (
+                                  <CheckCircleSolidIcon className="h-6 w-6" />
+                                )}
                               </IconButton>
                             </Tooltip>
                           )}

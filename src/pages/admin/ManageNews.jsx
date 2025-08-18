@@ -128,6 +128,7 @@ const ManageNews = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [newsToDelete, setNewsToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   // ลบ state error เดิม (ใช้ react-toastify แทน)
   // ฟังก์ชันกลางสำหรับแจ้งเตือน (เหมือน borrowlist)
   const notifyNewsAction = (action, extra) => {
@@ -342,7 +343,18 @@ const ManageNews = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // ป้องกันการส่งซ้ำในขณะที่กำลังประมวลผล
+    if (isSubmitting) {
+      console.log('Already submitting, returning...');
+      return;
+    }
+
     try {
+      // ตั้งค่า loading state
+      setIsSubmitting(true);
+      console.log('isSubmitting set to TRUE');
+
       console.log('=== Starting submit process ===');
       console.log('Form data:', formData);
       console.log('Pending images:', pendingImages);
@@ -412,6 +424,10 @@ const ManageNews = () => {
       } else {
         notifyNewsAction("add_error");
       }
+    } finally {
+      // รีเซ็ต loading state
+      setIsSubmitting(false);
+      console.log('isSubmitting set to FALSE (finally block)');
     }
   };
 
@@ -566,12 +582,14 @@ const ManageNews = () => {
 
       {/* Use the NewsFormDialog component */}
       <NewsFormDialog
+        key={`${showModal}-${isEditing}`}
         showModal={showModal}
         setShowModal={setShowModal}
         handleSubmit={handleSubmit}
         isEditing={isEditing}
         formData={formData}
         handleInputChange={handleInputChange}
+        isSubmitting={isSubmitting}
       />
 
       {/* Delete Confirmation Dialog */}
