@@ -27,7 +27,6 @@ import ReturnList from './pages/admin/ReturnList';
 import Success from './pages/admin/Success';
 import SystemSettings from './pages/admin/SystemSettings';
 import BorrowCalendar from './pages/admin/BorrowCalendar';
-import FooterSettings from './pages/admin/FooterSettings';
 
 // Executive Pages
 import BorrowApprovalList from './pages/executive/BorrowApprovalList';
@@ -325,7 +324,6 @@ function AppInner() {
                 <Route path="/edit_profile" element={<Edit_pro />} />
                 <Route path="/system-settings" element={<SystemSettings />} />
                 <Route path="/borrow-calendar" element={<BorrowCalendar />} />
-                <Route path="/footer-settings" element={<FooterSettings />} />
                 <Route path="/reports" element={<DashboardAdmin />} />
                 <Route path="*" element={<Navigate to="/DashboardAd" replace />} />
               </>
