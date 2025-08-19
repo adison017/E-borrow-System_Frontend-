@@ -26,35 +26,39 @@ export default function RepairApprovalList() {
   // สถานะของคำขอซ่อม
   const statusOptions = [
     { value: "all", label: "ทั้งหมด", count: 0 },
-    { value: "รออนุมัติซ่อม", label: "รออนุมัติซ่อม", count: 0 },
+    { value: "pending", label: "รออนุมัติซ่อม", count: 0 },
     { value: "approved", label: "อนุมัติแล้ว", count: 0 },
     { value: "rejected", label: "ปฏิเสธ", count: 0 },
     { value: "inprogress", label: "กำลังซ่อม", count: 0 },
-    { value: "completed", label: "เสร็จสิ้น", count: 0 }
+    { value: "completed", label: "เสร็จสิ้น", count: 0 },
+    { value: "ไม่อนุมัติซ่อม", label: "ไม่อนุมัติซ่อม", count: 0 }
   ];
 
   const statusBadgeStyle = {
-    "รออนุมัติซ่อม": "bg-yellow-50 text-yellow-800 border-yellow-200",
+    "pending": "bg-yellow-50 text-yellow-800 border-yellow-200",
     approved: "bg-green-50 text-green-800 border-green-200",
     rejected: "bg-red-50 text-red-800 border-red-200",
     inprogress: "bg-blue-50 text-blue-800 border-blue-200",
-    completed: "bg-purple-50 text-purple-800 border-purple-200"
+    completed: "bg-purple-50 text-purple-800 border-purple-200",
+    "ไม่อนุมัติซ่อม": "bg-orange-50 text-orange-800 border-orange-200"
   };
 
   const statusIconStyle = {
-    "รออนุมัติซ่อม": "text-yellow-500",
+    "pending": "text-yellow-500",
     approved: "text-green-500",
     rejected: "text-red-500",
     inprogress: "text-blue-500",
-    completed: "text-purple-500"
+    completed: "text-purple-500",
+    "ไม่อนุมัติซ่อม": "text-orange-500"
   };
 
   const statusTranslation = {
-    "รออนุมัติซ่อม": "รออนุมัติซ่อม",
+    "pending": "รออนุมัติซ่อม",
     approved: "อนุมัติแล้ว",
     rejected: "ปฏิเสธ",
     inprogress: "กำลังซ่อม",
-    completed: "เสร็จสิ้น"
+    completed: "เสร็จสิ้น",
+    "ไม่อนุมัติซ่อม": "ไม่อนุมัติซ่อม"
   };
 
   const { subscribeToBadgeCounts } = useBadgeCounts();
@@ -111,7 +115,11 @@ export default function RepairApprovalList() {
           pic_filename_raw: request.repair_pic_raw, // ข้อมูลดิบสำหรับ debug
           status: request.status,
           repair_code: request.repair_code,
-          avatar: request.avatar
+          avatar: request.avatar,
+          responsible_person: request.responsible_person, // เพิ่มข้อมูลผู้รับผิดชอบ
+          approvalNotes: request.approvalNotes, // เพิ่มหมายเหตุการอนุมัติ
+          rejection_reason: request.rejection_reason, // เพิ่มเหตุผลการปฏิเสธ
+          inspection_notes: request.inspection_notes // เพิ่มบันทึกการตรวจสอบ
         };
       });
 
@@ -200,7 +208,9 @@ export default function RepairApprovalList() {
       // รีเฟรชข้อมูลใหม่
       await fetchRepairRequests();
 
+      // แสดง toast notification
       setPendingToast({ type: 'error', message: `ปฏิเสธคำขอซ่อมเรียบร้อยแล้ว${rejectedData.rejectReason ? ` เหตุผล: ${rejectedData.rejectReason}` : ''}` });
+      
       setIsDialogOpen(false);
     } catch (error) {
       console.error('Error rejecting request:', error);
@@ -215,8 +225,10 @@ export default function RepairApprovalList() {
   const filteredRequests = repairRequests.filter(request => {
     const matchSearch =
       request.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.repair_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.equipment_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requester_name.toLowerCase().includes(searchTerm.toLowerCase());
+      request.requester_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.equipment_code.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchStatus = statusFilter === "all" || request.status === statusFilter;
 
@@ -244,6 +256,37 @@ export default function RepairApprovalList() {
         <div>
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอแจ้งซ่อม</h1>
           <p className="text-gray-500 text-sm">จัดการคำขอแจ้งซ่อมทั้งหมดขององค์กร</p>
+        </div>
+        
+        {/* Search Input */}
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              placeholder="ค้นหารหัสคำขอ, รหัสการซ่อม, รหัสครุภัณฑ์, ชื่อครุภัณฑ์, หรือผู้แจ้งซ่อม..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          
+          {/* Status Filter */}
+          <select
+            className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="all">สถานะทั้งหมด</option>
+            <option value="pending">รออนุมัติซ่อม</option>
+            <option value="approved">อนุมัติแล้ว</option>
+            <option value="rejected">ปฏิเสธ</option>
+            <option value="inprogress">กำลังซ่อม</option>
+            <option value="completed">เสร็จสิ้น</option>
+            <option value="ไม่อนุมัติซ่อม">ไม่อนุมัติซ่อม</option>
+          </select>
         </div>
       </div>
 
@@ -343,6 +386,17 @@ export default function RepairApprovalList() {
                       <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
                         {statusTranslation[request.status] || request.status}
                       </span>
+                      {/* แสดงปุ่มส่งคำขอใหม่สำหรับสถานะที่ถูกปฏิเสธ */}
+                      {(request.status === 'rejected' || request.status === 'ไม่อนุมัติซ่อม') && (
+                        <div className="mt-2">
+                          <button
+                            onClick={() => handleOpenDialog(request)}
+                            className="px-3 py-1 text-xs bg-orange-500 hover:bg-orange-600 text-white rounded-full transition-colors duration-200"
+                          >
+                            ส่งคำขอใหม่
+                          </button>
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                       <div className="flex flex-wrap items-center justify-center gap-2">

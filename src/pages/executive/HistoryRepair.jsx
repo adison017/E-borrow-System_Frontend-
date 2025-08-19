@@ -77,6 +77,8 @@ export default function HistoryRepair() {
           budget: request.budget,
           responsible_person: request.responsible_person,
           approval_date: request.approval_date,
+          rejection_reason: request.rejection_reason,
+          inspection_notes: request.inspection_notes,
           equipment_code: request.equipment_code || (request.equipment && request.equipment.code),
           images: Array.isArray(request.repair_pic) ? request.repair_pic : [],
           equipment: {
@@ -172,8 +174,10 @@ export default function HistoryRepair() {
     if (!['approved', 'completed', 'incomplete', 'rejected'].includes(request.status)) return false;
     const matchSearch =
       request.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.repair_code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.equipment.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requester.name.toLowerCase().includes(searchTerm.toLowerCase());
+      request.requester.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.equipment_code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus = statusFilter.includes(request.status);
     return matchSearch && matchStatus;
   });
@@ -225,7 +229,7 @@ export default function HistoryRepair() {
             </div>
             <input
               type="text"
-              placeholder="ค้นหาด้วยรหัส อุปกรณ์ ชื่อผู้ขอยืม"
+              placeholder="ค้นหารหัสคำขอ, รหัสการซ่อม, รหัสครุภัณฑ์, ชื่อครุภัณฑ์, หรือผู้แจ้งซ่อม..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="block w-full pl-10 pr-3 py-3 bg-white shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-full text-sm border-gray-200"
@@ -351,8 +355,9 @@ export default function HistoryRepair() {
                         <div className="flex-shrink-0 h-12 w-12">
                           <img
                             className="h-full w-full rounded-full object-cover"
-                            src={request.requester?.avatar ? (request.requester.avatar.startsWith('http') ? request.requester.avatar : `${UPLOAD_BASE}/uploads/user/${request.requester.avatar}`) : (request.avatar ? (String(request.avatar).startsWith('http') ? request.avatar : `${UPLOAD_BASE}/uploads/user/${request.avatar}`) : "/placeholder-user.png")}
+                            src={request.avatar ? (typeof request.avatar === 'string' && request.avatar.startsWith('http') ? request.avatar : `${UPLOAD_BASE}/uploads/user/${request.avatar}`) : "/placeholder-user.png"}
                             alt={request.requester?.name || request.requester_name}
+                            onError={e => { e.target.src = "/placeholder-user.png"; }}
                           />
                         </div>
                         <div className="ml-3">

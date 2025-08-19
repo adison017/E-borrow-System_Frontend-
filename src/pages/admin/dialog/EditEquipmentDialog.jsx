@@ -50,9 +50,11 @@ export default function EditEquipmentDialog({
 
   const statusConfig = {
     "พร้อมใช้งาน": { color: "green", icon: "CheckCircleIcon" },
-    "ถูกยืม": { color: "blue", icon: "ExclamationCircleIcon" },
+    "ถูกยืม": { color: "purple", icon: "ExclamationCircleIcon" },
     "ชำรุด": { color: "red", icon: "XCircleIcon" },
-    "ระหว่างซ่อม": { color: "amber", icon: "ClockIcon" },
+    "กำลังซ่อม": { color: "amber", icon: "ClockIcon" },
+    "รออนุมัติซ่อม": { color: "blue", icon: "ClockIcon" },
+    "ไม่อนุมัติซ่อม": { color: "orange", icon: "XCircleIcon" },
   };
 
   useEffect(() => {

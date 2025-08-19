@@ -26,6 +26,10 @@ import {
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
 import axios from 'axios';
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Notification from '../../components/Notification';
 import { API_BASE } from '../../utils/api';
 import DeleteRoomDialog from './dialog/DeleteRoomDialog';
@@ -69,6 +73,49 @@ const ManageRoom = () => {
   const [imageUrlsEdit, setImageUrlsEdit] = useState([]);
   const [isDeletingImage, setIsDeletingImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // ฟังก์ชันรวมคำอธิบายแจ้งเตือน (เหมือน ManageUser.jsx)
+  const getRoomNotifyMessage = (action, extra) => {
+    switch (action) {
+      case "add":
+        return { message: `เพิ่มห้อง ${extra} เรียบร้อยแล้ว`, type: "success" };
+      case "edit":
+        return { message: `แก้ไขห้อง ${extra} เรียบร้อยแล้ว`, type: "success" };
+      case "delete":
+        return { message: `ลบห้อง ${extra} เรียบร้อยแล้ว`, type: "success" };
+      case "add_error":
+        return { message: "เกิดข้อผิดพลาดในการเพิ่มห้อง", type: "error" };
+      case "edit_error":
+        return { message: "เกิดข้อผิดพลาดในการแก้ไขห้อง", type: "error" };
+      case "delete_error":
+        return { message: "เกิดข้อผิดพลาดในการลบห้อง", type: "error" };
+      case "fetch_error":
+        return { message: "เกิดข้อผิดพลาดในการดึงข้อมูลห้อง", type: "error" };
+      case "export_success":
+        return { message: "✅ ส่งออก Excel เรียบร้อยแล้ว", type: "success" };
+      case "export_error":
+        return { message: "❌ เกิดข้อผิดพลาดในการส่งออก Excel", type: "error" };
+      case "image_delete_success":
+        return { message: "✅ ลบรูปภาพเรียบร้อยแล้ว", type: "success" };
+      case "image_delete_error":
+        return { message: "❌ เกิดข้อผิดพลาดในการลบรูปภาพ", type: "error" };
+      default:
+        return { message: action, type: "info" };
+    }
+  };
+
+  // ฟังก์ชันกลางสำหรับแจ้งเตือน
+  const notifyRoomAction = (action, extra) => {
+    const { message, type } = getRoomNotifyMessage(action, extra);
+    if (type === "success") {
+      toast.success(message);
+    } else if (type === "error") {
+      toast.error(message);
+    } else {
+      toast.info(message);
+    }
+  };
 
   useEffect(() => {
     fetchRooms();
@@ -83,17 +130,22 @@ const ManageRoom = () => {
       setRooms(response.data);
     } catch (error) {
       console.error('Error fetching rooms:', error);
-      showAlertMessage('เกิดข้อผิดพลาดในการดึงข้อมูลห้อง', 'error');
+      notifyRoomAction('fetch_error');
     } finally {
       setLoading(false);
     }
   };
 
   const showAlertMessage = (message, type = "success") => {
-    setAlertMessage(message);
-    setAlertType(type);
-    setShowAlert(true);
-    setTimeout(() => setShowAlert(false), 3000);
+    if (type === 'success') {
+      toast.success(message);
+    } else if (type === 'error') {
+      toast.error(message);
+    } else if (type === 'info') {
+      toast.info(message);
+    } else {
+      toast(message);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -110,9 +162,9 @@ const ManageRoom = () => {
 
       // แสดง loading message
       if (editingRoom) {
-        showAlertMessage('⏳ กำลังอัปเดตข้อมูลห้อง...', 'info');
+        notifyRoomAction("info", "⏳ กำลังอัปเดตข้อมูลห้อง...");
       } else {
-        showAlertMessage('⏳ กำลังเพิ่มห้องใหม่...', 'info');
+        notifyRoomAction("info", "⏳ กำลังเพิ่มห้องใหม่...");
       }
 
       const token = localStorage.getItem('token');
@@ -130,7 +182,7 @@ const ManageRoom = () => {
         formDataToSend.append('images', file);
       });
       if (imageUrlsEdit.length + uploadedFiles.length > 5) {
-        showAlertMessage('ไม่สามารถอัปโหลดรูปภาพได้เกิน 5 รูป', 'error');
+        notifyRoomAction("error", "ไม่สามารถอัปโหลดรูปภาพได้เกิน 5 รูป");
         return;
       }
       const headers = {
@@ -139,10 +191,10 @@ const ManageRoom = () => {
       };
       if (editingRoom) {
         await axios.put(`${API_BASE}/rooms/${editingRoom.room_id}`, formDataToSend, { headers });
-        showAlertMessage('✅ อัปเดตข้อมูลห้องเรียบร้อยแล้ว');
+        notifyRoomAction("edit", editingRoom.room_name);
       } else {
         await axios.post(`${API_BASE}/rooms`, formDataToSend, { headers });
-        showAlertMessage('✅ เพิ่มห้องใหม่เรียบร้อยแล้ว');
+        notifyRoomAction("add", formData.room_name);
       }
       setShowModal(false);
       setEditingRoom(null);
@@ -152,7 +204,11 @@ const ManageRoom = () => {
     } catch (error) {
       console.error('Error submitting form:', error);
       const message = error.response?.data?.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
-      showAlertMessage(`❌ ${message}`, 'error');
+      if (editingRoom) {
+        notifyRoomAction("edit_error");
+      } else {
+        notifyRoomAction("add_error");
+      }
     } finally {
       // รีเซ็ต loading state
       setIsSubmitting(false);
@@ -196,11 +252,11 @@ const ManageRoom = () => {
       await axios.delete(`${API_BASE}/rooms/${selectedRoom.room_id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      showAlertMessage(`ลบห้อง ${selectedRoom.room_name} เรียบร้อยแล้ว`);
+      notifyRoomAction("delete", selectedRoom.room_name);
       fetchRooms();
     } catch (error) {
       console.error('Error deleting room:', error);
-      showAlertMessage('เกิดข้อผิดพลาดในการลบห้อง', 'error');
+      notifyRoomAction("delete_error");
     }
     setDeleteDialogOpen(false);
     setSelectedRoom(null);
@@ -261,7 +317,7 @@ const ManageRoom = () => {
   // Helper function to add new image URL field
   const addImageUrl = () => {
     if (imageUrls.length >= 5) {
-      showAlertMessage('ไม่สามารถเพิ่มรูปภาพได้เกิน 5 รูป', 'error');
+      notifyRoomAction("error", "ไม่สามารถเพิ่มรูปภาพได้เกิน 5 รูป");
       return;
     }
     setImageUrls([...imageUrls, '']);
@@ -286,7 +342,7 @@ const ManageRoom = () => {
     const uniqueUrls = [...new Set(filteredUrls)];
 
     if (filteredUrls.length !== uniqueUrls.length) {
-      showAlertMessage('ไม่สามารถใช้ URL รูปภาพที่ซ้ำกันได้', 'error');
+      notifyRoomAction("error", "ไม่สามารถใช้ URL รูปภาพที่ซ้ำกันได้");
       return false;
     }
 
@@ -299,7 +355,7 @@ const ManageRoom = () => {
 
     // ตรวจสอบจำนวนไฟล์
     if (uploadedFiles.length + files.length > 5) {
-      showAlertMessage('ไม่สามารถอัปโหลดรูปภาพได้เกิน 5 รูป', 'error');
+      notifyRoomAction("error", "ไม่สามารถอัปโหลดรูปภาพได้เกิน 5 รูป");
       return;
     }
 
@@ -308,7 +364,7 @@ const ManageRoom = () => {
     const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
 
     if (invalidFiles.length > 0) {
-      showAlertMessage('รองรับเฉพาะไฟล์รูปภาพ (JPEG, JPG, PNG, GIF, WEBP)', 'error');
+      notifyRoomAction("error", "รองรับเฉพาะไฟล์รูปภาพ (JPEG, JPG, PNG, GIF, WEBP)");
       return;
     }
 
@@ -317,7 +373,7 @@ const ManageRoom = () => {
     const oversizedFiles = files.filter(file => file.size > maxSize);
 
     if (oversizedFiles.length > 0) {
-      showAlertMessage('ขนาดไฟล์ต้องไม่เกิน 5MB', 'error');
+      notifyRoomAction("error", "ขนาดไฟล์ต้องไม่เกิน 5MB");
       return;
     }
 
@@ -347,7 +403,7 @@ const ManageRoom = () => {
         setIsDeletingImage(true);
 
         // แสดง loading message
-        showAlertMessage('⏳ กำลังลบรูปภาพจาก Cloudinary...', 'info');
+        notifyRoomAction("info", "⏳ กำลังลบรูปภาพจาก Cloudinary...");
 
         // ส่ง request ไปลบรูปภาพจาก Cloudinary
         await axios.delete(`${API_BASE}/rooms/${editingRoom.room_code}/images/image_${idx + 1}`, {
@@ -356,15 +412,15 @@ const ManageRoom = () => {
 
         // ลบรูปภาพออกจาก state หลังจากลบสำเร็จ
         setImageUrlsEdit(prev => prev.filter((_, i) => i !== idx));
-        showAlertMessage('✅ ลบรูปภาพจาก Cloudinary เรียบร้อยแล้ว');
+        notifyRoomAction("image_delete_success");
       } else {
         // ถ้าไม่ใช่ Cloudinary URL ให้ลบออกจาก state เท่านั้น
         setImageUrlsEdit(prev => prev.filter((_, i) => i !== idx));
-        showAlertMessage('✅ ลบรูปภาพเรียบร้อยแล้ว');
+        notifyRoomAction("image_delete_success");
       }
     } catch (error) {
       console.error('Error removing image:', error);
-      showAlertMessage('❌ เกิดข้อผิดพลาดในการลบรูปภาพ', 'error');
+      notifyRoomAction("image_delete_error");
     } finally {
       // รีเซ็ต loading state
       setIsDeletingImage(false);
@@ -374,12 +430,52 @@ const ManageRoom = () => {
     setImageUrlsEdit(prev => prev.map((url, i) => i === idx ? newUrl : url));
   };
 
+  // ฟังก์ชันสำหรับ export Excel
+  const handleExportExcel = () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const exportData = filteredRooms.map(room => ({
+        'รหัสห้อง': room.room_code || '',
+        'ชื่อห้อง': room.room_name || '',
+        'ที่อยู่': room.address || '',
+        'รายละเอียด': room.detail || '',
+        'หมายเหตุ': room.note || '',
+        'จำนวนรูปภาพ': room.image_url ? (Array.isArray(JSON.parse(room.image_url)) ? JSON.parse(room.image_url).length : 1) : 0,
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Rooms');
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+      saveAs(blob, 'rooms.xlsx');
+      notifyRoomAction("export_success");
+    } catch (error) {
+      console.error('Error exporting Excel:', error);
+      notifyRoomAction("export_error");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const isImageCountExceeded = imageUrlsEdit.length + uploadedFiles.length > 5;
 
   const TABLE_HEAD = ["รูปภาพ", "รหัสห้อง", "ชื่อห้อง", "ที่อยู่", "รายละเอียด", "หมายเหตุ", "การจัดการ"];
 
   return (
     <ThemeProvider value={theme}>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
         {/* Alert Notification */}
         <Notification
@@ -423,9 +519,18 @@ const ManageRoom = () => {
               </div>
             </div>
             <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
-              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
-                <ArrowDownTrayIcon className="w-4 h-4" />
-                ส่งออก Excel
+              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case" onClick={handleExportExcel}>
+                {isExporting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    กำลังส่งออก...
+                  </>
+                ) : (
+                  <>
+                    <ArrowDownTrayIcon className="w-4 h-4" />
+                    ส่งออก Excel
+                  </>
+                )}
               </Button>
             </div>
           </div>

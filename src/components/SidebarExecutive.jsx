@@ -66,7 +66,7 @@ function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOp
         const borrowList = Array.isArray(borrowsRes) ? borrowsRes : [];
         const repairList = Array.isArray(repairsRes) ? repairsRes : [];
         setBorrowApprovalCount(borrowList.filter(b => b.status === 'pending_approval').length);
-        setRepairApprovalCount(repairList.filter(r => r.status === 'รออนุมัติซ่อม').length);
+        setRepairApprovalCount(repairList.filter(r => r.status === 'pending').length);
       } catch {}
     };
 
@@ -89,7 +89,7 @@ function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOp
         const borrowList = Array.isArray(borrowsRes) ? borrowsRes : [];
         const repairList = Array.isArray(repairsRes) ? repairsRes : [];
         setBorrowApprovalCount(borrowList.filter(b => b.status === 'pending_approval').length);
-        setRepairApprovalCount(repairList.filter(r => r.status === 'รออนุมัติซ่อม').length);
+        setRepairApprovalCount(repairList.filter(r => r.status === 'pending').length);
       } catch {}
     })();
   }, []);

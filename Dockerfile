@@ -8,19 +8,13 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production --legacy-peer-deps
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
 
-# Build the application
-RUN npm run build
-
-# Install serve to run the built application
-RUN npm install -g serve
-
 # Expose port
 EXPOSE 5173
 
-# Start the application
-CMD ["serve", "-s", "dist", "-l", "5173"]
+# Start the development server
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
