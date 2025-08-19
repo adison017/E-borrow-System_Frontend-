@@ -99,12 +99,11 @@ const OtpDialog = ({
           animation: fadeOutScale 0.25s cubic-bezier(0.4,0,0.2,1);
         }
       `}</style>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn px-4">
         <div
-          className={`relative bg-white rounded-3xl p-8 pb-10 w-full max-w-[380px] sm:max-w-[420px] shadow-2xl border border-blue-200 transition-all duration-300 ${animateOut ? 'animate-fadeOutScale' : 'animate-fadeInScale'} mb-12`}
+          className={`relative bg-white rounded-3xl p-8 pb-10 w-full max-w-[500px] shadow-2xl border border-blue-200 transition-all duration-300 ${animateOut ? 'animate-fadeOutScale' : 'animate-fadeInScale'}`}
           style={{
-            maxWidth: '30vw',
-            maxHeight: '80vh',
+            maxHeight: '90vh',
             overflow: 'visible',
             boxSizing: 'border-box',
             display: 'flex',
@@ -130,17 +129,17 @@ const OtpDialog = ({
         </div>
         {/* Title และข้อความ */}
         <h3
-          className="text-2xl sm:text-2xl md:text-3xl font-bold text-gray-900 mb-3 text-center break-words tracking-wide drop-shadow-sm"
+          className="text-2xl font-bold text-gray-900 mb-3 text-center break-words tracking-wide drop-shadow-sm"
         >
           {title}
         </h3>
         <div
-          className="text-gray-700 text-base sm:text-lg md:text-xl  text-center whitespace-pre-line break-words mb-6 px-2 leading-relaxed font-medium"
+          className="text-gray-700 text-lg text-center whitespace-pre-line break-words mb-6 px-2 leading-relaxed font-medium"
         >
           {message}
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col gap-3 w-full ">
-          <div className="flex justify-center gap-2 mb-2" onPaste={handlePaste}>
+          <div className="flex justify-center gap-3 mb-2" onPaste={handlePaste}>
             {otpArr.map((val, idx) => (
               <input
                 key={idx}
@@ -149,28 +148,27 @@ const OtpDialog = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={1}
-                className="w-12 h-14 text-2xl text-center font-bold border-2 border-blue-300 rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 bg-[#f0f6ff] text-black"
+                className="w-14 h-16 text-2xl text-center font-bold border-2 border-blue-300 rounded-2xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none transition-all duration-200 bg-[#f0f6ff] text-black"
                 value={val}
                 onChange={e => handleOtpChange(e, idx)}
                 onKeyDown={e => handleKeyDown(e, idx)}
                 autoFocus={idx === 0}
                 required
-                style={{ letterSpacing: 0, marginRight: idx < 5 ? 4 : 0 }}
               />
             ))}
           </div>
           {error && <div className="text-red-500 text-sm text-center mt-1">{error}</div>}
-          <div className="w-full flex flex-row gap-4 justify-center items-center mt-4 flex-wrap">  
+          <div className="w-full flex flex-row gap-4 justify-center items-center mt-6">  
             <button
               type="button"
-              className="min-w-[120px] px-6 py-2 text-base font-semibold rounded-full shadow-xl border-2 bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300 focus:ring-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200"
+              className="flex-1 max-w-[140px] px-6 py-3 text-lg font-semibold rounded-full shadow-xl border-2 bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300 focus:ring-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200"
               onClick={onClose}
             >
               ยกเลิก
             </button>
             <button
               type="submit"
-              className="min-w-[120px] px-6 py-2 text-base font-semibold rounded-full shadow-xl border-2 bg-blue-500 text-white border-blue-600 hover:bg-blue-600 focus:ring-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200"
+              className="flex-1 max-w-[140px] px-6 py-3 text-lg font-semibold rounded-full shadow-xl border-2 bg-blue-500 text-white border-blue-600 hover:bg-blue-600 focus:ring-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200"
               disabled={otpArr.some(v => !v)}
             >
               ยืนยัน
