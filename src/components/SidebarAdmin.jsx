@@ -27,8 +27,6 @@ const menuItems = [
   { to: '/return-list', icon: <GiBackForth size={23} />, label: 'รายการคืนครุภัณฑ์', key: 'returnList' },
   { to: '/success', icon: <BsClipboardCheckFill size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
   { to: '/borrow-calendar', icon: <MdCalendarMonth size={22} />, label: 'ปฏิทินการยืม', key: 'borrowCalendar' },
-  { to: '/footer-settings', icon: <MdOutlineEditNote size={22} />, label: 'จัดการ Footer', key: 'footerSettings' },
-
 ];
 
 function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }) {

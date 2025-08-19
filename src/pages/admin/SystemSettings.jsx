@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardBody, Typography, Button, Input } from '@material-tailwind/react';
+import { Card, CardBody, CardHeader, Typography, Button, Input } from '@material-tailwind/react';
+import { toast } from 'react-toastify';
 import {
   MdSettings,
   MdContactPhone,
@@ -13,14 +14,52 @@ import {
   MdInfo,
   MdPeople,
   MdBarChart,
-  MdWifiTethering
+  MdWifiTethering,
+  MdLanguage,
+  MdShield,
+  MdMarkEmailRead,
+  MdLockReset,
+  MdVisibility,
+  MdVisibilityOff,
+  MdTimer,
+  MdLock,
+  MdStorage
 } from 'react-icons/md';
 import { FaUserEdit } from 'react-icons/fa';
 // removed security icons
 import { ImMail4 } from "react-icons/im";
+import {
+  FaUniversity,
+  FaGraduationCap,
+  FaMapMarkerAlt,
+  FaPhone,
+  FaEnvelope,
+  FaGlobe,
+  FaFacebookF,
+  FaLine,
+  FaInstagram,
+  FaCopyright,
+  FaEye,
+  FaCheck,
+  FaSpinner
+} from 'react-icons/fa';
 import { API_BASE, authFetch } from '../../utils/api';
+import {
+  testCloudinaryConnection,
+  getCloudinaryUsageStats,
+  createCloudinaryFolders,
+  listCloudinaryFolders
+} from '../../utils/cloudinaryUtils';
 import Notification from '../../components/Notification';
 import PersonalInfoEdit from '../users/edit_profile.jsx';
+
+// Add custom CSS for extra small screens
+const customStyles = `
+  @media (min-width: 475px) {
+    .xs\\:inline { display: inline !important; }
+    .xs\\:hidden { display: none !important; }
+  }
+`;
 
 const SystemSettings = () => {
   const [contactInfo, setContactInfo] = useState({
@@ -90,11 +129,30 @@ const SystemSettings = () => {
     }
   });
 
+  // Footer settings state
+  const [footerSettings, setFooterSettings] = useState({
+    university_name: '',
+    faculty_name: '',
+    address: '',
+    phone: '',
+    email: '',
+    website: '',
+    facebook_url: '',
+    line_url: '',
+    instagram_url: '',
+    copyright_text: ''
+  });
+  const [footerLoading, setFooterLoading] = useState(false);
+  const [footerSaving, setFooterSaving] = useState(false);
+
   useEffect(() => {
     fetchContactInfo();
     if (activeTab === 'notifications') {
       fetchNotificationStats();
       fetchUsers();
+    }
+    if (activeTab === 'footer') {
+      fetchFooterSettings();
     }
   }, [activeTab]);
 
@@ -458,10 +516,10 @@ const SystemSettings = () => {
 
   // removed: fetchCloudinaryConfig (storage tab removed)
 
-  const testCloudinaryConnection = async () => {
+  const testCloudinaryConnectionHandler = async () => {
     try {
       setLoading(true);
-      const data = await testConnection();
+      const data = await testCloudinaryConnection();
 
       if (data.success) {
         setNotificationData({
@@ -489,10 +547,10 @@ const SystemSettings = () => {
     }
   };
 
-  const getCloudinaryUsageStats = async () => {
+  const getCloudinaryUsageStatsHandler = async () => {
     try {
       setLoading(true);
-      const data = await getUsageStats();
+      const data = await getCloudinaryUsageStats();
 
       if (data.success) {
         setNotificationData({
@@ -522,7 +580,7 @@ const SystemSettings = () => {
     }
   };
 
-  const createCloudinaryFolderStructure = async () => {
+  const createCloudinaryFolderStructureHandler = async () => {
     try {
       setLoading(true);
       const data = await createCloudinaryFolders();
@@ -555,7 +613,7 @@ const SystemSettings = () => {
     }
   };
 
-  const listCloudinaryFolderStructure = async () => {
+  const listCloudinaryFolderStructureHandler = async () => {
     try {
       setLoading(true);
       const data = await listCloudinaryFolders();
@@ -933,11 +991,100 @@ const SystemSettings = () => {
     }
   };
 
+  // Footer settings functions
+  const fetchFooterSettings = async () => {
+    setFooterLoading(true);
+    try {
+      const response = await fetch(`${API_BASE}/footer-settings`);
+
+      if (!response.ok) {
+        console.warn(`Footer settings API returned ${response.status}, using default values`);
+        return;
+      }
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        setFooterSettings(data.data);
+      }
+    } catch (error) {
+      console.warn('Footer settings not available:', error.message);
+      toast.warn('ไม่สามารถโหลดการตั้งค่า Footer ได้ กรุณาลองใหม่อีกครั้ง');
+    } finally {
+      setFooterLoading(false);
+    }
+  };
+
+  const handleFooterInputChange = (field, value) => {
+    setFooterSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleFooterSave = async () => {
+    setFooterSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE}/footer-settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(footerSettings)
+      });
+
+      if (!response.ok) {
+        setNotificationData({
+          title: 'เกิดข้อผิดพลาด',
+          message: 'ไม่สามารถบันทึกการตั้งค่าได้ กรุณาลองใหม่อีกครั้ง',
+          type: 'error'
+        });
+        setShowNotification(true);
+        return;
+      }
+
+      const data = await response.json();
+      if (data.success) {
+        setNotificationData({
+          title: 'สำเร็จ',
+          message: 'บันทึกการตั้งค่า Footer สำเร็จ',
+          type: 'success'
+        });
+        setShowNotification(true);
+        // Refresh page to update footer
+        setTimeout(() => window.location.reload(), 1500);
+      } else {
+        setNotificationData({
+          title: 'เกิดข้อผิดพลาด',
+          message: data.message || 'เกิดข้อผิดพลาดในการบันทึก',
+          type: 'error'
+        });
+        setShowNotification(true);
+      }
+    } catch (error) {
+      console.error('Error saving footer settings:', error);
+      setNotificationData({
+        title: 'เกิดข้อผิดพลาด',
+        message: 'ไม่สามารถบันทึกการตั้งค่าได้ กรุณาลองใหม่อีกครั้ง',
+        type: 'error'
+      });
+      setShowNotification(true);
+    } finally {
+      setFooterSaving(false);
+    }
+  };
+
   const tabs = [
     {
       label: "การแจ้งเตือน",
       value: "notifications",
       icon: <MdNotifications className="w-5 h-5" />,
+    },
+    {
+      label: "จัดการข้อมูลติดต่อเว็บไซต์",
+      value: "footer",
+      icon: <FaUniversity className="w-5 h-5" />,
     },
     {
       label: "แก้ไขข้อมูลส่วนตัว",
@@ -952,10 +1099,10 @@ const SystemSettings = () => {
     const uniqueRoles = [...new Set(users.map(user => user.role_name))];
 
     return (
-      <div className="max-w-5xl mx-auto space-y-8">
+      <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
         {/* In-Page Menu */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 sticky top-16 z-10">
-          <div className="flex gap-2 overflow-x-auto">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-2 sm:p-3 sticky top-16 z-10">
+          <div className="flex gap-1 sm:gap-2 overflow-x-auto pb-2 sm:pb-0">
             {[
               { key: 'overview', label: 'ภาพรวม', icon: <MdNotifications className="w-4 h-4" /> },
               { key: 'global', label: 'ควบคุมทั้งหมด', icon: <MdSettings className="w-4 h-4" /> },
@@ -967,14 +1114,15 @@ const SystemSettings = () => {
               <button
                 key={item.key}
                 onClick={() => goToNotificationSection(item.key)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm whitespace-nowrap border transition-colors ${
+                className={`flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm whitespace-nowrap border transition-colors ${
                   notifActive === item.key
                     ? 'bg-blue-600 text-white border-blue-600'
                     : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
                 }`}
               >
                 {item.icon}
-                {item.label}
+                <span className="hidden xs:inline">{item.label}</span>
+                <span className="xs:hidden">{item.label.split(' ')[0]}</span>
               </button>
             ))}
           </div>
@@ -1013,67 +1161,67 @@ const SystemSettings = () => {
       </div>
 
         {/* Quick Stats - Compact & Beautiful */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <Typography variant="h3" className="text-gray-800 font-bold">
+                <Typography variant="h3" className="text-lg sm:text-xl lg:text-2xl text-gray-800 font-bold">
                   {notificationStats.overall.total_users}
             </Typography>
-                <Typography variant="paragraph" className="text-gray-500 text-sm mt-1">
+                <Typography variant="paragraph" className="text-gray-500 text-xs sm:text-sm mt-1">
                   ผู้ใช้งานทั้งหมด
             </Typography>
           </div>
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <MdPeople className="text-xl text-blue-600" />
+              <div className="p-2 sm:p-3 bg-blue-50 rounded-lg">
+                <MdPeople className="text-lg sm:text-xl text-blue-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <Typography variant="h3" className="text-gray-800 font-bold">
+                <Typography variant="h3" className="text-lg sm:text-xl lg:text-2xl text-gray-800 font-bold">
                   {notificationStats.overall.users_with_line}
                 </Typography>
-                <Typography variant="paragraph" className="text-gray-500 text-sm mt-1">
+                <Typography variant="paragraph" className="text-gray-500 text-xs sm:text-sm mt-1">
                   ผูก LINE แล้ว
                 </Typography>
               </div>
-              <div className="p-3 bg-green-50 rounded-lg">
-                <MdWifiTethering className="text-xl text-green-600" />
+              <div className="p-2 sm:p-3 bg-green-50 rounded-lg">
+                <MdWifiTethering className="text-lg sm:text-xl text-green-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <Typography variant="h3" className="text-gray-800 font-bold">
+                <Typography variant="h3" className="text-lg sm:text-xl lg:text-2xl text-gray-800 font-bold">
                   {notificationStats.overall.users_enabled_line}
                 </Typography>
-                <Typography variant="paragraph" className="text-gray-500 text-sm mt-1">
+                <Typography variant="paragraph" className="text-gray-500 text-xs sm:text-sm mt-1">
                   เปิดการแจ้งเตือน
                 </Typography>
               </div>
-              <div className="p-3 bg-yellow-50 rounded-lg">
-                <MdNotifications className="text-xl text-yellow-600" />
+              <div className="p-2 sm:p-3 bg-yellow-50 rounded-lg">
+                <MdNotifications className="text-lg sm:text-xl text-yellow-600" />
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+          <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
-                <Typography variant="h3" className="text-gray-800 font-bold">
+                <Typography variant="h3" className="text-lg sm:text-xl lg:text-2xl text-gray-800 font-bold">
                   {Math.round((notificationStats.overall.users_enabled_line / notificationStats.overall.users_with_line) * 100) || 0}%
                 </Typography>
-                <Typography variant="paragraph" className="text-gray-500 text-sm mt-1">
+                <Typography variant="paragraph" className="text-gray-500 text-xs sm:text-sm mt-1">
                   อัตราการใช้งาน
                 </Typography>
               </div>
-              <div className="p-3 bg-purple-50 rounded-lg">
-                <MdBarChart className="text-xl text-purple-600" />
+              <div className="p-2 sm:p-3 bg-purple-50 rounded-lg">
+                <MdBarChart className="text-lg sm:text-xl text-purple-600" />
               </div>
             </div>
           </div>
@@ -1146,11 +1294,8 @@ const SystemSettings = () => {
                 value={contactInfo.location}
                 onChange={handleInputChange}
                 placeholder="เช่น ห้องพัสดุ อาคาร 1 ชั้น 2"
-                className="!border !border-gray-300 bg-white text-gray-900 shadow-lg shadow-gray-900/5 ring-4 ring-transparent placeholder:text-gray-500 focus:!border-blue-500 focus:!border-t-blue-500 focus:ring-blue-500/20"
-                labelProps={{
-                  className: "hidden",
-                }}
-                containerProps={{ className: "min-w-[100px]" }}
+                className="!border !border-gray-300 bg-white"
+                labelProps={{ className: 'hidden' }}
                 required
               />
             </div>
@@ -1167,11 +1312,8 @@ const SystemSettings = () => {
                 value={contactInfo.phone}
                 onChange={handleInputChange}
                 placeholder="เช่น 02-123-4567"
-                className="!border !border-gray-300 bg-white text-gray-900 shadow-lg shadow-gray-900/5 ring-4 ring-transparent placeholder:text-gray-500 focus:!border-blue-500 focus:!border-t-blue-500 focus:ring-blue-500/20"
-                labelProps={{
-                  className: "hidden",
-                }}
-                containerProps={{ className: "min-w-[100px]" }}
+                className="!border !border-gray-300 bg-white"
+                labelProps={{ className: 'hidden' }}
                 required
               />
             </div>
@@ -1188,44 +1330,20 @@ const SystemSettings = () => {
                 value={contactInfo.hours}
                 onChange={handleInputChange}
                 placeholder="เช่น 8:30-16:30 น."
-                className="!border !border-gray-300 bg-white text-gray-900 shadow-lg shadow-gray-900/5 ring-4 ring-transparent placeholder:text-gray-500 focus:!border-blue-500 focus:!border-t-blue-500 focus:ring-blue-500/20"
-                labelProps={{
-                  className: "hidden",
-                }}
-                containerProps={{ className: "min-w-[100px]" }}
+                className="!border !border-gray-300 bg-white"
+                labelProps={{ className: 'hidden' }}
                 required
               />
             </div>
 
             {/* Action Buttons */}
             <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
-              <Button
-                type="button"
-                variant="outlined"
-                onClick={fetchContactInfo}
-                disabled={loading}
-                className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                <MdRefresh className="text-lg" />
-                รีเฟรช
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 shadow-lg"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    กำลังบันทึก...
-                  </>
-                ) : (
-                  <>
-                    <MdSave className="text-lg" />
-                    บันทึก
-                  </>
-                )}
-              </Button>
+              <Button type="button" variant="outlined" onClick={fetchContactInfo} className="border-gray-300 text-gray-700 hover:bg-gray-50">
+              รีเฟรช
+            </Button>
+              <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+              บันทึก
+            </Button>
             </div>
           </form>
         </div>
@@ -1545,24 +1663,24 @@ const SystemSettings = () => {
                   </Typography>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                   {uniqueRoles.map(role => {
                     const roleUsers = users.filter(user => user.role_name === role && user.line_id !== 'ยังไม่ผูกบัญชี');
                     const enabledCount = roleUsers.filter(user => user.line_notify_enabled === 1).length;
                     const totalCount = roleUsers.length;
 
                     return (
-                <div key={role} className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 hover:border-purple-200">
-                  <div className="flex items-center justify-between mb-4">
+                <div key={role} className="bg-white rounded-xl p-4 sm:p-5 border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 hover:border-purple-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold shadow-sm">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center text-white font-bold shadow-sm text-sm sm:text-base">
                         {role.charAt(0)}
                       </div>
                       <div>
-                        <Typography variant="paragraph" className="font-bold text-gray-800 text-lg">
+                        <Typography variant="paragraph" className="font-bold text-gray-800 text-base sm:text-lg">
                           {role}
                         </Typography>
-                        <Typography variant="paragraph" className="text-sm text-gray-500">
+                        <Typography variant="paragraph" className="text-xs sm:text-sm text-gray-500">
                           {totalCount} คนที่ผูก LINE
                         </Typography>
                       </div>
@@ -1571,7 +1689,7 @@ const SystemSettings = () => {
                       <button
                         type="button"
                         disabled={loading || totalCount === 0}
-                        className={`relative w-16 h-8 rounded-full transition-all duration-300 focus:outline-none border-2 shadow-sm hover:scale-105 ${
+                        className={`relative w-14 h-7 sm:w-16 sm:h-8 rounded-full transition-all duration-300 focus:outline-none border-2 shadow-sm hover:scale-105 ${
                           enabledCount === totalCount && totalCount > 0
                             ? 'bg-green-400 border-green-500 shadow-green-200'
                             : 'bg-gray-200 border-gray-300 hover:border-gray-400'
@@ -1583,25 +1701,25 @@ const SystemSettings = () => {
                         }}
                       >
                         <span
-                          className="absolute left-1 top-0.5 w-6 h-6 rounded-full bg-white shadow-lg flex items-center justify-center transition-all duration-300 ease-in-out"
+                          className="absolute left-0.5 sm:left-1 top-0.5 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white shadow-lg flex items-center justify-center transition-all duration-300 ease-in-out"
                           style={{
                             transform: `translateX(${
                               enabledCount === totalCount && totalCount > 0
-                                ? '28px'
+                                ? '24px'
                                 : '0px'
                             })`,
                             transition: 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)'
                           }}
                         >
-                          <ImMail4 className={`w-4 h-4 ${
+                          <ImMail4 className={`w-3 h-3 sm:w-4 sm:h-4 ${
                             enabledCount === totalCount && totalCount > 0
                               ? 'text-green-600'
                               : 'text-gray-500'
                           } transition-colors duration-300`} />
                         </span>
                       </button>
-                      <div className="mt-3">
-                        <Typography variant="paragraph" className={`text-sm font-medium px-3 py-1.5 rounded-full transition-colors duration-300 ${
+                      <div className="mt-2 sm:mt-3">
+                        <Typography variant="paragraph" className={`text-xs sm:text-sm font-medium px-2 sm:px-3 py-1 sm:py-1.5 rounded-full transition-colors duration-300 ${
                           enabledCount === totalCount && totalCount > 0
                             ? 'bg-green-100 text-green-700 border border-green-300'
                             : 'bg-gray-100 text-gray-600 border border-gray-300'
@@ -1609,7 +1727,7 @@ const SystemSettings = () => {
                           {enabledCount}/{totalCount} เปิดใช้งาน
                         </Typography>
                         {totalCount === 0 && (
-                          <Typography variant="paragraph" className="text-xs text-red-500 mt-2">
+                          <Typography variant="paragraph" className="text-xs text-red-500 mt-1 sm:mt-2">
                             ไม่มีผู้ใช้ที่ผูก LINE
                           </Typography>
                         )}
@@ -1628,16 +1746,16 @@ const SystemSettings = () => {
   };
 
   const renderSecuritySettings = () => (
-    <div className="space-y-6">
-      <div className="bg-gradient-to-r from-rose-50 via-red-50 to-pink-50 p-6 rounded-2xl border border-rose-100">
-        <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="bg-gradient-to-r from-rose-50 via-red-50 to-pink-50 p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-rose-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white rounded-xl border border-rose-200">
-              <MdShield className="text-2xl text-rose-600" />
+              <MdShield className="text-xl sm:text-2xl text-rose-600" />
           </div>
           <div>
-              <Typography variant="h5" className="text-gray-800 font-bold">การตั้งค่าความปลอดภัย</Typography>
-              <Typography variant="small" className="text-gray-600">ยืนยันอีเมลและตั้งรหัสผ่านใหม่อย่างปลอดภัย</Typography>
+              <Typography variant="h5" className="text-lg sm:text-xl text-gray-800 font-bold">การตั้งค่าความปลอดภัย</Typography>
+              <Typography variant="small" className="text-gray-600 text-sm">ยืนยันอีเมลและตั้งรหัสผ่านใหม่อย่างปลอดภัย</Typography>
             </div>
           </div>
           <div className="hidden md:flex items-center gap-4">
@@ -1655,13 +1773,13 @@ const SystemSettings = () => {
       </div>
 
       <Card className="shadow-lg border-0">
-        <CardBody className="p-6 space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <CardBody className="p-4 sm:p-6 space-y-6 sm:space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             {/* Left: Request OTP */}
-            <div className="rounded-xl border border-gray-100 p-5 bg-gradient-to-br from-white to-gray-50">
+            <div className="rounded-xl border border-gray-100 p-4 sm:p-5 bg-gradient-to-br from-white to-gray-50">
               <div className="flex items-center gap-2 mb-4">
-                <MdMarkEmailRead className="text-xl text-blue-600" />
-                <Typography variant="h6" className="font-semibold text-gray-800">ยืนยันอีเมลเพื่อรับ OTP</Typography>
+                <MdMarkEmailRead className="text-lg sm:text-xl text-blue-600" />
+                <Typography variant="h6" className="font-semibold text-gray-800 text-base sm:text-lg">ยืนยันอีเมลเพื่อรับ OTP</Typography>
               </div>
               <div className="space-y-3">
                 <label className="text-sm font-semibold text-gray-700">อีเมล</label>
@@ -1674,16 +1792,16 @@ const SystemSettings = () => {
                   className="!border !border-gray-300 bg-white"
                   labelProps={{ className: 'hidden' }}
                 />
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                   <Button
                     onClick={requestPasswordOtp}
                     disabled={securityLoading || !securityForm.email || resendCooldownSec > 0}
-                    className={`text-white ${resendCooldownSec > 0 ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+                    className={`text-white text-sm ${resendCooldownSec > 0 ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
                   >
                     {securityLoading ? 'กำลังส่ง...' : (resendCooldownSec > 0 ? `ส่งอีกครั้งใน ${resendCooldownSec}s` : 'ส่ง OTP')}
                   </Button>
                   {otpSent && (
-                    <span className="inline-flex items-center gap-1 text-green-700 text-sm">
+                    <span className="inline-flex items-center gap-1 text-green-700 text-xs sm:text-sm">
                       <MdCheckCircle /> ส่งไปยังอีเมลแล้ว (หมดอายุ 5 นาที)
                     </span>
                   )}
@@ -1698,10 +1816,10 @@ const SystemSettings = () => {
             </div>
 
             {/* Right: Set new password */}
-            <div className="rounded-xl border border-gray-100 p-5 bg-gradient-to-br from-white to-gray-50">
+            <div className="rounded-xl border border-gray-100 p-4 sm:p-5 bg-gradient-to-br from-white to-gray-50">
               <div className="flex items-center gap-2 mb-4">
-                <MdLockReset className="text-xl text-purple-600" />
-                <Typography variant="h6" className="font-semibold text-gray-800">ตั้งรหัสผ่านใหม่</Typography>
+                <MdLockReset className="text-lg sm:text-xl text-purple-600" />
+                <Typography variant="h6" className="font-semibold text-gray-800 text-base sm:text-lg">ตั้งรหัสผ่านใหม่</Typography>
               </div>
               <div className="space-y-4">
                 <div>
@@ -1741,7 +1859,7 @@ const SystemSettings = () => {
                     <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div className={`h-2 ${passwordStrength.color}`} style={{ width: `${passwordStrength.score}%` }}></div>
                     </div>
-                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                       {[
                         { ok: securityForm.password.length >= 8, text: 'อย่างน้อย 8 ตัว' },
                         { ok: /[A-Za-z]/.test(securityForm.password), text: 'มีตัวอักษร' },
@@ -1779,10 +1897,10 @@ const SystemSettings = () => {
           </div>
 
           {/* Password Policy */}
-          <div className="rounded-xl border border-gray-100 p-5 bg-white">
+          <div className="rounded-xl border border-gray-100 p-4 sm:p-5 bg-white">
             <div className="flex items-center gap-2 mb-4">
-              <MdShield className="text-xl text-gray-700" />
-              <Typography variant="h6" className="font-semibold text-gray-800">นโยบายรหัสผ่าน</Typography>
+              <MdShield className="text-lg sm:text-xl text-gray-700" />
+              <Typography variant="h6" className="font-semibold text-gray-800 text-base sm:text-lg">นโยบายรหัสผ่าน</Typography>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -1797,7 +1915,7 @@ const SystemSettings = () => {
                   labelProps={{ className: 'hidden' }}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { key: 'requireLetter', label: 'ต้องมีตัวอักษร' },
                   { key: 'requireNumber', label: 'ต้องมีตัวเลข' },
@@ -1815,7 +1933,7 @@ const SystemSettings = () => {
                 ))}
               </div>
             </div>
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 flex flex-col sm:flex-row gap-3">
               <Button
                 onClick={() => {
                   localStorage.setItem('security.passwordPolicy', JSON.stringify(passwordPolicy));
@@ -1850,10 +1968,10 @@ const SystemSettings = () => {
           </div>
 
           {/* Auto-logout settings */}
-          <div className="rounded-xl border border-gray-100 p-5 bg-white">
+          <div className="rounded-xl border border-gray-100 p-4 sm:p-5 bg-white">
             <div className="flex items-center gap-2 mb-4">
-              <MdLock className="text-xl text-gray-700" />
-              <Typography variant="h6" className="font-semibold text-gray-800">การออกจากระบบอัตโนมัติ</Typography>
+              <MdLock className="text-lg sm:text-xl text-gray-700" />
+              <Typography variant="h6" className="font-semibold text-gray-800 text-base sm:text-lg">การออกจากระบบอัตโนมัติ</Typography>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
               <div>
@@ -1888,7 +2006,7 @@ const SystemSettings = () => {
                 </div>
                 <Typography variant="small" className="text-gray-500 mt-1">0 = ไม่เตือน</Typography>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   onClick={() => {
                     localStorage.setItem('security.inactivityMinutes', String(inactivityMinutes));
@@ -2016,7 +2134,7 @@ const SystemSettings = () => {
             {/* Action Buttons */}
             <div className="flex flex-wrap gap-3 pt-6 border-t border-gray-200">
               <Button
-                onClick={testCloudinaryConnection}
+                onClick={testCloudinaryConnectionHandler}
                 disabled={loading}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
               >
@@ -2034,7 +2152,7 @@ const SystemSettings = () => {
               </Button>
 
               <Button
-                onClick={getCloudinaryUsageStats}
+                onClick={getCloudinaryUsageStatsHandler}
                 disabled={loading}
                 className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
               >
@@ -2043,7 +2161,7 @@ const SystemSettings = () => {
               </Button>
 
               <Button
-                onClick={createCloudinaryFolderStructure}
+                onClick={createCloudinaryFolderStructureHandler}
                 disabled={loading}
                 className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
               >
@@ -2061,7 +2179,7 @@ const SystemSettings = () => {
               </Button>
 
               <Button
-                onClick={listCloudinaryFolderStructure}
+                onClick={listCloudinaryFolderStructureHandler}
                 disabled={loading}
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
               >
@@ -2120,6 +2238,231 @@ const SystemSettings = () => {
     </div>
   );
 
+  const renderFooterSettings = () => (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 py-4 sm:py-8 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/20 to-pink-400/20 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        {/* Header */}
+        <div className="text-center mb-4 sm:mb-5">
+          <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-2xl ">
+            <svg className="w-6 h-6 sm:w-8 sm:h-8 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold bg-clip-text text-black mb-2 sm:mb-4">
+            การตั้งค่าข้อมูลติดต่อเว็บไซต์
+          </h1>
+          <p className="text-sm sm:text-md text-gray-600 max-w-2xl mx-auto leading-relaxed px-4">
+            จัดการข้อมูลที่แสดงใน Footer ของเว็บไซต์
+          </p>
+        </div>
+
+        {/* Main Form */}
+        <div className="backdrop-blur-xl bg-white/70 rounded-2xl sm:rounded-3xl border border-white/20 overflow-hidden">
+          <div className="p-4 sm:p-6 lg:p-10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 lg:gap-12">
+              {/* Left Column */}
+              <div className="space-y-4 sm:space-y-6">
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 group-focus-within:bg-blue-200 transition-colors">
+                      <FaUniversity className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                    </div>
+                    ชื่อมหาวิทยาลัย
+                  </label>
+                  <input
+                    type="text"
+                    value={footerSettings.university_name}
+                    onChange={(e) => handleFooterInputChange('university_name', e.target.value)}
+                    className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-300 text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md text-sm sm:text-base"
+                    placeholder="ชื่อมหาวิทยาลัย"
+                  />
+                </div>
+
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 group-focus-within:bg-blue-200 transition-colors">
+                      <FaGraduationCap className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                    </div>
+                    ชื่อคณะ
+                  </label>
+                  <input
+                    type="text"
+                    value={footerSettings.faculty_name}
+                    onChange={(e) => handleFooterInputChange('faculty_name', e.target.value)}
+                    className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-300 text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md text-sm sm:text-base"
+                    placeholder="ชื่อคณะ"
+                  />
+                </div>
+
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 group-focus-within:bg-blue-200 transition-colors">
+                      <FaMapMarkerAlt className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                    </div>
+                    ที่อยู่
+                  </label>
+                  <textarea
+                    value={footerSettings.address}
+                    onChange={(e) => handleFooterInputChange('address', e.target.value)}
+                    rows={3}
+                    className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-300 text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md resize-none text-sm sm:text-base"
+                    placeholder="ที่อยู่ของหน่วยงาน"
+                  />
+                </div>
+
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 group-focus-within:bg-blue-200 transition-colors">
+                      <FaPhone className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                    </div>
+                    เบอร์โทรศัพท์
+                  </label>
+                  <input
+                    type="tel"
+                    value={footerSettings.phone}
+                    onChange={(e) => handleFooterInputChange('phone', e.target.value)}
+                    className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-300 text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md text-sm sm:text-base"
+                    placeholder="เบอร์โทรศัพท์"
+                  />
+                </div>
+
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 group-focus-within:bg-blue-200 transition-colors">
+                      <FaEnvelope className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                    </div>
+                    อีเมล
+                  </label>
+                  <input
+                    type="email"
+                    value={footerSettings.email}
+                    onChange={(e) => handleFooterInputChange('email', e.target.value)}
+                    className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-300 text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md text-sm sm:text-base"
+                    placeholder="อีเมลติดต่อ"
+                  />
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4 sm:space-y-6">
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 group-focus-within:bg-blue-200 transition-colors">
+                      <FaFacebookF className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                    </div>
+                    Facebook URL
+                  </label>
+                  <input
+                    type="url"
+                    value={footerSettings.facebook_url}
+                    onChange={(e) => handleFooterInputChange('facebook_url', e.target.value)}
+                    className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-300 text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md text-sm sm:text-base"
+                    placeholder="https://facebook.com/yourpage"
+                  />
+                </div>
+
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-green-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 group-focus-within:bg-green-200 transition-colors">
+                      <FaLine className="w-3 h-3 sm:w-4 sm:h-4 text-green-600" />
+                    </div>
+                    Line URL
+                  </label>
+                  <input
+                    type="url"
+                    value={footerSettings.line_url}
+                    onChange={(e) => handleFooterInputChange('line_url', e.target.value)}
+                    className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white transition-all duration-300 text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md text-sm sm:text-base"
+                    placeholder="https://line.me/yourline"
+                  />
+                </div>
+
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-pink-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 group-focus-within:bg-pink-200 transition-colors">
+                      <FaInstagram className="w-3 h-3 sm:w-4 sm:h-4 text-pink-600" />
+                    </div>
+                    Instagram URL
+                  </label>
+                  <input
+                    type="url"
+                    value={footerSettings.instagram_url}
+                    onChange={(e) => handleFooterInputChange('instagram_url', e.target.value)}
+                    className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 focus:bg-white transition-all duration-300 text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md text-sm sm:text-base"
+                    placeholder="https://instagram.com/yourpage"
+                  />
+                </div>
+
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 group-focus-within:bg-blue-200 transition-colors">
+                      <FaGlobe className="w-3 h-3 sm:w-4 sm:h-4 text-blue-600" />
+                    </div>
+                    เว็บไซต์
+                  </label>
+                  <input
+                    type="url"
+                    value={footerSettings.website}
+                    onChange={(e) => handleFooterInputChange('website', e.target.value)}
+                    className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition-all duration-300 text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md text-sm sm:text-base"
+                    placeholder="https://example.com"
+                  />
+                </div>
+
+                <div className="group">
+                  <label className="flex items-center text-sm font-semibold text-gray-700 mb-2 sm:mb-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-100 rounded-lg flex items-center justify-center mr-2 sm:mr-3 group-focus-within:bg-gray-200 transition-colors">
+                      <FaCopyright className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" />
+                    </div>
+                    ข้อความลิขสิทธิ์
+                  </label>
+                  <input
+                    type="text"
+                    value={footerSettings.copyright_text}
+                    onChange={(e) => handleFooterInputChange('copyright_text', e.target.value)}
+                    className="w-full px-3 sm:px-5 py-3 sm:py-4 bg-gray-50/50 border border-gray-200 rounded-xl sm:rounded-2xl focus:ring-2 focus:ring-gray-500 focus:border-gray-500 focus:bg-white transition-all duration-300 text-gray-900 placeholder-gray-400 shadow-sm hover:shadow-md text-sm sm:text-base"
+                    placeholder="ข้อความลิขสิทธิ์"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="mt-8 sm:mt-12 lg:mt-16 flex justify-center">
+              <button
+                onClick={handleFooterSave}
+                disabled={footerSaving}
+                className="group relative px-8 sm:px-12 py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold rounded-2xl sm:rounded-3xl transform hover:scale-105 hover:shadow-2xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center space-x-2 sm:space-x-4 overflow-hidden shadow-xl text-sm sm:text-base"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <div className="relative flex items-center space-x-2 sm:space-x-4">
+                  {footerSaving ? (
+                    <>
+                      <FaSpinner className="animate-spin w-5 h-5 sm:w-6 sm:h-6" />
+                      <span className="text-sm sm:text-md font-semibold">กำลังบันทึก...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm sm:text-md font-semibold">บันทึกการตั้งค่า</span>
+                    </>
+                  )}
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
   const renderLanguageSettings = () => (
     <div className="space-y-6">
       <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-6 rounded-xl border border-purple-100">
@@ -2156,24 +2499,26 @@ const SystemSettings = () => {
 
   const renderContent = () => {
     if (activeTab === 'notifications') return renderNotificationSettings();
+    if (activeTab === 'footer') return renderFooterSettings();
     if (activeTab === 'profile') return <PersonalInfoEdit />;
     return renderNotificationSettings();
   };
 
   return (
-    <div className="p-6 bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 min-h-screen">
+    <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 min-h-screen">
+      <style>{customStyles}</style>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
             <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-              <MdSettings className="text-3xl text-white" />
+              <MdSettings className="text-2xl sm:text-3xl text-white" />
             </div>
             <div>
-              <Typography variant="h3" className="text-gray-800 font-bold">
+              <Typography variant="h3" className="text-xl sm:text-2xl lg:text-3xl text-gray-800 font-bold">
                 ตั้งค่าระบบ
               </Typography>
-              <Typography variant="paragraph" className="text-gray-600">
+              <Typography variant="paragraph" className="text-gray-600 text-sm sm:text-base">
                 จัดการการตั้งค่าระบบและการกำหนดค่าต่างๆ
               </Typography>
             </div>
@@ -2184,19 +2529,19 @@ const SystemSettings = () => {
         <Card className="shadow-lg border-0 mb-6">
           <CardBody className="p-0">
             <div className="border-b border-gray-200">
-              <div className="flex">
+              <div className="flex flex-col sm:flex-row overflow-x-auto">
                 {tabs.map(({ label, value, icon }) => (
                   <button
                     key={value}
                     onClick={() => setActiveTab(value)}
-                    className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-all duration-200 border-b-2 ${
+                    className={`flex items-center justify-center sm:justify-start gap-2 px-4 sm:px-6 py-3 sm:py-4 text-sm font-medium transition-all duration-200 border-b-2 whitespace-nowrap ${
                       activeTab === value
                         ? 'text-blue-600 border-blue-600 bg-blue-50'
                         : 'text-gray-600 hover:text-blue-600 hover:bg-gray-50 border-transparent'
                     }`}
                   >
                     {icon}
-                    {label}
+                    <span>{label}</span>
                   </button>
                 ))}
               </div>
