@@ -84,14 +84,24 @@ const RequirementList = () => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <motion.h1 
-        className="text-2xl font-bold text-gray-800 mb-6"
+      <motion.div 
+        className="flex items-center justify-between mb-6"
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
       >
-        รายการคืนครุภัณฑ์
-      </motion.h1>
+        <h1 className="text-2xl font-bold text-gray-800">
+          รายการคืนครุภัณฑ์
+        </h1>
+        {/* Badge แสดงจำนวนรายการ */}
+        <div className="flex items-center gap-2">
+          {approvedList.length > 0 && (
+            <span className="bg-blue-500 text-white text-xs font-bold px-2.5 py-1 rounded-full animate-pulse">
+              {approvedList.length} รายการ
+            </span>
+          )}
+        </div>
+      </motion.div>
       <div className="space-y-6">
         {approvedList.length === 0 && (
           <motion.div 

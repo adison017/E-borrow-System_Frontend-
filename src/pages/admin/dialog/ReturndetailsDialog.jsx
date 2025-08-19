@@ -3,7 +3,8 @@ import {
     ClockIcon,
     DocumentCheckIcon,
     ExclamationTriangleIcon,
-    UserCircleIcon
+    UserCircleIcon,
+    XCircleIcon
 } from "@heroicons/react/24/solid";
 import { MdClose } from "react-icons/md";
 import { useState, useEffect } from "react";
@@ -20,6 +21,11 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
   const [showProofImage, setShowProofImage] = useState(false);
   const [showBorrowImages, setShowBorrowImages] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Reject dialog states
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [isRejecting, setIsRejecting] = useState(false);
 
   // ESC key handler for image modal
   useEffect(() => {
@@ -103,10 +109,13 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
       const res = await authFetch(`${API_BASE}/returns/${returnId}/admin-approve-slip`, { method: 'POST' });
       if (!res.ok) throw new Error('อนุมัติไม่สำเร็จ');
       // แจ้งเตือน (ใช้ Notification.jsx ผ่านหน้า ReturnList)
-      window.dispatchEvent(new CustomEvent('appNotify', { detail: { type: 'success', message: 'การชำระเงินเสร็จสิ้น' } }));
-      window.dispatchEvent(new Event('badgeCountsUpdated'));
-      window.dispatchEvent(new Event('returnsRefreshRequested'));
-      onClose();
+             window.dispatchEvent(new CustomEvent('appNotify', { detail: { type: 'success', message: 'การชำระเงินเสร็จสิ้น' } }));
+       window.dispatchEvent(new Event('badgeCountsUpdated'));
+       window.dispatchEvent(new Event('returnsRefreshRequested'));
+       // ปิด dialog ทั้งสองเมื่ออนุมัติสลิป
+       setShowRejectDialog(false);
+       setRejectReason('');
+       onClose();
     } catch (e) {
       window.dispatchEvent(new CustomEvent('appNotify', { detail: { type: 'error', message: e.message || 'อนุมัติสลิปไม่สำเร็จ' } }));
     } finally {
@@ -115,27 +124,47 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
   };
 
   const handleReject = async () => {
+    setShowRejectDialog(true);
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectReason.trim()) {
+      window.dispatchEvent(new CustomEvent('appNotify', { detail: { type: 'error', message: 'กรุณาระบุเหตุผลการปฏิเสธ' } }));
+      return;
+    }
+
     const returnId = returnItem?.return_id || (paymentDetails && paymentDetails.return_id);
     if (!returnId) return;
-    const reason = prompt('กรุณาระบุเหตุผลที่ปฏิเสธสลิป');
-    if (reason === null) return;
-    setIsSubmitting(true);
+
+    setIsRejecting(true);
     try {
       const res = await authFetch(`${API_BASE}/returns/${returnId}/admin-reject-slip`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason })
+        body: JSON.stringify({ reason: rejectReason.trim() })
       });
       if (!res.ok) throw new Error('ปฏิเสธไม่สำเร็จ');
-      window.dispatchEvent(new CustomEvent('appNotify', { detail: { type: 'success', message: 'ปฏิเสธสลิปแล้ว ให้ผู้ใช้อัปโหลดใหม่' } }));
-      window.dispatchEvent(new Event('badgeCountsUpdated'));
-      window.dispatchEvent(new Event('returnsRefreshRequested'));
-      onClose();
+      
+      
+       
+       window.dispatchEvent(new CustomEvent('appNotify', { detail: { type: 'warning', message: '⚠️ รอการดำเนินการ - รอผู้ใช้งานทำรายการใหม่' } }));
+       window.dispatchEvent(new Event('badgeCountsUpdated'));
+       window.dispatchEvent(new Event('returnsRefreshRequested'));
+       
+       setShowRejectDialog(false);
+       setRejectReason('');
+       // ปิด dialog รายละเอียดด้วย
+       onClose();
     } catch (e) {
       window.dispatchEvent(new CustomEvent('appNotify', { detail: { type: 'error', message: e.message || 'ปฏิเสธสลิปไม่สำเร็จ' } }));
     } finally {
-      setIsSubmitting(false);
+      setIsRejecting(false);
     }
+  };
+
+  const handleCancelReject = () => {
+    setShowRejectDialog(false);
+    setRejectReason('');
   };
 
   return (
@@ -525,7 +554,7 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                           </div>
                         </div>
                       )}
-                      {returnItem.status === 'waiting_payment' && slipImage && (
+                      {returnItem.status === 'waiting_payment' && slipImage && (paymentDetails?.pay_status !== 'failed' && returnItem.pay_status !== 'failed') && (
                         <div className="flex gap-3 mt-4">
                           <button
                             onClick={handleApprove}
@@ -638,6 +667,91 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>รูปภาพนี้เป็นส่วนหนึ่งของหลักฐานการยืม-คืนครุภัณฑ์</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+             {/* Reject Reason Dialog */}
+       {showRejectDialog && (
+         <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl transform transition-all duration-300 overflow-hidden">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800 flex items-center gap-3">
+                  <div className="bg-red-100 p-2 rounded-lg">
+                    <XCircleIcon className="w-6 h-6 text-red-600" />
+                  </div>
+                  <span>ปฏิเสธสลิปการชำระเงิน</span>
+                </h3>
+                <button
+                  onClick={handleCancelReject}
+                  className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100 transition-colors duration-150"
+                >
+                  <MdClose className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-6">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <ExclamationTriangleIcon className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-semibold text-red-800 mb-1">คำเตือน</h4>
+                      <p className="text-sm text-red-700">
+                        การปฏิเสธสลิปจะทำให้ผู้ใช้ต้องอัปโหลดสลิปใหม่ กรุณาระบุเหตุผลที่ชัดเจน
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    เหตุผลการปฏิเสธ <span className="text-red-500">*</span>
+                  </label>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="กรุณาระบุเหตุผลที่ปฏิเสธสลิป เช่น สลิปไม่ชัดเจน, จำนวนเงินไม่ตรง, วันที่ไม่ตรง, ฯลฯ"
+                    className="w-full h-32 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none transition-all duration-200"
+                    disabled={isRejecting}
+                    maxLength={500}
+                  />
+                  <div className="text-xs text-gray-500">
+                    จำนวนตัวอักษร: {rejectReason.length}/500
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-4">
+                  <button
+                    onClick={handleCancelReject}
+                    disabled={isRejecting}
+                    className="px-6 py-2.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors duration-200 disabled:opacity-50"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    onClick={handleConfirmReject}
+                    disabled={isRejecting || !rejectReason.trim()}
+                    className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {isRejecting ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                        </svg>
+                        กำลังปฏิเสธ...
+                      </>
+                    ) : (
+                      <>
+                        <XCircleIcon className="w-4 h-4" />
+                        ปฏิเสธสลิป
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

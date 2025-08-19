@@ -62,6 +62,7 @@ export default function RepairApprovalDialog({
   const [showRejectDialog, setShowRejectDialog] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [formError, setFormError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [repairImages, setRepairImages] = useState([]);
   const [adminUsers, setAdminUsers] = useState([]);
   const [loadingAdmins, setLoadingAdmins] = useState(false);
@@ -194,7 +195,26 @@ export default function RepairApprovalDialog({
       return; // Prevent multiple submissions
     }
 
-    // Validate required fields
+    // Clear previous errors
+    setFormError("");
+    setFieldErrors({});
+
+    // Validate form fields
+    const errors = {};
+
+    // Validate budget approved
+    if (!budgetApproved || budgetApproved.toString().trim() === '') {
+      errors.budgetApproved = 'กรุณากรอกงบประมาณที่อนุมัติ';
+    } else if (Number(budgetApproved) <= 0) {
+      errors.budgetApproved = 'งบประมาณต้องมากกว่า 0';
+    }
+
+    // Validate assigned person
+    if (!assignedTo || assignedTo.toString().trim() === '') {
+      errors.assignedTo = 'กรุณาเลือกผู้รับผิดชอบ';
+    }
+
+    // Validate required fields from repair request
     const requiredFields = {
       requestId: normalizedRepairRequest.requestId,
       problem_description: normalizedRepairRequest.problem_description,
@@ -210,6 +230,13 @@ export default function RepairApprovalDialog({
     if (missingFields.length > 0) {
       console.error('Missing required fields:', missingFields);
       setFormError(`ข้อมูลไม่ครบถ้วน: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    // If there are field errors, show them and stop
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setFormError("กรุณากรอกข้อมูลให้ครบถ้วน");
       return;
     }
 
@@ -252,11 +279,23 @@ export default function RepairApprovalDialog({
 
       // Update equipment status to 'กำลังซ่อม'
       if (normalizedRepairRequest.equipment_code) {
-        await axios.put(`${API_BASE}/equipment/${normalizedRepairRequest.equipment_code}/status`, { status: "กำลังซ่อม" });
+        const token = localStorage.getItem('token');
+        await axios.put(
+          `${API_BASE}/equipment/${normalizedRepairRequest.equipment_code}/status`,
+          { status: "กำลังซ่อม" },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
       }
 
-      onApprove(payload);
+      // ปิด dialog ก่อน
       onClose();
+      
+      // เรียก callback เพื่อแสดง toast และรีเฟรชข้อมูล
+      onApprove(payload);
     } catch (error) {
       console.error('Error approving repair request:', error);
       console.error('Error response:', error.response?.data);
@@ -270,12 +309,14 @@ export default function RepairApprovalDialog({
     setShowRejectDialog(true);
     setRejectReason("");
     setFormError("");
+    setFieldErrors({});
   };
 
   const handleCancelReject = () => {
     setShowRejectDialog(false);
     setRejectReason("");
     setFormError("");
+    setFieldErrors({});
   };
 
   const handleConfirmReject = async () => {
@@ -286,6 +327,21 @@ export default function RepairApprovalDialog({
 
     if (isSubmitting) {
       return; // Prevent multiple submissions
+    }
+
+    // Clear previous errors
+    setFormError("");
+
+    // Validate rejection reason
+    if (!rejectReason || rejectReason.trim() === '') {
+      setFormError("กรุณาเลือกเหตุผลในการปฏิเสธ");
+      return;
+    }
+
+    // Validate additional notes if "Other" reason is selected
+    if (rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && (!notes || notes.trim() === '')) {
+      setFormError("กรุณาระบุเหตุผลเพิ่มเติม");
+      return;
     }
 
     // Validate required fields
@@ -321,46 +377,64 @@ export default function RepairApprovalDialog({
         formattedRequestDate = d.toISOString().slice(0, 19).replace('T', ' ');
       }
     }
-    // Prepare payload for rejection
-    const payload = {
-      requester_name: normalizedRepairRequest.requester_name,
-      equipment_name: normalizedRepairRequest.equipment_name,
-      equipment_code: normalizedRepairRequest.equipment_code,
-      equipment_category: normalizedRepairRequest.equipment_category,
-      problem_description: normalizedRepairRequest.problem_description,
-      request_date: formattedRequestDate,
-      estimated_cost: normalizedRepairRequest.estimated_cost,
-      status: "rejected",
-      pic_filename: normalizedRepairRequest.pic_filename || normalizedRepairRequest.repair_pic_raw || '',
-      note: rejectReason ? `${rejectReason} ${notes}` : notes,
-      budget: normalizedRepairRequest.estimated_cost,
-      responsible_person: assignedToName,
-      approval_date: new Date().toISOString(),
-      images: normalizedRepairRequest.repair_pic || []
-    };
+                             // Prepare payload for rejection
+           const payload = {
+             requester_name: normalizedRepairRequest.requester_name,
+             equipment_name: normalizedRepairRequest.equipment_name,
+             equipment_code: normalizedRepairRequest.equipment_code,
+             equipment_category: normalizedRepairRequest.equipment_category,
+             problem_description: normalizedRepairRequest.problem_description,
+             request_date: formattedRequestDate,
+             estimated_cost: normalizedRepairRequest.estimated_cost,
+             status: "rejected",
+             pic_filename: normalizedRepairRequest.pic_filename || normalizedRepairRequest.repair_pic_raw || '',
+             note: '', // ไม่ใช้ note สำหรับการปฏิเสธ
+             budget: normalizedRepairRequest.estimated_cost,
+             responsible_person: assignedToName,
+             approval_date: new Date().toISOString(),
+             images: normalizedRepairRequest.repair_pic || [],
+             rejection_reason: rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" ? notes : rejectReason // ใช้หมายเหตุที่กรอกแทนถ้าเลือกอื่นๆ
+           };
 
       console.log('Rejection payload:', payload);
 
       // Update repair request status to rejected
       await axios.put(`${API_BASE}/repair-requests/${normalizedRepairRequest.requestId}`, payload);
 
-      // Update equipment status to 'ชำรุด'
-      if (normalizedRepairRequest.equipment_code) {
-        const token = localStorage.getItem('token');
-        await axios.put(
-          `${API_BASE}/equipment/${normalizedRepairRequest.equipment_code}/status`,
-          { status: "ชำรุด" },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
+             // Update equipment status to 'ไม่อนุมัติซ่อม' when rejecting repair request
+       if (normalizedRepairRequest.equipment_code) {
+         const token = localStorage.getItem('token');
+         
+         try {
+           // Update equipment status to 'ไม่อนุมัติซ่อม'
+           await axios.put(
+             `${API_BASE}/equipment/${normalizedRepairRequest.equipment_code}/status`,
+             { status: "ไม่อนุมัติซ่อม" },
+             {
+               headers: {
+                 Authorization: `Bearer ${token}`
+               }
+             }
+           );
+           
+           console.log(`Equipment status updated to: ไม่อนุมัติซ่อม`);
+        } catch (error) {
+          console.error('Error updating equipment status:', error);
+          setFormError(`เกิดข้อผิดพลาดในการอัพเดทสถานะครุภัณฑ์: ${error.response?.data?.error || error.message}`);
+        }
       }
 
-      onReject(payload);
+      // ปิด dialog ก่อน
       setShowRejectDialog(false);
       onClose();
+      
+      // เรียก callback เพื่อแสดง toast และรีเฟรชข้อมูล
+      onReject({
+        ...payload,
+        rejectReason: rejectReason,
+        equipmentName: normalizedRepairRequest.equipment_name,
+        requesterName: normalizedRepairRequest.requester_name
+      });
     } catch (error) {
       console.error('Error rejecting repair request:', error);
       console.error('Error response:', error.response?.data);
@@ -607,7 +681,7 @@ export default function RepairApprovalDialog({
           </div>
 
           {/* การดำเนินการ */}
-          {(repairRequest.status === 'รออนุมัติซ่อม' || !repairRequest.status || repairRequest.status === 'pending') && (
+          {(repairRequest.status === 'pending' || !repairRequest.status) && (
             <div className="shadow-sm bg-gray-100/50 p-3 rounded-2xl transition-colors">
               <h4 className="font-medium mb-3 flex items-center gap-2 text-gray-600">
                 <MdAssignment />
@@ -635,7 +709,9 @@ export default function RepairApprovalDialog({
                     </label>
                     <input
                       type="text"
-                      className="input w-full focus:ring-2 focus:ring-primary/20 focus:outline-none rounded-2xl"
+                      className={`input w-full focus:ring-2 focus:ring-primary/20 focus:outline-none rounded-2xl ${
+                        fieldErrors.budgetApproved ? 'border-red-500 focus:ring-red-500' : ''
+                      }`}
                       value={
                         budgetApproved === '' ? '' : Number(budgetApproved.toString().replace(/,/g, '')).toLocaleString()
                       }
@@ -643,20 +719,35 @@ export default function RepairApprovalDialog({
                         // Only allow numbers and commas, remove non-numeric
                         let raw = e.target.value.replace(/[^\d]/g, '');
                         setBudgetApproved(raw);
+                        // Clear error when user starts typing
+                        if (fieldErrors.budgetApproved) {
+                          setFieldErrors(prev => ({ ...prev, budgetApproved: null }));
+                        }
                       }}
                       inputMode="numeric"
                       pattern="[0-9,]*"
                       placeholder="0"
                     />
+                    {fieldErrors.budgetApproved && (
+                      <p className="text-xs text-red-600 mt-1">{fieldErrors.budgetApproved}</p>
+                    )}
                   </div>
                   <div>
                     <label className="label">
                       <span className="text-black">มอบหมายให้ <span className="text-red-500">*</span></span>
                     </label>
                     <select
-                      className="select w-full focus:ring-2 focus:ring-primary/20 focus:outline-none rounded-2xl"
+                      className={`select w-full focus:ring-2 focus:ring-primary/20 focus:outline-none rounded-2xl ${
+                        fieldErrors.assignedTo ? 'border-red-500 focus:ring-red-500' : ''
+                      }`}
                       value={assignedTo}
-                      onChange={(e) => handleAssignedToChange(e.target.value)}
+                      onChange={(e) => {
+                        handleAssignedToChange(e.target.value);
+                        // Clear error when user selects an option
+                        if (fieldErrors.assignedTo) {
+                          setFieldErrors(prev => ({ ...prev, assignedTo: null }));
+                        }
+                      }}
                       disabled={loadingAdmins}
                     >
                       <option value="" disabled>
@@ -668,6 +759,9 @@ export default function RepairApprovalDialog({
                         </option>
                       ))}
                     </select>
+                    {fieldErrors.assignedTo && (
+                      <p className="text-xs text-red-600 mt-1">{fieldErrors.assignedTo}</p>
+                    )}
                     {adminUsers.length === 0 && !loadingAdmins && (
                       <p className="text-xs text-black mt-1">ไม่พบผู้ดูแลระบบ</p>
                     )}
@@ -699,6 +793,50 @@ export default function RepairApprovalDialog({
             </div>
           )}
 
+          {/* สำหรับคำขอที่เสร็จสิ้น (completed) */}
+          {repairRequest.status === 'completed' && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 flex items-center gap-4 mb-2">
+              <div className="flex-shrink-0">
+                <FaCheckCircle className="text-3xl text-blue-500" />
+              </div>
+              <div className="flex-1">
+                <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+                  <h4 className="font-bold text-blue-700 text-lg mb-1 md:mb-0">การซ่อมเสร็จสิ้นแล้ว</h4>
+                </div>
+                <div className="mt-2 text-sm text-gray-700">
+                  <span className="font-medium">รับผิดชอบโดย:</span> {repairRequest.responsible_person || 'ไม่ระบุผู้รับผิดชอบ'}
+                </div>
+                {repairRequest.inspection_notes && (
+                  <div className="mt-2 text-sm text-gray-700">
+                    <span className="font-medium">บันทึกการตรวจสอบ:</span> {repairRequest.inspection_notes}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* สำหรับคำขอที่ไม่สำเร็จ (incomplete) */}
+          {repairRequest.status === 'incomplete' && (
+            <div className="rounded-xl border border-orange-200 bg-orange-50 p-4 flex items-center gap-4 mb-2">
+              <div className="flex-shrink-0">
+                <FaTimesCircle className="text-3xl text-orange-500" />
+              </div>
+              <div className="flex-1">
+                <div className="flex flex-col md:flex-row md:items-center md:gap-4">
+                  <h4 className="font-bold text-orange-700 text-lg mb-1 md:mb-0">การซ่อมไม่สำเร็จ</h4>
+                </div>
+                <div className="mt-2 text-sm text-gray-700">
+                  <span className="font-medium">รับผิดชอบโดย:</span> {repairRequest.responsible_person || 'ไม่ระบุผู้รับผิดชอบ'}
+                </div>
+                {repairRequest.inspection_notes && (
+                  <div className="mt-2 text-sm text-gray-700">
+                    <span className="font-medium">บันทึกการตรวจสอบ:</span> {repairRequest.inspection_notes}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* สำหรับคำขอที่ปฏิเสธ */}
           {repairRequest.status === 'rejected' && (
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex items-center gap-4 mb-2">
@@ -709,9 +847,9 @@ export default function RepairApprovalDialog({
                 <div className="flex flex-col md:flex-row md:items-center md:gap-4">
                   <h4 className="font-bold text-red-700 text-lg mb-1 md:mb-0">คำขอถูกปฏิเสธ</h4>
                 </div>
-                {repairRequest.approvalNotes && (
+                {repairRequest.rejection_reason && (
                   <div className="mt-2 text-sm text-gray-700">
-                    <span className="font-medium">เหตุผล:</span> {repairRequest.approvalNotes}
+                    <span className="font-medium">เหตุผล:</span> {repairRequest.rejection_reason}
                   </div>
                 )}
               </div>
@@ -720,8 +858,13 @@ export default function RepairApprovalDialog({
         </div>
 
         {/* Footer actions */}
-        {(repairRequest.status === 'รออนุมัติซ่อม' || !repairRequest.status || repairRequest.status === 'pending') && (
+        {(repairRequest.status === 'pending' || !repairRequest.status) && (
           <div className="modal-action ">
+            {formError && (
+              <div className="w-full mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-red-600 text-sm font-medium">{formError}</p>
+              </div>
+            )}
             <button
               onClick={handleRejectClick}
               className="btn bg-red-500 hover:bg-red-700 hover:opacity-90 text-white rounded-2xl"
@@ -787,7 +930,7 @@ export default function RepairApprovalDialog({
                       </label>
                     ))}
                   </div>
-                  {formError && !rejectReason && (
+                  {formError && (
                     <p className="mt-2 text-sm text-red-600">{formError}</p>
                   )}
                 </div>
@@ -806,7 +949,7 @@ export default function RepairApprovalDialog({
                       onChange={(e) => setNotes(e.target.value)}
                       required
                     />
-                    {formError && rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !notes.trim() && (
+                    {formError && rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && (
                       <p className="mt-2 text-sm text-red-600">{formError}</p>
                     )}
                   </div>
@@ -821,7 +964,7 @@ export default function RepairApprovalDialog({
                   <button
                     onClick={handleConfirmReject}
                     className="px-4 py-2 bg-red-600 text-white rounded-full font-medium hover:bg-red-700 transition-colors duration-150 flex items-center gap-1"
-                    disabled={!rejectReason || (rejectReason === "อื่นๆ (โปรดระบุในหมายเหตุ)" && !notes.trim()) || isSubmitting}
+                    disabled={!rejectReason || isSubmitting}
                   >
                     <XCircleIcon className="w-5 h-5" />
                     {isSubmitting ? 'กำลังประมวลผล...' : 'ยืนยัน'}

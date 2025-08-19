@@ -140,6 +140,38 @@ function ManageUser() {
         return { message: "เกิดข้อผิดพลาดในการลบผู้ใช้", type: "error" };
       case "fetch_error":
         return { message: "เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้งาน", type: "error" };
+      case "export_success":
+        return { message: "✅ ส่งออก Excel เรียบร้อยแล้ว", type: "success" };
+      case "export_error":
+        return { message: "❌ เกิดข้อผิดพลาดในการส่งออก Excel", type: "error" };
+      case "branch_add_success":
+        return { message: "เพิ่มสาขาเรียบร้อยแล้ว", type: "success" };
+      case "branch_add_error":
+        return { message: "เกิดข้อผิดพลาดในการเพิ่มสาขา", type: "error" };
+      case "branch_update_success":
+        return { message: "แก้ไขสาขาเรียบร้อยแล้ว", type: "success" };
+      case "branch_update_error":
+        return { message: "เกิดข้อผิดพลาดในการแก้ไขสาขา", type: "error" };
+      case "branch_delete_success":
+        return { message: "ลบสาขาเรียบร้อยแล้ว", type: "success" };
+      case "branch_delete_error":
+        return { message: "เกิดข้อผิดพลาดในการลบสาขา", type: "error" };
+      case "branch_fetch_error":
+        return { message: "เกิดข้อผิดพลาดในการดึงข้อมูลสาขา", type: "error" };
+      case "position_add_success":
+        return { message: "เพิ่มตำแหน่งเรียบร้อยแล้ว", type: "success" };
+      case "position_add_error":
+        return { message: "เกิดข้อผิดพลาดในการเพิ่มตำแหน่ง", type: "error" };
+      case "position_update_success":
+        return { message: "แก้ไขตำแหน่งเรียบร้อยแล้ว", type: "success" };
+      case "position_update_error":
+        return { message: "เกิดข้อผิดพลาดในการแก้ไขตำแหน่ง", type: "error" };
+      case "position_delete_success":
+        return { message: "ลบตำแหน่งเรียบร้อยแล้ว", type: "success" };
+      case "position_delete_error":
+        return { message: "เกิดข้อผิดพลาดในการลบตำแหน่ง", type: "error" };
+      case "position_fetch_error":
+        return { message: "เกิดข้อผิดพลาดในการดึงข้อมูลตำแหน่ง", type: "error" };
       default:
         return { message: action, type: "info" };
     }
@@ -404,6 +436,10 @@ function ManageUser() {
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
       const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
       saveAs(blob, 'users.xlsx');
+      notifyUserAction("export_success");
+    } catch (error) {
+      console.error('Error exporting Excel:', error);
+      notifyUserAction("export_error");
     } finally {
       setIsExporting(false);
     }
@@ -865,6 +901,7 @@ function ManageUser() {
             axios.get(`${API_BASE}/users/branches`, { headers: getAuthHeaders() }).then(res => setBranches(res.data || [])).catch(()=>{});
             fetchUsers();
           }}
+          onNotify={notifyUserAction}
         />
 
         <ManagePositionDialog
@@ -876,6 +913,7 @@ function ManageUser() {
             axios.get(`${API_BASE}/users/positions`, { headers: getAuthHeaders() }).then(res => setPositions(res.data || [])).catch(()=>{});
             fetchUsers();
           }}
+          onNotify={notifyUserAction}
         />
       </Card>
       {/* Floating Add User Button */}
