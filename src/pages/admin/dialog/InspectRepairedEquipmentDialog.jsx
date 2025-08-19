@@ -1,6 +1,8 @@
 import axios from 'axios';
 import { useState } from 'react';
 import { FaCheckCircle, FaTimesCircle, FaTools } from 'react-icons/fa';
+import { API_BASE } from '../../../utils/api';
+import { toast } from 'react-toastify';
 
 export default function InspectRepairedEquipmentDialog({
   open,
@@ -22,27 +24,56 @@ export default function InspectRepairedEquipmentDialog({
     }
     setIsSubmitting(true);
     setError('');
+    
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('ไม่พบ token การเข้าสู่ระบบ');
+        return;
+      }
 
       const newStatus = formData.isRepaired ? 'พร้อมใช้งาน' : 'ชำรุด';
+      
       // อัปเดตสถานะอุปกรณ์ใน backend
-      await axios.put(`/api/equipment/${equipment.item_code}/status`, {
+      await axios.put(`${API_BASE}/equipment/${equipment.item_code}/status`, {
         status: newStatus,
         inspectionNotes: formData.inspectionNotes,
         inspectionDate: new Date().toISOString().split('T')[0],
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
       // อัปเดตสถานะ repair_requests เป็น 'completed' ถ้าซ่อมเสร็จสมบูรณ์, 'incomplete' ถ้ายังไม่สมบูรณ์
       if (equipment.repair_request_id) {
-        // 1. ดึงข้อมูล repair request ปัจจุบัน
-        const { data: currentRequest } = await axios.get(`/api/repair-requests/${equipment.repair_request_id}`);
-        // 2. ส่งข้อมูลเดิมกลับไปทั้งหมด ยกเว้นเปลี่ยน status
-        await axios.put(`/api/repair-requests/${equipment.repair_request_id}`, {
-          ...currentRequest,
-          status: formData.isRepaired ? 'completed' : 'incomplete',
-          // สามารถเพิ่ม field อื่นๆ ที่จำเป็นได้ เช่น inspectionNotes, inspectionDate
-        });
+        try {
+          // 1. ดึงข้อมูล repair request ปัจจุบัน
+          const { data: currentRequest } = await axios.get(`${API_BASE}/repair-requests/${equipment.repair_request_id}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          // 2. ส่งข้อมูลเดิมกลับไปทั้งหมด ยกเว้นเปลี่ยน status
+          await axios.put(`${API_BASE}/repair-requests/${equipment.repair_request_id}`, {
+            ...currentRequest,
+            status: formData.isRepaired ? 'completed' : 'incomplete',
+            inspection_notes: formData.inspectionNotes,
+            inspectionDate: new Date().toISOString().split('T')[0],
+          }, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+        } catch (repairError) {
+          console.error('Error updating repair request:', repairError);
+          // ไม่หยุดการทำงานถ้า update repair request ไม่สำเร็จ
+        }
       }
+
+      // แสดง toast notification
+      toast.success(formData.isRepaired ? 'ตรวจรับครุภัณฑ์สำเร็จ - ซ่อมเสร็จสมบูรณ์' : 'ตรวจรับครุภัณฑ์สำเร็จ - ยังไม่สมบูรณ์');
 
       // ส่งข้อมูล inspection กลับไปให้ parent
       onSubmit({
@@ -57,9 +88,18 @@ export default function InspectRepairedEquipmentDialog({
         status: newStatus,
         inspectionResult: formData.isRepaired ? 'ซ่อมเสร็จสมบูรณ์' : 'ยังไม่สมบูรณ์',
       });
+      
       setFormData({ inspectionNotes: '', isRepaired: true });
       onClose();
     } catch (error) {
+      console.error('Error submitting inspection:', error);
+      if (error.response?.status === 401) {
+        toast.error('ไม่มีสิทธิ์เข้าถึง กรุณาเข้าสู่ระบบใหม่');
+      } else if (error.response?.status === 404) {
+        toast.error('ไม่พบครุภัณฑ์ที่ระบุ');
+      } else {
+        toast.error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+      }
       setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     } finally {
       setIsSubmitting(false);
@@ -213,16 +253,26 @@ export default function InspectRepairedEquipmentDialog({
           </button>
           <button
             onClick={handleSubmit}
-            className={`btn rounded-full px-8 shadow-md transition ${
-              formData.isRepaired
-                ? 'btn-success bg-green-600 hover:bg-green-700 text-white'
-                : 'btn-error bg-red-600 hover:bg-red-700 text-white'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`btn rounded-full px-8 shadow-md transition-all duration-200 ${
+              isSubmitting
+                ? 'bg-blue-500 text-white hover:bg-blue-600'
+                : formData.isRepaired
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-red-600 text-white hover:bg-red-700'
+            } disabled:opacity-50 disabled:cursor-not-allowed border-0`}
             disabled={!formData.inspectionNotes.trim() || isSubmitting}
+            style={{
+              backgroundColor: isSubmitting 
+                ? '#3b82f6' 
+                : formData.isRepaired 
+                ? '#059669' 
+                : '#dc2626',
+              color: 'white'
+            }}
           >
             {isSubmitting ? (
               <div className="flex items-center gap-2">
-                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                 กำลังบันทึก...
               </div>
             ) : (

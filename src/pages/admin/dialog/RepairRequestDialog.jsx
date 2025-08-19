@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BsFillCalendarDateFill } from "react-icons/bs";
 import { FaClipboardList, FaImage, FaTimes, FaTools, FaUser } from 'react-icons/fa';
 import { RiCoinsFill } from "react-icons/ri";
+import { toast } from 'react-toastify';
 // import { globalUserData } from '../../../components/Header';
 import Notification from '../../../components/Notification';
 import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
@@ -31,7 +32,7 @@ export default function RepairRequestDialog({
     message: '',
     type: 'success'
   });
-  const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+
   const [globalUserData, setGlobalUserData] = useState(null);
   const [isLoadingUserData, setIsLoadingUserData] = useState(false);
 
@@ -214,12 +215,12 @@ export default function RepairRequestDialog({
 
     // Validate form
     if (!formData.description.trim()) {
-      showNotification('โปรดกรอกรายละเอียดความเสียหาย', 'error');
+      toast.error('โปรดกรอกรายละเอียดความเสียหาย');
       return;
     }
 
     if (!formData.estimatedCost || formData.estimatedCost <= 0) {
-      showNotification('โปรดกรอกค่าใช้จ่ายประมาณการ', 'error');
+      toast.error('โปรดกรอกค่าใช้จ่ายประมาณการ');
       return;
     }
 
@@ -262,7 +263,7 @@ export default function RepairRequestDialog({
         problem_description: formData.description,
         request_date: requestDate,
         estimated_cost: Number(formData.estimatedCost) || 0,
-        status: "รออนุมัติซ่อม",
+        status: "pending",
         pic_filename: uploadedImages.length > 0 ? uploadedImages[0].filename : null,
         images: uploadedImages
       };
@@ -320,19 +321,21 @@ export default function RepairRequestDialog({
             department: requesterInfo.department
           },
           requestDate: requestDate,
-          status: 'รออนุมัติซ่อม'
+          status: 'pending'
         });
 
-        // Show success notification
-        showNotification('ส่งคำขอแจ้งซ่อมสำเร็จ', 'success');
-
-        // Close dialog
+        // ปิด dialog ก่อน
         onClose();
+        
+        // แสดง toast notification
+        toast.success('ส่งคำขอแจ้งซ่อมสำเร็จ');
+        
+
       } catch (error) {
         if (error.response && error.response.status === 409) {
-          showNotification(error.response.data.error || 'รหัสแจ้งซ่อมซ้ำ กรุณาลองใหม่', 'error');
+          toast.error(error.response.data.error || 'รหัสแจ้งซ่อมซ้ำ กรุณาลองใหม่');
         } else {
-          showNotification('เกิดข้อผิดพลาดในการส่งคำขอแจ้งซ่อม', 'error');
+          toast.error('เกิดข้อผิดพลาดในการส่งคำขอแจ้งซ่อม');
         }
       }
     } finally {
@@ -382,20 +385,7 @@ export default function RepairRequestDialog({
 
   return (
     <>
-      {/* Success Alert Dialog */}
-      {showSuccessAlert && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-          <div className="bg-white rounded-2xl p-8 max-w-sm w-full mx-4 text-center shadow-2xl transform transition-all">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">ส่งคำขอแจ้งซ่อมสำเร็จ</h3>
-            <p className="text-gray-600">ระบบได้บันทึกคำขอแจ้งซ่อมของคุณแล้ว</p>
-          </div>
-        </div>
-      )}
+
 
       <div className="modal modal-open">
         <div className="modal-box max-w-5xl max-h-[95vh] overflow-y-auto bg-white">
@@ -624,19 +614,27 @@ export default function RepairRequestDialog({
             <button onClick={onClose} className="btn btn-ghost rounded-full bg-gray-200 border-none hover:bg-gray-300 text-gray-700 px-6 shadow-sm transition">
               ยกเลิก
             </button>
-            <button
-              onClick={handleSubmit}
-              className="btn btn-primary bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition"
-              disabled={isSubmitting || isUploading}
-            >
-              {isSubmitting ? (
+                         <button
+               onClick={handleSubmit}
+               className={`btn rounded-full px-8 shadow-md transition-all duration-200 ${
+                 isSubmitting || isUploading
+                   ? 'bg-blue-500 text-white hover:bg-blue-600'
+                   : 'bg-blue-600 text-white hover:bg-blue-300'
+               } disabled:opacity-50 disabled:cursor-not-allowed border-0`}
+               disabled={isSubmitting || isUploading}
+               style={{
+                 backgroundColor: isSubmitting || isUploading ? '#3b82f6' : '#2563eb',
+                 color: 'white'
+               }}
+             >
+                             {isSubmitting || isUploading ? (
+                 <div className="flex items-center gap-2">
+                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                   กำลังส่ง...
+                 </div>
+               ) : (
                 <div className="flex items-center gap-2">
-                  <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
-                  กำลังส่ง...
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <FaImage />
+                  <FaTools />
                   ส่งคำขอแจ้งซ่อม
                 </div>
               )}

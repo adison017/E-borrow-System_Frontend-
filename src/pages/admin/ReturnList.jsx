@@ -141,6 +141,7 @@ const ReturnList = () => {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
+
   // Payment settings dialog states
   const [isPaymentSettingsOpen, setIsPaymentSettingsOpen] = useState(false);
   const [paymentSettings, setPaymentSettings] = useState({
@@ -442,6 +443,8 @@ const ReturnList = () => {
     // Show success notification
     showNotification("ลบรายการคืนเรียบร้อยแล้ว", "success");
   };
+
+
 
   const showNotification = (message, type) => {
     setNotification({
@@ -942,6 +945,8 @@ const ReturnList = () => {
             </div>
           </div>
         )}
+
+        
       </Card>
     </ThemeProvider>
   );

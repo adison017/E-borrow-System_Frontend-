@@ -280,9 +280,9 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
                               {counts.approve}
                             </span>
                           )}
-                          {item.key === 'return' && (counts.return + counts.approve) > 0 && (
+                          {item.key === 'return' && (counts.return + counts.approve + counts.approved_only) > 0 && (
                             <span className="ml-2 bg-amber-500 text-white text-xs font-bold px-2 py-0.5 rounded-full align-middle animate-pulse">
-                              {counts.return + counts.approve}
+                              {counts.return + counts.approve + counts.approved_only}
                             </span>
                           )}
                           {item.key === 'fine' && counts.fine > 0 && (
