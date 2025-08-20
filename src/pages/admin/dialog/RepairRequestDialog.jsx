@@ -1,10 +1,16 @@
+import {
+  CalendarIcon,
+  CubeIcon,
+  DocumentCheckIcon,
+  ExclamationTriangleIcon,
+  TagIcon,
+  UserIcon
+} from "@heroicons/react/24/outline";
 import axios from 'axios';
 import { useEffect, useRef, useState } from 'react';
-import { BsFillCalendarDateFill } from "react-icons/bs";
-import { FaClipboardList, FaImage, FaTimes, FaTools, FaUser } from 'react-icons/fa';
-import { RiCoinsFill } from "react-icons/ri";
+import { MdClose } from "react-icons/md";
+import { FaImage, FaTimes, FaTools } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-// import { globalUserData } from '../../../components/Header';
 import Notification from '../../../components/Notification';
 import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
 
@@ -383,268 +389,302 @@ export default function RepairRequestDialog({
     }
   };
 
+  // SectionHeader component matching RepairApprovalDialog
+  const SectionHeader = ({ title, icon }) => (
+    <div className="flex items-center gap-3 mb-4">
+      <div className="p-2 bg-black rounded-xl shadow-md">
+        <span className="text-white">{icon}</span>
+      </div>
+      <div>
+        <h4 className="text-lg font-bold text-gray-800">{title}</h4>
+        <div className="w-12 h-1 bg-black rounded-full"></div>
+      </div>
+    </div>
+  );
+
   return (
     <>
-
-
       <div className="modal modal-open">
-        <div className="modal-box max-w-5xl max-h-[95vh] overflow-y-auto bg-white">
-          {/* Notification Component */}
-          <Notification
-            show={notification.show}
-            message={notification.message}
-            type={notification.type}
-            onClose={() => setNotification(prev => ({ ...prev, show: false }))}
-          />
-
-          {/* Header */}
-          <div className="flex justify-between items-center pb-3 mb-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <FaTools className="text-primary" />
-              <span className="text-primary">แจ้งซ่อมครุภัณฑ์</span>
-            </h3>
-            <button onClick={onClose} className="btn btn-sm btn-circle btn-ghost hover:opacity-70">
-              ✕
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {/* ข้อมูลผู้แจ้งและครุภัณฑ์ */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 bg-blue-50 p-4 rounded-full">
-              {/* ข้อมูลผู้แจ้ง */}
-              <div className="flex items-start gap-3 bg-white py-5 px-8 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
-                <div className="bg-blue-100 p-2 rounded-full text-blue-600">
-                  <FaUser className="text-xl" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-medium text-blue-600">ผู้แจ้งซ่อม</h4>
-                  <p className="text-sm font-semibold mt-1 text-gray-800">
-                    {requesterInfo.name}
-                  </p>
-                                     <div className="mt-2 flex items-center gap-2">
-                     <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-medium">
-                       {requesterInfo.department}
-                     </span>
-                     <span className="text-xs text-gray-400">•</span>
-                     <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                       {requesterInfo.position}
-                     </span>
-                   </div>
-                  <p className="text-xs text-gray-500 mt-2 flex items-center">
-                    <BsFillCalendarDateFill className="mr-1 mt-1" /> วันที่แจ้ง: {requestDate}
-                  </p>
+        <div className="modal-box max-w-8xl w-full max-h-[95vh] p-0 rounded-2xl shadow-2xl bg-gradient-to-br from-blue-50 to-indigo-50" data-theme="light">
+          <div className="flex flex-col h-full">
+            {/* Enhanced Header with gradient */}
+            <div className="sticky z-10 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg rounded-2xl">
+              <div className="p-6">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
+                      <FaTools className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-xl font-bold text-white">
+                          แจ้งซ่อมครุภัณฑ์
+                        </h2>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-white">
+                        <span className="flex items-center gap-1">
+                          <CalendarIcon className="w-4 h-4" />
+                          วันที่แจ้ง: <span className="font-semibold text-white">{requestDate}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-full transition-all duration-200 hover:scale-105"
+                  >
+                    <MdClose className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
-
-              {/* ข้อมูลครุภัณฑ์ */}
-              <div className="bg-white px-10 py-3 rounded-full shadow-sm hover:bg-gray-50 transition-colors">
-                <h4 className="font-medium text-primary flex items-center gap-2 mb-2">
-                  <FaTools className="text-primary" />
-                  ข้อมูลครุภัณฑ์
-                </h4>
-                <div className="space-y-1 text-sm">
-                  <div className="grid grid-cols-4">
-                    <span className="font-medium">ชื่อ:</span>
-                    <span className="col-span-3">{equipment.name}</span>
-                  </div>
-                  <div className="grid grid-cols-4">
-                    <span className="font-medium">รหัส:</span>
-                    <span className="col-span-3">{equipment.item_code}</span>
-                  </div>
-                  <div className="grid grid-cols-4">
-                    <span className="font-medium">ประเภท:</span>
-                    <span className="col-span-3">{equipmentCategory}</span>
-                  </div>
-                </div>
+              {/* Decorative wave */}
+              <div className="h-4 bg-gradient-to-r from-blue-500 to-indigo-600 mb-3">
+                <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full">
+                  <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" opacity=".25" fill="currentColor" className="text-blue-50"></path>
+                  <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" opacity=".5" fill="currentColor" className="text-blue-50"></path>
+                  <path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z" fill="currentColor" className="text-blue-50"></path>
+                </svg>
               </div>
             </div>
 
-            {/* รายละเอียดปัญหา */}
-            <div className="bg-white p-3 transition-colors">
-              <h4 className="font-medium mb-2 flex items-center gap-2 text-primary">
-                <FaClipboardList />
-                รายละเอียดปัญหา<span className="text-red-500">*</span>
-              </h4>
-              <textarea
-                rows={3}
-                className="textarea w-full bg-gray-50 focus:ring-1 focus:ring-primary/30 focus:outline-none border-gray-300 rounded-xl"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="ระบุรายละเอียดของปัญหาที่พบ เช่น อาการ, สาเหตุเบื้องต้น..."
-              />
-
-              {/* ข้อมูลเพิ่มเติม */}
-              <div className="grid grid-cols-2 gap-4 mt-3">
-                <div className="bg-blue-50 p-3 rounded-xl transition-colors">
-                  <div className="flex items-center text-blue-800 mb-2">
-                    <BsFillCalendarDateFill size={16} className="text-blue-600" />
-                    <span className="px-2 text-sm"> วันที่แจ้ง </span>
-                  </div>
-                  <span className="text-sm font-bold bg-blue-400 text-white rounded-full px-3 py-1.5">
-                    {requestDate}
-                  </span>
-                </div>
-                <div className="bg-blue-50 p-3 rounded-xl transition-colors">
-                  <div className="mb-1 flex items-center text-blue-800">
-                    <RiCoinsFill size={16} className="text-blue-600" />
-                    <span className="px-2 text-sm"> ค่าใช้จ่ายประมาณ <span className="text-red-500 ml-1">*</span> </span>
-                  </div>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9,]*"
-                    className="bg-gray-50 input input-sm w-full border-blue-400 focus:outline-none text-sm p-0 rounded-full px-4 "
-                    value={formData.estimatedCost ? Number(formData.estimatedCost).toLocaleString() : ''}
-                    onChange={e => {
-                      // Remove all commas and non-digit characters
-                      const raw = e.target.value.replace(/[^\d]/g, '');
-                      setFormData({ ...formData, estimatedCost: raw });
-                    }}
-                    placeholder="ระบุค่าใช้จ่าย"
+            <div className="overflow-y-auto p-6 flex-grow bg-gradient-to-b from-transparent to-blue-50/30">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* ข้อมูลผู้แจ้งและครุภัณฑ์ */}
+                <div className="space-y-6">
+                  <SectionHeader
+                    title="ข้อมูลผู้แจ้งซ่อม"
+                    icon={<UserIcon className="h-5 w-5 text-white" />}
                   />
-                </div>
-              </div>
-            </div>
-
-            {/* อัพโหลดรูปภาพ */}
-            <div className="bg-white p-4 rounded-lg border border-gray-200">
-              <h4 className="font-medium mb-3 flex items-center gap-2 text-primary">
-                <FaImage />
-                รูปภาพความเสียหาย<span className="text-red-500">*</span>
-              </h4>
-
-              {/* Drop Zone */}
-              <div
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                  isDraggingOver
-                    ? 'border-blue-400 bg-blue-50'
-                    : 'border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                onClick={handleDropZoneClick}
-              >
-                <FaImage className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                <p className="text-sm text-gray-600 mb-2">
-                  ลากและวางรูปภาพที่นี่ หรือ <span className="text-blue-600 font-medium">คลิกเพื่อเลือกไฟล์</span>
-                </p>
-                <p className="text-xs text-gray-500">
-                  รองรับไฟล์ JPG, PNG, GIF ขนาดไม่เกิน 5MB ต่อไฟล์ (สูงสุด 10 ไฟล์)
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => processFilesAndUpdateState(e.target.files)}
-                  className="hidden"
-                />
-              </div>
-
-              {/* Image Preview */}
-              {formData.images.length > 0 && (
-                <div className="mt-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h5 className="font-medium text-gray-700">
-                      รูปภาพที่เลือก ({formData.images.length} รูป)
-                    </h5>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={toggleViewMode}
-                        className="btn btn-sm btn-ghost"
-                        title={viewMode === 'grid' ? 'ดูแบบรายการ' : 'ดูแบบตาราง'}
-                      >
-                        {viewMode === 'grid' ? '📋' : '🖼️'}
-                      </button>
+                  <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="p-6">
+                      <div className="flex flex-col items-center gap-4">
+                        <div className="relative">
+                          <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-200 shadow-lg bg-gradient-to-br from-blue-100 to-indigo-100">
+                            <img
+                              src={globalUserData?.avatar ? (typeof globalUserData.avatar === 'string' && globalUserData.avatar.startsWith('http') ? globalUserData.avatar : `${UPLOAD_BASE}/uploads/user/${globalUserData.avatar}`) : "/profile.png"}
+                              alt={requesterInfo.name}
+                              className="w-full h-full object-cover"
+                              onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
+                            />
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2">
+                          <h3 className="font-bold text-xl text-gray-800">{requesterInfo.name}</h3>
+                          <div className="flex flex-col items-center gap-2">
+                            <p className="text-gray-600 text-sm bg-green-100 px-3 py-1 rounded-full inline-block">{requesterInfo.position}</p>
+                            <p className="text-gray-600 text-sm bg-gray-100 px-3 py-1 rounded-full inline-block">{requesterInfo.department}</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  {viewMode === 'grid' ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                      {formData.images.map((image, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={image}
-                            alt={`รูปภาพ ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg border border-gray-200"
-                          />
-                          <button
-                            onClick={() => handleRemoveImage(index)}
-                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            <FaTimes className="text-xs" />
-                          </button>
-                          <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
-                            รูปที่ {index + 1}
+                  <div>
+                    <SectionHeader
+                      title="ข้อมูลครุภัณฑ์"
+                      icon={<CubeIcon className="h-5 w-5 text-white" />}
+                    />
+                    <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="p-6">
+                        <div className="space-y-4">
+                          <div className="flex flex-col items-center gap-4">
+                            <div className="w-30 h-30 rounded-xl overflow-hidden flex items-center justify-center border-2 border-blue-200 shadow-sm">
+                              <img
+                                src={equipment.pic ? (typeof equipment.pic === 'string' && equipment.pic.startsWith('http') ? equipment.pic : `${UPLOAD_BASE}/uploads/${equipment.pic}`) : "/lo.png"}
+                                alt={equipment.name}
+                                className="max-w-full max-h-full object-contain p-2"
+                                onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
+                              />
+                            </div>
+                            <div className="text-center">
+                              <p className="text-sm text-blue-600 font-medium mb-1">ชื่อครุภัณฑ์</p>
+                              <p className="font-bold text-lg text-gray-800">{equipment.name}</p>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-full border border-blue-100">
+                              <div className="p-2 bg-blue-500 rounded-full">
+                                <TagIcon className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <p className="text-sm text-blue-600 font-medium mb-1">รหัสครุภัณฑ์</p>
+                                <p className="font-bold text-gray-800">{equipment.item_code}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 p-4 bg-green-50 rounded-full border border-green-100">
+                              <div className="p-2 bg-green-500 rounded-full">
+                                <CubeIcon className="w-4 h-4 text-white" />
+                              </div>
+                              <div>
+                                <p className="text-sm text-green-600 font-medium mb-1">ประเภท</p>
+                                <p className="font-bold text-gray-800">{equipmentCategory}</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* รายละเอียดปัญหาและรูปภาพ */}
+                <div className="space-y-6">
+                  <SectionHeader
+                    title="รายละเอียดปัญหา"
+                    icon={<ExclamationTriangleIcon className="h-5 w-5 text-white" />}
+                  />
+                  <div className="bg-yellow-400 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="p-6">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">
+                            รายละเอียดปัญหา <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            rows={4}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            value={formData.description}
+                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            placeholder="ระบุรายละเอียดของปัญหาที่พบ เช่น อาการ, สาเหตุเบื้องต้น..."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-2">
+                            ค่าใช้จ่ายประมาณการ <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9,]*"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                            value={formData.estimatedCost ? Number(formData.estimatedCost).toLocaleString() : ''}
+                            onChange={e => {
+                              const raw = e.target.value.replace(/[^\d]/g, '');
+                              if (raw.length <= 8) {
+                                setFormData({ ...formData, estimatedCost: raw });
+                              }
+                            }}
+                            placeholder="ระบุค่าใช้จ่าย (บาท)"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* รูปภาพความเสียหาย */}
+                  <div>
+                    <SectionHeader
+                      title="รูปภาพความเสียหาย"
+                      icon={<DocumentCheckIcon className="h-5 w-5 text-white" />}
+                    />
+                    <div className="bg-yellow-400 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                      <div className="p-6">
+                        {/* Drop Zone */}
+                        <div
+                          className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                            isDraggingOver
+                              ? 'border-black bg-amber-50'
+                              : 'border-black hover:border-black hover:bg-amber-50'
+                          }`}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                          onClick={handleDropZoneClick}
+                        >
+                          <FaImage className="mx-auto h-12 w-12 text-black mb-4" />
+                          <p className="text-sm text-gray-600 mb-2">
+                            ลากและวางรูปภาพที่นี่ หรือ <span className="text-black font-medium">คลิกเพื่อเลือกไฟล์</span>
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            รองรับไฟล์ JPG, PNG, GIF ขนาดไม่เกิน 5MB ต่อไฟล์
+                          </p>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={(e) => processFilesAndUpdateState(e.target.files)}
+                            className="hidden"
+                          />
+                        </div>
+
+                        {/* Image Preview */}
+                        {formData.images.length > 0 && (
+                          <div className="mt-4">
+                            <h5 className="font-medium text-black mb-3">
+                              รูปภาพที่เลือก ({formData.images.length} รูป)
+                            </h5>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              {formData.images.map((image, index) => (
+                                <div key={index} className="relative group cursor-pointer">
+                                  <img
+                                    src={image}
+                                    alt={`รูปภาพความเสียหาย ${index + 1}`}
+                                    className="w-full h-32 object-cover rounded-lg shadow-lg hover:opacity-80 transition-opacity"
+                                  />
+                                  <button
+                                    onClick={() => handleRemoveImage(index)}
+                                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <FaTimes className="text-xs" />
+                                  </button>
+                                  <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-3 py-1 rounded-2xl">
+                                    รูปที่ {index + 1}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer actions */}
+            <div className="sticky bottom-0 bg-white/90 backdrop-blur-sm border-t border-gray-200 p-4 rounded-3xl">
+              <div className="flex justify-end gap-4">
+                <button 
+                  onClick={onClose} 
+                  className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="px-8 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isSubmitting || isUploading}
+                >
+                  {isSubmitting || isUploading ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      กำลังส่ง...
                     </div>
                   ) : (
-                    <div className="space-y-2">
-                      {formData.images.map((image, index) => (
-                        <div key={index} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg">
-                          <img
-                            src={image}
-                            alt={`รูปภาพ ${index + 1}`}
-                            className="w-16 h-16 object-cover rounded border border-gray-200"
-                          />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">รูปภาพ {index + 1}</p>
-                            <p className="text-xs text-gray-500">คลิกเพื่อดูขนาดใหญ่</p>
-                          </div>
-                          <button
-                            onClick={() => handleRemoveImage(index)}
-                            className="btn btn-sm btn-error"
-                          >
-                            <FaTimes />
-                          </button>
-                        </div>
-                      ))}
+                    <div className="flex items-center gap-2">
+                      <FaTools />
+                      ส่งคำขอแจ้งซ่อม
                     </div>
                   )}
-                </div>
-              )}
+                </button>
+              </div>
             </div>
-          </div>
-
-          {/* Footer actions */}
-          <div className="modal-action">
-            <button onClick={onClose} className="btn btn-ghost rounded-full bg-gray-200 border-none hover:bg-gray-300 text-gray-700 px-6 shadow-sm transition">
-              ยกเลิก
-            </button>
-                         <button
-               onClick={handleSubmit}
-               className={`btn rounded-full px-8 shadow-md transition-all duration-200 ${
-                 isSubmitting || isUploading
-                   ? 'bg-blue-500 text-white hover:bg-blue-600'
-                   : 'bg-blue-600 text-white hover:bg-blue-300'
-               } disabled:opacity-50 disabled:cursor-not-allowed border-0`}
-               disabled={isSubmitting || isUploading}
-               style={{
-                 backgroundColor: isSubmitting || isUploading ? '#3b82f6' : '#2563eb',
-                 color: 'white'
-               }}
-             >
-                             {isSubmitting || isUploading ? (
-                 <div className="flex items-center gap-2">
-                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                   กำลังส่ง...
-                 </div>
-               ) : (
-                <div className="flex items-center gap-2">
-                  <FaTools />
-                  ส่งคำขอแจ้งซ่อม
-                </div>
-              )}
-            </button>
           </div>
         </div>
         <form method="dialog" className="modal-backdrop">
           <button onClick={onClose}>close</button>
         </form>
       </div>
+
+      {/* Notification Component */}
+      <Notification
+        show={notification.show}
+        message={notification.message}
+        type={notification.type}
+        onClose={() => setNotification(prev => ({ ...prev, show: false }))}
+      />
     </>
   );
 }

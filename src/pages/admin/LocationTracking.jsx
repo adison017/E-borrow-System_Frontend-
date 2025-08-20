@@ -1,0 +1,175 @@
+import React, { useState, useEffect } from 'react';
+import { MapPinIcon, UserIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { API_BASE, authFetch, getAllBorrows } from '../../utils/api';
+import LocationMapDialog from '../../components/LocationMapDialog';
+
+const LocationTracking = () => {
+  const [borrowers, setBorrowers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedBorrower, setSelectedBorrower] = useState(null);
+  const [showMap, setShowMap] = useState(false);
+
+  useEffect(() => {
+    fetchActiveBorrowers();
+  }, []);
+
+  const fetchActiveBorrowers = async () => {
+    try {
+      const data = await getAllBorrows();
+      console.log('Fetched borrows data:', data);
+      
+      // กรองเฉพาะรายการที่ active
+      const activeBorrowers = data.filter(borrow => 
+        ['approved', 'carry', 'overdue'].includes(borrow.status)
+      );
+      
+      // เพิ่ม mock location ข้อมูลสำหรับทดสอบ
+      const borrowersWithMockLocation = activeBorrowers.map((borrow, index) => ({
+        ...borrow,
+        borrower_location: index % 2 === 0 ? {
+          latitude: 16.2467 + (Math.random() - 0.5) * 0.01,
+          longitude: 103.2521 + (Math.random() - 0.5) * 0.01,
+          address: 'มหาวิทยาลัยมหาสารคาม',
+          timestamp: new Date().toISOString()
+        } : null,
+        last_location_update: new Date().toISOString()
+      }));
+      
+      console.log('Active borrowers with mock location:', borrowersWithMockLocation);
+      setBorrowers(borrowersWithMockLocation);
+    } catch (error) {
+      console.error('Error fetching borrowers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewLocation = (borrower) => {
+    if (borrower.borrower_location) {
+      setSelectedLocation(borrower.borrower_location);
+      setSelectedBorrower(`${borrower.borrower?.first_name || borrower.borrower?.name || borrower.user?.first_name || borrower.user?.name || 'ไม่ระบุชื่อ'} ${borrower.borrower?.last_name || borrower.user?.last_name || ''}`);
+      setShowMap(true);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+          <MapPinIcon className="w-8 h-8 text-blue-600" />
+          ติดตามตำแหน่งผู้ยืม
+        </h1>
+        <p className="text-gray-600 mt-2">ดูตำแหน่งปัจจุบันของผู้ที่กำลังยืมครุภัณฑ์</p>
+      </div>
+
+      {borrowers.length === 0 ? (
+        <div className="text-center py-12">
+          <MapPinIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-500 mb-2">ไม่มีข้อมูลตำแหน่ง</h3>
+          <p className="text-gray-400">ยังไม่มีผู้ยืมที่เปิดการติดตามตำแหน่ง</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {borrowers.map((borrower) => (
+            <div
+              key={borrower.borrow_id}
+              className="bg-white rounded-2xl shadow-lg border border-gray-200 hover:shadow-xl transition-all duration-300"
+            >
+              <div className="p-6">
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-blue-200 bg-gradient-to-br from-blue-100 to-indigo-100">
+                    <img
+                      src={
+                        borrower.borrower?.avatar || borrower.user?.avatar
+                          ? (borrower.borrower?.avatar || borrower.user?.avatar).startsWith('http')
+                          ? (borrower.borrower?.avatar || borrower.user?.avatar)
+                          : `${API_BASE}${borrower.borrower?.avatar || borrower.user?.avatar}`
+                          : '/profile.png'
+                      }
+                      alt="ผู้ยืม"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.target.src = '/profile.png'; }}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800">
+                      {borrower.borrower?.first_name || borrower.borrower?.name || borrower.user?.first_name || borrower.user?.name || 'ไม่ระบุชื่อ'} {borrower.borrower?.last_name || borrower.user?.last_name || ''}
+                    </h3>
+                    <p className="text-sm text-gray-500">{borrower.borrower?.email || borrower.user?.email || 'ไม่ระบุอีเมล'}</p>
+                  </div>
+                </div>
+
+                {/* Borrow Info */}
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800 font-medium">รหัสการยืม: {borrower.borrow_code}</p>
+                  <p className="text-xs text-gray-600 mt-1">
+                    จำนวนครุภัณฑ์: {borrower.equipment?.length || 0} รายการ
+                  </p>
+                </div>
+
+                {/* Location Info */}
+                {console.log('Borrower location data:', borrower.borrower_location)}
+                {borrower.borrower_location ? (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPinIcon className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium text-green-700">มีข้อมูลตำแหน่ง</span>
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      <p>📍 {borrower.borrower_location.address || 'ไม่ระบุที่อยู่'}</p>
+                      <div className="flex items-center gap-1 mt-1">
+                        <ClockIcon className="w-3 h-3" />
+                        <span>อัพเดท: {new Date(borrower.last_location_update).toLocaleString('th-TH')}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPinIcon className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-500">ไม่มีข้อมูลตำแหน่ง</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Button */}
+                <button
+                  onClick={() => handleViewLocation(borrower)}
+                  disabled={!borrower.borrower_location}
+                  className={`w-full py-2 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 ${
+                    borrower.borrower_location
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  <MapPinIcon className="w-4 h-4" />
+                  {borrower.borrower_location ? 'ดูบนแผนที่' : 'ไม่มีตำแหน่ง'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Location Map Dialog */}
+      <LocationMapDialog
+        isOpen={showMap}
+        onClose={() => setShowMap(false)}
+        location={selectedLocation}
+        borrowerName={selectedBorrower}
+      />
+    </div>
+  );
+};
+
+export default LocationTracking;
