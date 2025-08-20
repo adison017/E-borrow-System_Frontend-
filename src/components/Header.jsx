@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { MdAssignment, MdBuild, MdCheckCircle, MdChevronRight, MdErrorOutline, MdFactCheck, MdLocalShipping, MdNotifications, MdPayment, MdSchedule, MdSettings, MdUndo, MdWarningAmber } from 'react-icons/md';
+import { MdAssignment, MdBuild, MdCheckCircle, MdChevronRight, MdErrorOutline, MdFactCheck, MdLocalShipping, MdNotifications, MdPayment, MdSchedule, MdSettings, MdUndo, MdWarningAmber, MdClose } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useBadgeCounts } from '../hooks/useSocket';
 import { API_BASE, authFetch, getAllBorrows } from '../utils/api';
@@ -53,6 +53,7 @@ function Header({ userRole, changeRole }) {
   const prevItemIdsRef = React.useRef(new Set());
   const audioRef = React.useRef(null);
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('notifSound') === '1');
+  const [headerAlert, setHeaderAlert] = useState(null);
   const { subscribeToBadgeCounts } = useBadgeCounts();
   const navigate = useNavigate();
 
@@ -69,6 +70,36 @@ function Header({ userRole, changeRole }) {
     navigate('/login');
   };
   const cancelLogout = () => setShowLogoutConfirm(false);
+
+  const handleShowHeaderAlert = (event) => {
+    const { type, message, equipmentName, requesterName } = event.detail;
+    
+    // Add rejection notification to the notification list (only for admin)
+    if (userRole === 'admin') {
+      const rejectionId = `rejection:${Date.now()}:${Math.random()}`;
+      const rejectionItem = {
+        id: rejectionId,
+        type: 'repair_rejection',
+        text: `คำขอซ่อมครุภัณฑ์ "${equipmentName}" จาก ${requesterName} ถูกปฏิเสธแล้ว`,
+        href: '/ManageEquipment'
+      };
+      
+      setNotifItems(prev => [rejectionItem, ...prev]);
+      
+      // Play notification sound and show browser notification
+      playNotificationSound();
+      showBrowserNotification(rejectionItem.text);
+      
+      // Auto remove after 24 hours
+      setTimeout(() => {
+        setNotifItems(prev => prev.filter(item => item.id !== rejectionId));
+      }, 24 * 60 * 60 * 1000);
+    }
+  };
+
+  const handleCloseHeaderAlert = () => {
+    setHeaderAlert(null);
+  };
 
   // ฟังก์ชันสำหรับคลิกโลโก้
   const handleLogoClick = () => {
@@ -134,9 +165,11 @@ function Header({ userRole, changeRole }) {
     };
     window.addEventListener('profileImageUpdated', handleProfileImageUpdate);
     window.addEventListener('sessionExpired', handleSessionExpired);
+    window.addEventListener('showHeaderAlert', handleShowHeaderAlert);
     return () => {
       window.removeEventListener('profileImageUpdated', handleProfileImageUpdate);
       window.removeEventListener('sessionExpired', handleSessionExpired);
+      window.removeEventListener('showHeaderAlert', handleShowHeaderAlert);
     };
   }, []);
 
@@ -335,7 +368,7 @@ function Header({ userRole, changeRole }) {
       }
     };
 
-    const buildItemsAdmin = (borrows) => {
+    const buildItemsAdmin = (borrows, repairs = []) => {
       const items = [];
       borrows.forEach(b => {
         const code = b.borrow_code || b.code || '';
@@ -350,6 +383,14 @@ function Header({ userRole, changeRole }) {
           items.push({ id: `${idBase}:return`, type: 'admin_return', text: `มีรายการคืนครุภัณฑ์ ${code ? '('+code+')' : ''} รอดำเนินการ`, href: '/return-list' });
         }
       });
+      
+      // เพิ่มการแจ้งเตือนการปฏิเสธคำขอซ่อมสำหรับ admin
+      (Array.isArray(repairs) ? repairs : []).filter(r => r.status === 'rejected').forEach((r, idx) => {
+        const rid = r.repair_id || r.id || r.request_id || idx;
+        const rcode = r.repair_code || r.code || '';
+        items.push({ id: `repair:${rid}:rejection`, type: 'repair_rejection', text: `คำขอซ่อม ${rcode ? '('+rcode+')' : ''} ถูกปฏิเสธแล้ว`, href: '/ManageEquipment' });
+      });
+      
       return items;
     };
 
@@ -360,7 +401,7 @@ function Header({ userRole, changeRole }) {
         const idBase = `borrow:${b.borrow_id || code || Math.random()}`;
         items.push({ id: `${idBase}:pending_approval`, type: 'exec_borrow_approval', text: `มีคำขออนุมัติการยืมใหม่ ${code ? '('+code+')' : ''} กรุณาพิจารณาอนุมัติ`, href: '/BorrowApprovalList' });
       });
-      (Array.isArray(repairs) ? repairs : []).filter(r => r.status === 'รออนุมัติซ่อม').forEach((r, idx) => {
+      (Array.isArray(repairs) ? repairs : []).filter(r => r.status === 'pending').forEach((r, idx) => {
         const rid = r.repair_id || r.id || r.request_id || idx;
         const rcode = r.repair_code || r.code || '';
         items.push({ id: `repair:${rid}:approval`, type: 'exec_repair_approval', text: `มีคำขออนุมัติซ่อมใหม่ ${rcode ? '('+rcode+')' : ''} กรุณาพิจารณาอนุมัติ` , href: '/Repair' });
@@ -387,13 +428,18 @@ function Header({ userRole, changeRole }) {
       try {
         const data = await getAllBorrows();
         if (!Array.isArray(data)) return;
+        
+        // ดึงข้อมูล repair requests สำหรับ admin
+        const repairRes = await authFetch(`${API_BASE}/repair-requests`);
+        const repairData = await repairRes.json();
+        
         const pending = data.filter(b => b.status === 'pending' || b.status === 'pending_approval').length;
         const carry = data.filter(b => b.status === 'carry').length;
         const returns = data.filter(b => ['approved', 'overdue', 'waiting_payment'].includes(b.status)).length;
         setAdminCounts({ pending, carry, returns });
         loadRead();
         loadSeen();
-        const items = buildItemsAdmin(data);
+        const items = buildItemsAdmin(data, Array.isArray(repairData) ? repairData : []);
         setNotifItems(items);
         ensureFirstSeenFor(items);
       } catch {}
@@ -405,7 +451,7 @@ function Header({ userRole, changeRole }) {
         const borrowApproval = Array.isArray(data) ? data.filter(b => b.status === 'pending_approval').length : 0;
         const res = await authFetch(`${API_BASE}/repair-requests`);
         const list = await res.json();
-        const repairApproval = Array.isArray(list) ? list.filter(r => r.status === 'รออนุมัติซ่อม').length : 0;
+        const repairApproval = Array.isArray(list) ? list.filter(r => r.status === 'pending').length : 0;
         setExecCounts({ borrowApproval, repairApproval });
         loadRead();
         loadSeen();
@@ -685,32 +731,34 @@ function Header({ userRole, changeRole }) {
                             <div className="divide-y divide-gray-100">
                               {sortedVisibleItems.map(item => {
                                 const isRead = readIds.has(item.id);
-                                const iconMap = {
-                                  admin_pending: <MdAssignment className="h-5 w-5" />,
-                                  admin_carry: <MdLocalShipping className="h-5 w-5" />,
-                                  admin_return: <MdUndo className="h-5 w-5" />,
-                                  exec_borrow_approval: <MdFactCheck className="h-5 w-5" />,
-                                  exec_repair_approval: <MdBuild className="h-5 w-5" />,
-                                  user_pending: <MdSchedule className="h-5 w-5" />,
-                                  user_approved: <MdCheckCircle className="h-5 w-5" />,
-                                  user_carry: <MdLocalShipping className="h-5 w-5" />,
-                                  user_waiting_payment: <MdPayment className="h-5 w-5" />,
-                                  user_overdue: <MdWarningAmber className="h-5 w-5" />,
-                                  user_rejected: <MdErrorOutline className="h-5 w-5" />,
-                                };
-                                const statusConfig = {
-                                  admin_pending: { label: 'รอจัดการ', color: 'blue', icon: iconMap.admin_pending },
-                                  admin_carry: { label: 'ส่งมอบ', color: 'amber', icon: iconMap.admin_carry },
-                                  admin_return: { label: 'รอคืน', color: 'purple', icon: iconMap.admin_return },
-                                  exec_borrow_approval: { label: 'รออนุมัติยืม', color: 'red', icon: iconMap.exec_borrow_approval },
-                                  exec_repair_approval: { label: 'รออนุมัติซ่อม', color: 'amber', icon: iconMap.exec_repair_approval },
-                                  user_pending: { label: 'รออนุมัติ', color: 'blue', icon: iconMap.user_pending },
-                                  user_approved: { label: 'อนุมัติแล้ว', color: 'green', icon: iconMap.user_approved },
-                                  user_carry: { label: 'กำลังยืม', color: 'amber', icon: iconMap.user_carry },
-                                  user_waiting_payment: { label: 'ค้างชำระ', color: 'rose', icon: iconMap.user_waiting_payment },
-                                  user_overdue: { label: 'เกินกำหนด', color: 'purple', icon: iconMap.user_overdue },
-                                  user_rejected: { label: 'ไม่อนุมัติ', color: 'red', icon: iconMap.user_rejected },
-                                }[item.type] || { label: 'แจ้งเตือน', color: 'gray', icon: <MdNotifications className="h-5 w-5" /> };
+                                                                  const iconMap = {
+                                    admin_pending: <MdAssignment className="h-5 w-5" />,
+                                    admin_carry: <MdLocalShipping className="h-5 w-5" />,
+                                    admin_return: <MdUndo className="h-5 w-5" />,
+                                    exec_borrow_approval: <MdFactCheck className="h-5 w-5" />,
+                                    exec_repair_approval: <MdBuild className="h-5 w-5" />,
+                                    repair_rejection: <MdErrorOutline className="h-5 w-5" />,
+                                    user_pending: <MdSchedule className="h-5 w-5" />,
+                                    user_approved: <MdCheckCircle className="h-5 w-5" />,
+                                    user_carry: <MdLocalShipping className="h-5 w-5" />,
+                                    user_waiting_payment: <MdPayment className="h-5 w-5" />,
+                                    user_overdue: <MdWarningAmber className="h-5 w-5" />,
+                                    user_rejected: <MdErrorOutline className="h-5 w-5" />,
+                                  };
+                                                                  const statusConfig = {
+                                    admin_pending: { label: 'รอจัดการ', color: 'blue', icon: iconMap.admin_pending },
+                                    admin_carry: { label: 'ส่งมอบ', color: 'amber', icon: iconMap.admin_carry },
+                                    admin_return: { label: 'รอคืน', color: 'purple', icon: iconMap.admin_return },
+                                    exec_borrow_approval: { label: 'รออนุมัติยืม', color: 'red', icon: iconMap.exec_borrow_approval },
+                                    exec_repair_approval: { label: 'รออนุมัติซ่อม', color: 'amber', icon: iconMap.exec_repair_approval },
+                                    repair_rejection: { label: 'ปฏิเสธซ่อม', color: 'red', icon: iconMap.repair_rejection },
+                                    user_pending: { label: 'รออนุมัติ', color: 'blue', icon: iconMap.user_pending },
+                                    user_approved: { label: 'อนุมัติแล้ว', color: 'green', icon: iconMap.user_approved },
+                                    user_carry: { label: 'กำลังยืม', color: 'amber', icon: iconMap.user_carry },
+                                    user_waiting_payment: { label: 'ค้างชำระ', color: 'rose', icon: iconMap.user_waiting_payment },
+                                    user_overdue: { label: 'เกินกำหนด', color: 'purple', icon: iconMap.user_overdue },
+                                    user_rejected: { label: 'ไม่อนุมัติ', color: 'red', icon: iconMap.user_rejected },
+                                  }[item.type] || { label: 'แจ้งเตือน', color: 'gray', icon: <MdNotifications className="h-5 w-5" /> };
                                 const colorClasses = {
                                   blue: 'bg-blue-500 text-blue-500 bg-blue-50 border-blue-200',
                                   amber: 'bg-amber-500 text-amber-500 bg-amber-50 border-amber-200',
@@ -824,6 +872,7 @@ function Header({ userRole, changeRole }) {
                                     admin_return: <MdUndo className="h-5 w-5" />,
                                     exec_borrow_approval: <MdFactCheck className="h-5 w-5" />,
                                     exec_repair_approval: <MdBuild className="h-5 w-5" />,
+                                    repair_rejection: <MdErrorOutline className="h-5 w-5" />,
                                     user_pending: <MdSchedule className="h-5 w-5" />,
                                     user_approved: <MdCheckCircle className="h-5 w-5" />,
                                     user_carry: <MdLocalShipping className="h-5 w-5" />,
@@ -837,6 +886,7 @@ function Header({ userRole, changeRole }) {
                                     admin_return: { label: 'รอคืน', color: 'purple', icon: iconMap.admin_return },
                                     exec_borrow_approval: { label: 'รออนุมัติยืม', color: 'red', icon: iconMap.exec_borrow_approval },
                                     exec_repair_approval: { label: 'รออนุมัติซ่อม', color: 'amber', icon: iconMap.exec_repair_approval },
+                                    repair_rejection: { label: 'ปฏิเสธซ่อม', color: 'red', icon: iconMap.repair_rejection },
                                     user_pending: { label: 'รออนุมัติ', color: 'blue', icon: iconMap.user_pending },
                                     user_approved: { label: 'อนุมัติแล้ว', color: 'green', icon: iconMap.user_approved },
                                     user_carry: { label: 'กำลังยืม', color: 'amber', icon: iconMap.user_carry },

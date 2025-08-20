@@ -33,6 +33,10 @@ import {
 } from "@material-tailwind/react";
 import { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
+import { saveAs } from 'file-saver';
+import * as XLSX from 'xlsx';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Notification from "../../components/Notification";
 import { addEquipment, deleteEquipment, getEquipment, getRepairRequestsByItemId, updateEquipment, uploadImage } from "../../utils/api";
 import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
@@ -82,6 +86,12 @@ const statusConfig = {
     backgroundColor: "bg-blue-50",
     borderColor: "border-blue-100"
   },
+  "ไม่อนุมัติซ่อม": {
+    color: "orange",
+    icon: XCircleIcon,
+    backgroundColor: "bg-orange-50",
+    borderColor: "border-orange-100"
+  },
   "พร้อมใช้งาน": {
     color: "green",
     icon: CheckCircleIcon,
@@ -119,7 +129,76 @@ function ManageEquipment() {
   const [qrScannerOpen, setQrScannerOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [isExporting, setIsExporting] = useState(false);
   const itemsPerPage = 5;
+
+  // ฟังก์ชันรวมคำอธิบายแจ้งเตือน (เหมือน ManageUser.jsx)
+  const getEquipmentNotifyMessage = (action, extra) => {
+    switch (action) {
+      case "add":
+        return { message: `เพิ่มครุภัณฑ์ ${extra} เรียบร้อยแล้ว`, type: "success" };
+      case "edit":
+        return { message: `แก้ไขครุภัณฑ์ ${extra} เรียบร้อยแล้ว`, type: "success" };
+      case "delete":
+        return { message: `ลบครุภัณฑ์ ${extra} เรียบร้อยแล้ว`, type: "success" };
+      case "add_error":
+        return { message: "เกิดข้อผิดพลาดในการเพิ่มครุภัณฑ์", type: "error" };
+      case "edit_error":
+        return { message: "เกิดข้อผิดพลาดในการแก้ไขครุภัณฑ์", type: "error" };
+      case "delete_error":
+        return { message: "เกิดข้อผิดพลาดในการลบครุภัณฑ์", type: "error" };
+      case "fetch_error":
+        return { message: "เกิดข้อผิดพลาดในการดึงข้อมูลครุภัณฑ์", type: "error" };
+      case "export_success":
+        return { message: "✅ ส่งออก Excel เรียบร้อยแล้ว", type: "success" };
+      case "export_error":
+        return { message: "❌ เกิดข้อผิดพลาดในการส่งออก Excel", type: "error" };
+      case "repair_request":
+        return { message: `ส่งคำขอซ่อมครุภัณฑ์ ${extra} เรียบร้อยแล้ว`, type: "success" };
+      case "repair_request_error":
+        return { message: "เกิดข้อผิดพลาดในการส่งคำขอซ่อม", type: "error" };
+      case "inspect_success":
+        return { message: `ตรวจรับครุภัณฑ์ ${extra} เรียบร้อยแล้ว`, type: "success" };
+      case "inspect_error":
+        return { message: "เกิดข้อผิดพลาดในการตรวจรับครุภัณฑ์", type: "error" };
+      case "qr_download_success":
+        return { message: `ดาวน์โหลด QR Code ${extra} เรียบร้อยแล้ว`, type: "success" };
+      case "qr_download_error":
+        return { message: "เกิดข้อผิดพลาดในการดาวน์โหลด QR Code", type: "error" };
+      case "qr_download_all_success":
+        return { message: "ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว", type: "success" };
+      case "qr_download_all_error":
+        return { message: "เกิดข้อผิดพลาดในการดาวน์โหลด QR Code ทั้งหมด", type: "error" };
+      case "category_add_success":
+        return { message: "เพิ่มหมวดหมู่เรียบร้อยแล้ว", type: "success" };
+      case "category_add_error":
+        return { message: "เกิดข้อผิดพลาดในการเพิ่มหมวดหมู่", type: "error" };
+      case "category_update_success":
+        return { message: "แก้ไขหมวดหมู่เรียบร้อยแล้ว", type: "success" };
+      case "category_update_error":
+        return { message: "เกิดข้อผิดพลาดในการแก้ไขหมวดหมู่", type: "error" };
+      case "category_delete_success":
+        return { message: "ลบหมวดหมู่เรียบร้อยแล้ว", type: "success" };
+      case "category_delete_error":
+        return { message: "เกิดข้อผิดพลาดในการลบหมวดหมู่", type: "error" };
+      case "category_fetch_error":
+        return { message: "เกิดข้อผิดพลาดในการดึงข้อมูลหมวดหมู่", type: "error" };
+      default:
+        return { message: action, type: "info" };
+    }
+  };
+
+  // ฟังก์ชันกลางสำหรับแจ้งเตือน
+  const notifyEquipmentAction = (action, extra) => {
+    const { message, type } = getEquipmentNotifyMessage(action, extra);
+    if (type === "success") {
+      toast.success(message);
+    } else if (type === "error") {
+      toast.error(message);
+    } else {
+      toast.info(message);
+    }
+  };
 
   useEffect(() => {
     getEquipment().then(setEquipmentList);
@@ -127,14 +206,15 @@ function ManageEquipment() {
 
   // ฟังก์ชั่นแสดง Alert
   const showAlertMessage = (message, type = "success") => {
-    setAlertMessage(message);
-    setAlertType(type);
-    setShowAlert(true);
-
-    // ปิด Alert อัตโนมัติหลังจาก 3 วินาที
-    setTimeout(() => {
-      setShowAlert(false);
-    }, 3000);
+    if (type === 'success') {
+      toast.success(message);
+    } else if (type === 'error') {
+      toast.error(message);
+    } else if (type === 'info') {
+      toast.info(message);
+    } else {
+      toast(message);
+    }
   };
 
   const handleDeleteClick = (equipment) => {
@@ -146,16 +226,16 @@ function ManageEquipment() {
   const confirmDelete = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    showAlertMessage('⏳ กำลังลบครุภัณฑ์...', 'info');
+    notifyEquipmentAction("info", "⏳ กำลังลบครุภัณฑ์...");
     try {
       await deleteEquipment(selectedEquipment.item_code);
       getEquipment().then(setEquipmentList);
       setDeleteDialogOpen(false);
-      showAlertMessage(`✅ ลบครุภัณฑ์ ${selectedEquipment.name} เรียบร้อยแล้ว`, "success");
+      notifyEquipmentAction("delete", selectedEquipment.name);
       setSelectedEquipment(null);
     } catch (error) {
       console.error('Error deleting equipment:', error);
-      showAlertMessage('❌ เกิดข้อผิดพลาดในการลบครุภัณฑ์', "error");
+      notifyEquipmentAction("delete_error");
     } finally {
       setIsSubmitting(false);
     }
@@ -189,6 +269,36 @@ function ManageEquipment() {
     addEquipment(dataToSave).then(() => getEquipment().then(setEquipmentList));
   };
 
+  // ฟังก์ชันสำหรับ export Excel
+  const handleExportExcel = () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const exportData = filteredEquipment.map(equipment => ({
+        'รหัสครุภัณฑ์': equipment.item_code || '',
+        'ชื่อครุภัณฑ์': equipment.name || '',
+        'หมวดหมู่': equipment.category || '',
+        'รายละเอียด': equipment.description || '',
+        'จำนวน': equipment.quantity || '',
+        'หน่วย': equipment.unit || '',
+        'สถานะ': equipment.status || '',
+        'รูปภาพ': equipment.pic || '',
+      }));
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Equipment');
+      const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+      saveAs(blob, 'equipment.xlsx');
+      notifyEquipmentAction("export_success");
+    } catch (error) {
+      console.error('Error exporting Excel:', error);
+      notifyEquipmentAction("export_error");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // ฟังก์ชั่นสำหรับกรอง/ค้นหา/เรียงลำดับ
   const filteredEquipment = equipmentList
     .filter(item => {
@@ -204,9 +314,25 @@ function ManageEquipment() {
       (categoryFilter === "ทั้งหมด" || item.category === categoryFilter);
     })
     .sort((a, b) => {
-      if (a.status === "ชำรุด" && b.status !== "ชำรุด") return -1;
-      if (b.status === "ชำรุด" && a.status !== "ชำรุด") return 1;
-      // เรียงตาม item_code
+      // กำหนดลำดับความสำคัญของสถานะตามที่ต้องการ
+      const statusPriority = {
+        "ไม่อนุมัติซ่อม": 1,
+        "ชำรุด": 2,
+        "รออนุมัติซ่อม": 3,
+        "กำลังซ่อม": 4,
+        "พร้อมใช้งาน": 5,
+        "ถูกยืม": 6
+      };
+
+      const aPriority = statusPriority[a.status] || 999;
+      const bPriority = statusPriority[b.status] || 999;
+
+      // เรียงตามลำดับความสำคัญของสถานะ
+      if (aPriority !== bPriority) {
+        return aPriority - bPriority;
+      }
+
+      // ถ้าสถานะเท่ากัน ให้เรียงตาม item_code
       const aCode = typeof a.item_code === 'string' ? a.item_code : String(a.item_code ?? '');
       const bCode = typeof b.item_code === 'string' ? b.item_code : String(b.item_code ?? '');
       return aCode.localeCompare(bCode);
@@ -251,13 +377,19 @@ function ManageEquipment() {
   };
 
   const handleRepairSubmit = async (repairData) => {
-            // ใช้ item_id เป็น canonical identifier สำหรับการอัปเดต
-        const equipmentCode = repairData.equipment.code || repairData.equipment.item_code || repairData.equipment.id || repairData.equipment.item_id;
-        const equipmentToUpdate = equipmentList.find(item => item.item_code === equipmentCode);
-        if (equipmentToUpdate) {
-          await updateEquipment(equipmentToUpdate.item_id, { ...equipmentToUpdate, status: 'รออนุมัติซ่อม' });
-          getEquipment().then(setEquipmentList);
-        }
+    try {
+      // ใช้ item_id เป็น canonical identifier สำหรับการอัปเดต
+      const equipmentCode = repairData.equipment.code || repairData.equipment.item_code || repairData.equipment.id || repairData.equipment.item_id;
+      const equipmentToUpdate = equipmentList.find(item => item.item_code === equipmentCode);
+      if (equipmentToUpdate) {
+        await updateEquipment(equipmentToUpdate.item_id, { ...equipmentToUpdate, status: 'รออนุมัติซ่อม' });
+        getEquipment().then(setEquipmentList);
+        notifyEquipmentAction("repair_request", equipmentToUpdate.name);
+      }
+    } catch (error) {
+      console.error('Error submitting repair request:', error);
+      notifyEquipmentAction("repair_request_error");
+    }
     setRepairDialogOpen(false);
     setSelectedEquipmentForRepair(null);
   };
@@ -309,10 +441,10 @@ function ManageEquipment() {
 
       // Show success message
       const statusText = inspectionData.status === 'พร้อมใช้งาน' ? 'พร้อมใช้งาน' : 'ชำรุด';
-      showAlertMessage(`อัพเดทสถานะครุภัณฑ์ ${inspectionData.equipment.name} เป็น "${statusText}" เรียบร้อยแล้ว`, "success");
+      notifyEquipmentAction("inspect_success", `${inspectionData.equipment.name} เป็น "${statusText}"`);
     } catch (error) {
       console.error('Error handling inspection submit:', error);
-      showAlertMessage('เกิดข้อผิดพลาดในการอัพเดทสถานะครุภัณฑ์', "error");
+      notifyEquipmentAction("inspect_error");
     }
   };
 
@@ -332,7 +464,6 @@ function ManageEquipment() {
     const handleDownloadQRCode = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    showAlertMessage('⏳ กำลังดาวน์โหลด QR Code...', 'info');
     const equipment = selectedEquipmentForPrint;
     console.log('Downloading QR Code for:', equipment);
 
@@ -421,15 +552,15 @@ function ManageEquipment() {
 
           setPrintDialogOpen(false);
           setSelectedEquipmentForPrint(null);
-          showAlertMessage('✅ ดาวน์โหลด QR Code เรียบร้อยแล้ว');
+          notifyEquipmentAction("qr_download_success", equipment.item_code);
         }, 'image/png');
       } else {
         console.error('QR Code SVG not found');
-        showAlertMessage('❌ ไม่พบ QR Code สำหรับดาวน์โหลด', 'error');
+        notifyEquipmentAction("qr_download_error");
       }
     } catch (error) {
       console.error('Error downloading QR Code:', error);
-      showAlertMessage('❌ เกิดข้อผิดพลาดในการดาวน์โหลด QR Code', 'error');
+      notifyEquipmentAction("qr_download_error");
     } finally {
       setIsSubmitting(false);
     }
@@ -1073,7 +1204,7 @@ function ManageEquipment() {
   const handleQRScannerResult = (equipment) => {
     setSelectedEquipment(equipment);
     setEditDialogOpen(true);
-    showAlertMessage(`พบครุภัณฑ์: ${equipment.name}`, "success");
+    notifyEquipmentAction("success", `พบครุภัณฑ์: ${equipment.name}`);
   };
 
   const handleDownloadRealQRCodesFinal = async () => {
@@ -2184,16 +2315,19 @@ function ManageEquipment() {
           document.body.removeChild(tempDiv);
         } catch (error) {
           console.error(`Error creating QR Code for ${equipment.item_code}:`, error);
-          // Continue with next equipment even if one fails
+          notifyEquipmentAction("qr_download_all_error");
         }
       }
 
       // สร้างและดาวน์โหลด PDF file
       pdf.save('QR_Codes_Equipment.pdf');
-      showAlertMessage('ดาวน์โหลด QR Code ทั้งหมดเป็น PDF เรียบร้อยแล้ว', 'success');
+      
+      // ปิด preview dialog และแสดง alert
+      setPreviewAllQRCodesOpen(false);
+      notifyEquipmentAction("qr_download_all_success");
     } catch (error) {
       console.error('Error generating PDF:', error);
-      showAlertMessage('เกิดข้อผิดพลาดในการสร้าง PDF', 'error');
+      notifyEquipmentAction("qr_download_all_error");
     }
   };
 
@@ -2210,6 +2344,18 @@ function ManageEquipment() {
 
   return (
     <ThemeProvider value={theme}>
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="colored"
+      />
       <Card className="h-full w-full text-gray-800 rounded-2xl shadow-lg">
        {/* Alert Notification */}
        <Notification
@@ -2261,9 +2407,18 @@ function ManageEquipment() {
                 <QrCodeIcon className="w-4 h-4" />
                 สแกน QR
               </Button>
-              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
-                <ArrowDownTrayIcon className="w-4 h-4" />
-                ส่งออก Excel
+              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case" onClick={handleExportExcel}>
+                {isExporting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    กำลังส่งออก...
+                  </>
+                ) : (
+                  <>
+                    <ArrowDownTrayIcon className="w-4 h-4" />
+                    ส่งออก Excel
+                  </>
+                )}
               </Button>
            </div>
         </div>
@@ -2444,7 +2599,7 @@ function ManageEquipment() {
                                 <PrinterIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
-                            {status === 'ชำรุด' && (
+                            {(status === 'ชำรุด' || status === 'ไม่อนุมัติซ่อม') && (
                               <Tooltip content="แจ้งซ่อม">
                                 <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100" onClick={() => handleRepairRequest(item)}>
                                   <WrenchIcon className="h-4 w-4" />
@@ -2604,14 +2759,19 @@ function ManageEquipment() {
           onClose={() => setEditDialogOpen(false)}
           equipmentData={selectedEquipment}
           onSave={async (updatedData) => {
-            let dataToSave = { ...updatedData };
-                    // ใช้ item_id เป็น canonical identifier สำหรับการอัปเดต
-        if (dataToSave.pic instanceof File) {
-          dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
-        }
-        await updateEquipment(selectedEquipment.item_id, dataToSave);
-            getEquipment().then(setEquipmentList);
-            showAlertMessage(`แก้ไขครุภัณฑ์ ${dataToSave.name} เรียบร้อยแล้ว`, "edit");
+            try {
+              let dataToSave = { ...updatedData };
+              // ใช้ item_id เป็น canonical identifier สำหรับการอัปเดต
+              if (dataToSave.pic instanceof File) {
+                dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
+              }
+              await updateEquipment(selectedEquipment.item_id, dataToSave);
+              getEquipment().then(setEquipmentList);
+              notifyEquipmentAction("edit", dataToSave.name);
+            } catch (error) {
+              console.error('Error updating equipment:', error);
+              notifyEquipmentAction("edit_error");
+            }
           }}
         />
 
@@ -2630,13 +2790,18 @@ function ManageEquipment() {
             pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
           }}
           onSave={async (newEquipment) => {
-            let dataToSave = { ...newEquipment };
-            if (dataToSave.pic instanceof File) {
-              dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
+            try {
+              let dataToSave = { ...newEquipment };
+              if (dataToSave.pic instanceof File) {
+                dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
+              }
+              await addEquipment(dataToSave);
+              getEquipment().then(setEquipmentList);
+              notifyEquipmentAction("add", dataToSave.name);
+            } catch (error) {
+              console.error('Error adding equipment:', error);
+              notifyEquipmentAction("add_error");
             }
-            await addEquipment(dataToSave);
-            getEquipment().then(setEquipmentList);
-            showAlertMessage(`เพิ่มครุภัณฑ์ ${dataToSave.name} เรียบร้อยแล้ว`, "success");
           }}
         />
 
@@ -2665,6 +2830,7 @@ function ManageEquipment() {
             setManageCategoryOpen(false);
             getEquipment().then(setEquipmentList);
           }}
+          onNotify={notifyEquipmentAction}
         />
 
         <QRScannerDialog

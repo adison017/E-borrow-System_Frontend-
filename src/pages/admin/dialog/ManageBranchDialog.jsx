@@ -5,7 +5,7 @@ import "../../../styles/animations.css";
 import { API_BASE, authFetch } from "../../../utils/api";
 import DeleteBranchDialog from "./DeleteBranchDialog";
 
-export default function ManageBranchDialog({ open, onClose, onSaved }) {
+export default function ManageBranchDialog({ open, onClose, onSaved, onNotify }) {
   const [branches, setBranches] = useState([]);
   const [editItem, setEditItem] = useState(null);
   const [name, setName] = useState("");
@@ -35,6 +35,7 @@ export default function ManageBranchDialog({ open, onClose, onSaved }) {
     } catch (err) {
       console.error('fetchBranches', err);
       setBranches([]);
+      onNotify && onNotify("branch_fetch_error");
     }
   };
 
@@ -50,8 +51,10 @@ export default function ManageBranchDialog({ open, onClose, onSaved }) {
       setName('');
       await fetchBranches();
       onSaved && onSaved();
+      onNotify && onNotify("branch_add_success");
     } catch (err) {
       console.error('create branch', err);
+      onNotify && onNotify("branch_add_error");
     } finally {
       setLoading(false);
     }
@@ -80,8 +83,10 @@ export default function ManageBranchDialog({ open, onClose, onSaved }) {
       setName('');
       await fetchBranches();
       onSaved && onSaved();
+      onNotify && onNotify("branch_update_success");
     } catch (err) {
       console.error('update branch', err);
+      onNotify && onNotify("branch_update_error");
     } finally {
       setLoading(false);
     }
@@ -104,8 +109,10 @@ export default function ManageBranchDialog({ open, onClose, onSaved }) {
       setSelectedBranchId(null);
       await fetchBranches();
       onSaved && onSaved();
+      onNotify && onNotify("branch_delete_success");
     } catch (err) {
       console.error('delete branch', err);
+      onNotify && onNotify("branch_delete_error");
     }
   };
 

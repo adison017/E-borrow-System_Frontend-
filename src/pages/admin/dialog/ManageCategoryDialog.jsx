@@ -5,7 +5,7 @@ import "../../../styles/animations.css";
 import { getCategories, addCategory, updateCategory, deleteCategory } from "../../../utils/api";
 import DeleteCategoryDialog from "./DeleteCategoryDialog";
 
-export default function ManageCategoryDialog({ open, onClose, onSaved }) {
+export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify }) {
   const [categories, setCategories] = useState([]);
   const [editItem, setEditItem] = useState(null);
   const [name, setName] = useState("");
@@ -43,6 +43,7 @@ export default function ManageCategoryDialog({ open, onClose, onSaved }) {
     } catch (err) {
       console.error('fetchCategories', err);
       setCategories([]);
+      onNotify && onNotify("category_fetch_error");
     }
   };
 
@@ -67,8 +68,10 @@ export default function ManageCategoryDialog({ open, onClose, onSaved }) {
       setCategoryCode('');
       await fetchCategories();
       onSaved && onSaved();
+      onNotify && onNotify("category_add_success");
     } catch (err) {
       console.error('create category', err);
+      onNotify && onNotify("category_add_error");
     } finally {
       setLoading(false);
     }
@@ -99,8 +102,10 @@ export default function ManageCategoryDialog({ open, onClose, onSaved }) {
       setCategoryCode('');
       await fetchCategories();
       onSaved && onSaved();
+      onNotify && onNotify("category_update_success");
     } catch (err) {
       console.error('update category', err);
+      onNotify && onNotify("category_update_error");
     } finally {
       setLoading(false);
     }
@@ -122,8 +127,10 @@ export default function ManageCategoryDialog({ open, onClose, onSaved }) {
       setSelectedCategoryId(null);
       await fetchCategories();
       onSaved && onSaved();
+      onNotify && onNotify("category_delete_success");
     } catch (err) {
       console.error('delete category', err);
+      onNotify && onNotify("category_delete_error");
     }
   };
 

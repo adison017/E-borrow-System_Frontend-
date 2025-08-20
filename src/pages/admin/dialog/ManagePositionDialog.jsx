@@ -5,7 +5,7 @@ import "../../../styles/animations.css";
 import { API_BASE, authFetch } from "../../../utils/api";
 import DeletePositionDialog from "./DeletePositionDialog";
 
-export default function ManagePositionDialog({ open, onClose, onSaved }) {
+export default function ManagePositionDialog({ open, onClose, onSaved, onNotify }) {
   const [positions, setPositions] = useState([]);
   const [editItem, setEditItem] = useState(null);
   const [name, setName] = useState("");
@@ -33,6 +33,7 @@ export default function ManagePositionDialog({ open, onClose, onSaved }) {
     } catch (err) {
       console.error('fetchPositions', err);
       setPositions([]);
+      onNotify && onNotify("position_fetch_error");
     }
   };
 
@@ -48,8 +49,10 @@ export default function ManagePositionDialog({ open, onClose, onSaved }) {
       setName('');
       await fetchPositions();
       onSaved && onSaved();
+      onNotify && onNotify("position_add_success");
     } catch (err) {
       console.error('create position', err);
+      onNotify && onNotify("position_add_error");
     } finally {
       setLoading(false);
     }
@@ -78,8 +81,10 @@ export default function ManagePositionDialog({ open, onClose, onSaved }) {
       setName('');
       await fetchPositions();
       onSaved && onSaved();
+      onNotify && onNotify("position_update_success");
     } catch (err) {
       console.error('update position', err);
+      onNotify && onNotify("position_update_error");
     } finally {
       setLoading(false);
     }
@@ -102,8 +107,10 @@ export default function ManagePositionDialog({ open, onClose, onSaved }) {
       setSelectedPositionId(null);
       await fetchPositions();
       onSaved && onSaved();
+      onNotify && onNotify("position_delete_success");
     } catch (err) {
       console.error('delete position', err);
+      onNotify && onNotify("position_delete_error");
     }
   };
 

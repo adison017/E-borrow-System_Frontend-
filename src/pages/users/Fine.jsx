@@ -19,9 +19,11 @@ const Fine = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [dialogShouldClose, setDialogShouldClose] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
+  const [showRejectAlert, setShowRejectAlert] = useState(false);
   const [paymentSettings, setPaymentSettings] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState(null);
+
 
   // Get user info from localStorage
   const userStr = localStorage.getItem('user');
@@ -68,6 +70,24 @@ const Fine = () => {
     loadPaymentSettings();
   }, []);
 
+  // รับฟัง event appNotify เพื่อแสดงข้อความที่ถูกต้อง
+  useEffect(() => {
+    const handleAppNotify = (event) => {
+      const { type, message } = event.detail;
+      if (type === 'info' && message === 'รอผู้ใช้งานทำรายการใหม่') {
+        // แสดงข้อความ "รอผู้ใช้งานทำรายการใหม่" แทน success alert
+        setShowSuccessAlert(false);
+        setShowRejectAlert(true);
+        console.log('ได้รับข้อความ:', message);
+      }
+    };
+
+    window.addEventListener('appNotify', handleAppNotify);
+    return () => window.removeEventListener('appNotify', handleAppNotify);
+  }, []);
+
+  
+
   const copyText = async (text) => {
     try {
       if (!text) return;
@@ -99,26 +119,45 @@ const Fine = () => {
 
   const closeDialog = (shouldShowAlert = false) => {
     console.log('closeDialog called');
+    const currentBorrowId = selectedRequest?.borrow_id;
     setIsDialogOpen(false);
     setSelectedRequest(null);
     setDialogShouldClose(false);
-    if (shouldShowAlert) setShowSuccessAlert(true);
+    
     // รีเฟรช fineList ทันที
     const user_id = globalUserData?.user_id;
-    if (user_id) refreshFines();
+    if (user_id) {
+      refreshFines().then((updatedData) => {
+        // ตรวจสอบสถานะหลังจากรีเฟรชข้อมูลแล้ว
+        if (shouldShowAlert && currentBorrowId) {
+          // หาข้อมูลล่าสุดจากข้อมูลที่อัปเดตแล้ว
+          const updatedRequest = updatedData.find(req => req.borrow_id === currentBorrowId);
+          if (updatedRequest && (updatedRequest.pay_status === 'awaiting_payment' || updatedRequest.pay_status === 'failed')) {
+            // ถ้าสถานะเป็น "awaiting_payment" หรือ "failed" ไม่ต้องแสดง success alert
+            console.log('ไม่แสดง success alert เพราะสถานะเป็น "รอยืนยันชำระ" หรือ "การชำระผิดพลาด"');
+          } else {
+            setShowSuccessAlert(true);
+          }
+        }
+      });
+    }
   };
 
   const refreshFines = () => {
     const user_id = globalUserData?.user_id;
-    if (!user_id) return;
+    if (!user_id) return Promise.resolve();
     setLoading(true);
-    authFetch(`${API_BASE}/returns/summary?user_id=${user_id}`)
+    return authFetch(`${API_BASE}/returns/summary?user_id=${user_id}`)
       .then(res => res.json())
       .then(data => {
         setFineList(data);
         setLoading(false);
+        return data;
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLoading(false);
+        return [];
+      });
   };
 
 
@@ -166,9 +205,9 @@ const Fine = () => {
     </div>
   );
 
-  // ป้องกัน error .filter is not a function
-  const safeFineList = Array.isArray(fineList) ? fineList : [];
-  const pendingList = safeFineList.filter(req => ['pending','failed'].includes(req.pay_status));
+     // ป้องกัน error .filter is not a function
+   const safeFineList = Array.isArray(fineList) ? fineList : [];
+   const pendingList = safeFineList.filter(req => ['pending','failed','awaiting_payment'].includes(req.pay_status));
   // const paidList = fineList.filter(req => req.pay_status === 'paid'); // ลบส่วนนี้ออก
 
   return (
@@ -230,9 +269,6 @@ const Fine = () => {
                   {selectedMethod === 'promptpay' && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">กำลังเลือก</span>
                   )}
-                  {paymentSettings?.method === 'promptpay' && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">กำลังใช้งาน</span>
-                  )}
                 </div>
               </div>
               <div className="text-sm text-gray-700 flex items-center gap-2">
@@ -269,9 +305,6 @@ const Fine = () => {
                   {selectedMethod === 'bank' && (
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">กำลังเลือก</span>
                   )}
-                  {paymentSettings?.method === 'bank' && (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 border border-blue-200">กำลังใช้งาน</span>
-                  )}
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-700">
@@ -296,21 +329,39 @@ const Fine = () => {
           )}
         </div>
       </motion.div>
-      {/* Success Notification */}
-      <AlertDialog
-        show={showSuccessAlert}
-        title="🎉 ชำระเงินสำเร็จ!"
-        message="การชำระค่าปรับเสร็จสิ้นแล้ว ขอบคุณที่ใช้บริการ รายการยืมของคุณได้เสร็จสิ้นเรียบร้อยแล้ว"
-        type="success"
-        duration={3000}
-        onClose={() => setShowSuccessAlert(false)}
-        actions={[
-          {
-            label: 'ตกลง',
-            onClick: () => setShowSuccessAlert(false)
-          }
-        ]}
-      />
+                           {/* Success Notification */}
+        <AlertDialog
+          show={showSuccessAlert}
+          title="🎉 ชำระเงินสำเร็จ!"
+          message="การชำระค่าปรับเสร็จสิ้นแล้ว ขอบคุณที่ใช้บริการ รายการยืมของคุณได้เสร็จสิ้นเรียบร้อยแล้ว"
+          type="success"
+          duration={3000}
+          onClose={() => setShowSuccessAlert(false)}
+          actions={[
+            {
+              label: 'ตกลง',
+              onClick: () => setShowSuccessAlert(false)
+            }
+          ]}
+        />
+
+        {/* Reject Notification */}
+        <AlertDialog
+          show={showRejectAlert}
+          title="⚠️ รอการดำเนินการ"
+          message="รอผู้ใช้งานทำรายการใหม่ กรุณาตรวจสอบเหตุผลการปฏิเสธและอัปโหลดสลิปใหม่"
+          type="warning"
+          duration={5000}
+          onClose={() => setShowRejectAlert(false)}
+          actions={[
+            {
+              label: 'ตกลง',
+              onClick: () => setShowRejectAlert(false)
+            }
+          ]}
+        />
+
+
 
       {/* กลุ่มค้างชำระ */}
 
@@ -395,9 +446,9 @@ const Fine = () => {
                       {request.borrow_code}
                     </span>
                       </div>
-                      <div className={`badge ${request.pay_status === 'failed' ? 'badge-error' : (request.proof_image ? 'badge-warning' : 'badge-error')} text-white md:text-base px-4 py-4 rounded-full text-sm font-medium`}>
-                        {request.pay_status === 'failed' ? 'การชำระผิดพลาด' : (request.proof_image ? 'รอยืนยันชำระ' : 'ค้างชำระเงิน')}
-                      </div>
+                                             <div className={`badge ${request.pay_status === 'failed' ? 'badge-error' : (request.pay_status === 'awaiting_payment' ? 'badge-warning' : 'badge-error')} text-white md:text-base px-4 py-4 rounded-full text-sm font-medium`}>
+                         {request.pay_status === 'failed' ? 'การชำระผิดพลาด' : (request.pay_status === 'awaiting_payment' ? 'รอยืนยันชำระ' : 'ค้างชำระเงิน')}
+                       </div>
                     </div>
 
                     <div className="my-4">
@@ -416,6 +467,21 @@ const Fine = () => {
                         {request.late_fine?.toLocaleString('th-TH')} บาท ({request.late_days} วัน)
                       </p>
                     </div>
+                    
+                                         {/* แสดงเหตุผลการปฏิเสธสำหรับสถานะ failed */}
+                     {request.pay_status === 'failed' && request.notes && (
+                       <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
+                         <h3 className="font-semibold text-red-700 mb-1 flex items-center gap-2">
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                           </svg>
+                           เหตุผลการปฏิเสธการชำระเงิน
+                         </h3>
+                         <p className="text-red-800 text-sm leading-relaxed">
+                           {request.notes}
+                         </p>
+                       </div>
+                     )}
                     <div className="mb-4">
                       <h3 className="font-semibold text-gray-700 mb-2">รายการครุภัณฑ์</h3>
                       <div className="flex flex-wrap gap-2">
@@ -452,26 +518,33 @@ const Fine = () => {
                         <p className="text-gray-600 text-sm md:text-base">{request.return_date ? new Date(request.return_date).toLocaleDateString() : '-'}</p>
                       </div>
                     </div>
-                    {/* Footer */}
-                    <div className="pt-4 border-t border-gray-200 mt-auto">
-                      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                        <div className="text-gray-700 font-medium text-sm md:text-base">
-                          รวมทั้งหมด {total} ชิ้น
-                        </div>
-                        <div className="flex gap-2 w-full md:w-auto">
-                          <button
-                            className="bg-gradient-to-r from-emerald-400 to-green-600 text-white font-bold py-2 px-8 rounded-full shadow-lg text-lg tracking-wide transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-pink-200 animate-pulse flex items-center justify-center gap-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openDialog(request);
-                            }}
-                          >
-                            <FaMoneyCheckAlt className="w-6 h-6" />
-                            ชำระเงิน
-                          </button>
-                        </div>
-                      </div>
-                    </div>
+                                         {/* Footer */}
+                     <div className="pt-4 border-t border-gray-200 mt-auto">
+                       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                         <div className="text-gray-700 font-medium text-sm md:text-base">
+                           รวมทั้งหมด {total} ชิ้น
+                         </div>
+                         {/* แสดงปุ่มสำหรับสถานะ "รอชำระ" และ "การชำระผิดพลาด" (ไม่แสดงสำหรับ awaiting_payment) */}
+                         {(request.pay_status === 'pending' || request.pay_status === 'failed') && (
+                           <div className="flex gap-2 w-full md:w-auto">
+                             <button
+                               className={`font-bold py-2 px-8 rounded-full shadow-lg text-lg tracking-wide transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 animate-pulse flex items-center justify-center gap-2 ${
+                                 request.pay_status === 'failed' 
+                                   ? 'bg-gradient-to-r from-orange-400 to-red-600 text-white focus:ring-orange-200' 
+                                   : 'bg-gradient-to-r from-emerald-400 to-green-600 text-white focus:ring-pink-200'
+                               }`}
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 openDialog(request);
+                               }}
+                             >
+                               <FaMoneyCheckAlt className="w-6 h-6" />
+                               {request.pay_status === 'failed' ? 'ทำรายการใหม่' : 'ชำระเงิน'}
+                             </button>
+                           </div>
+                         )}
+                       </div>
+                     </div>
                   </div>
                 </div>
               </div>
