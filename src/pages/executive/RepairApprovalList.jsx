@@ -257,37 +257,6 @@ export default function RepairApprovalList() {
           <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอแจ้งซ่อม</h1>
           <p className="text-gray-500 text-sm">จัดการคำขอแจ้งซ่อมทั้งหมดขององค์กร</p>
         </div>
-        
-        {/* Search Input */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder="ค้นหารหัสคำขอ, รหัสการซ่อม, รหัสครุภัณฑ์, ชื่อครุภัณฑ์, หรือผู้แจ้งซ่อม..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          
-          {/* Status Filter */}
-          <select
-            className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">สถานะทั้งหมด</option>
-            <option value="pending">รออนุมัติซ่อม</option>
-            <option value="approved">อนุมัติแล้ว</option>
-            <option value="rejected">ปฏิเสธ</option>
-            <option value="inprogress">กำลังซ่อม</option>
-            <option value="completed">เสร็จสิ้น</option>
-            <option value="ไม่อนุมัติซ่อม">ไม่อนุมัติซ่อม</option>
-          </select>
-        </div>
       </div>
 
       {/* ตารางรายการ */}

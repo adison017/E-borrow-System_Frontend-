@@ -6,6 +6,8 @@
     <link rel="shortcut icon" type="image/png" href="/lo.png" />
     <link rel="apple-touch-icon" href="/lo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#3b82f6" />
+    <link rel="manifest" href="/manifest.json" />
     <title>E-borrow System</title>
   </head>
   <body>
@@ -15,6 +17,19 @@
       window.__API_BASE__ = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
         ? 'http://localhost:5000'
         : (window.__API_BASE__ || 'https://e-borrow-system-backend.onrender.com');
+      
+      // Register service worker for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+              console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
     </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>

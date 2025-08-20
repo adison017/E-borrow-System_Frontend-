@@ -10,7 +10,7 @@ import { BsGraphUp } from "react-icons/bs";
 import { FaHandshake, FaSignOutAlt, FaBuilding } from "react-icons/fa";
 import { MdAnnouncement, MdClose, MdManageAccounts, MdMenu, MdOutlineEditNote, MdViewList, MdCalendarMonth } from "react-icons/md";
 import { RiArrowGoBackLine } from "react-icons/ri";
-import { QrCodeIcon } from "@heroicons/react/24/outline";
+import { QrCodeIcon, MapPinIcon } from "@heroicons/react/24/outline";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Notification from './Notification';
 import { getAllBorrows } from '../utils/api';
@@ -26,6 +26,7 @@ const menuItems = [
   { to: '/ReceiveItem', icon: <GiHandTruck size={30} />, label: 'ส่งมอบครุภัณฑ์', key: 'receiveItem' },
   { to: '/return-list', icon: <GiBackForth size={23} />, label: 'รายการคืนครุภัณฑ์', key: 'returnList' },
   { to: '/success', icon: <BsClipboardCheckFill size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
+  { to: '/location-tracking', icon: <MapPinIcon size={22} />, label: 'ติดตามตำแหน่ง', key: 'locationTracking' },
   { to: '/borrow-calendar', icon: <MdCalendarMonth size={22} />, label: 'ปฏิทินการยืม', key: 'borrowCalendar' },
 ];
 
