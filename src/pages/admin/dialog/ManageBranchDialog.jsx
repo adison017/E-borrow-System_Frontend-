@@ -33,7 +33,7 @@ export default function ManageBranchDialog({ open, onClose, onSaved, onNotify })
       const data = await res.json();
       setBranches(data || []);
     } catch (err) {
-      console.error('fetchBranches', err);
+      // Error fetching branches
       setBranches([]);
       onNotify && onNotify("branch_fetch_error");
     }
@@ -53,7 +53,7 @@ export default function ManageBranchDialog({ open, onClose, onSaved, onNotify })
       onSaved && onSaved();
       onNotify && onNotify("branch_add_success");
     } catch (err) {
-      console.error('create branch', err);
+      // Error creating branch
       onNotify && onNotify("branch_add_error");
     } finally {
       setLoading(false);
@@ -85,7 +85,7 @@ export default function ManageBranchDialog({ open, onClose, onSaved, onNotify })
       onSaved && onSaved();
       onNotify && onNotify("branch_update_success");
     } catch (err) {
-      console.error('update branch', err);
+      // Error updating branch
       onNotify && onNotify("branch_update_error");
     } finally {
       setLoading(false);
@@ -111,7 +111,7 @@ export default function ManageBranchDialog({ open, onClose, onSaved, onNotify })
       onSaved && onSaved();
       onNotify && onNotify("branch_delete_success");
     } catch (err) {
-      console.error('delete branch', err);
+      // Error deleting branch
       onNotify && onNotify("branch_delete_error");
     }
   };

@@ -499,10 +499,10 @@ const SystemSettings = () => {
           hours: data.data.hours || ''
         });
       } else {
-        console.log('No contact info found or error:', data.message);
+        // No contact info found or error
       }
-    } catch (error) {
-      console.error('Error fetching contact info:', error);
+          } catch (error) {
+        // Error fetching contact info
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถดึงข้อมูลติดต่อได้',
@@ -535,7 +535,7 @@ const SystemSettings = () => {
         });
       }
     } catch (error) {
-      console.error('Error testing cloudinary connection:', error);
+      // Error testing cloudinary connection
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถทดสอบการเชื่อมต่อ Cloudinary ได้',
@@ -559,7 +559,7 @@ const SystemSettings = () => {
           type: 'success'
         });
         // You can display the stats in a modal or another component
-        console.log('Cloudinary usage stats:', data.data);
+        // Cloudinary usage stats
       } else {
         setNotificationData({
           title: 'เกิดข้อผิดพลาด',
@@ -567,8 +567,8 @@ const SystemSettings = () => {
           type: 'error'
         });
       }
-    } catch (error) {
-      console.error('Error getting cloudinary usage stats:', error);
+          } catch (error) {
+        // Error getting cloudinary usage stats
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถดึงข้อมูลสถิติการใช้งานได้',
@@ -601,7 +601,7 @@ const SystemSettings = () => {
         setShowNotification(true);
       }
     } catch (error) {
-      console.error('Error creating cloudinary folders:', error);
+      // Error creating cloudinary folders
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถสร้าง folder structure ได้',
@@ -634,7 +634,7 @@ const SystemSettings = () => {
         setShowNotification(true);
       }
     } catch (error) {
-      console.error('Error listing cloudinary folders:', error);
+      // Error listing cloudinary folders
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถดึงรายการ folder ได้',
@@ -650,7 +650,7 @@ const SystemSettings = () => {
     try {
       // Skip if we're in the middle of updating stats (unless forced)
       if (isUpdatingStats && !force) {
-        console.log('Skipping stats fetch - currently updating');
+        // Skipping stats fetch - currently updating
         return;
       }
 
@@ -658,16 +658,12 @@ const SystemSettings = () => {
       const data = await response.json();
 
       if (data.success && data.data) {
-        console.log('Fetched fresh stats from server:', {
-          overall: data.data.overall,
-          by_role: data.data.by_role,
-          explanation: 'users_enabled_line should only count users with LINE ID and enabled=1'
-        });
+        // Fetched fresh stats from server
         setNotificationStats(data.data);
       }
-    } catch (error) {
-      console.error('Error fetching notification stats:', error);
-    }
+          } catch (error) {
+        // Error fetching notification stats
+      }
   };
 
   const fetchUsers = async () => {
@@ -679,7 +675,7 @@ const SystemSettings = () => {
         setUsers(data.data);
       }
     } catch (error) {
-      console.error('Error fetching users:', error);
+      // Error fetching users
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถดึงข้อมูลผู้ใช้งานได้',
@@ -713,7 +709,7 @@ const SystemSettings = () => {
         });
       }
     } catch (error) {
-      console.error('Error testing LINE connection:', error);
+      // Error testing LINE connection
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถทดสอบการเชื่อมต่อ LINE Bot ได้',
@@ -809,7 +805,7 @@ const SystemSettings = () => {
         });
       }
     } catch (error) {
-      console.error('Error toggling role notification:', error);
+      // Error toggling role notification
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถเปลี่ยนการตั้งค่าการแจ้งเตือนตาม role ได้',
@@ -826,18 +822,14 @@ const SystemSettings = () => {
     try {
       setLoading(true);
       setIsUpdatingStats(true);
-      console.log('toggleAllNotifications called with:', { enabled, users: users.length });
+      // toggleAllNotifications called
 
       // หาผู้ใช้ทั้งหมดที่มี LINE ID
       const usersWithLine = users.filter(user =>
         user.line_id !== 'ยังไม่ผูกบัญชี'
       );
 
-      console.log('Users with LINE:', {
-        total: users.length,
-        withLine: usersWithLine.length,
-        usersWithLine: usersWithLine.map(u => ({ id: u.user_id, name: u.Fullname, line_id: u.line_id, enabled: u.line_notify_enabled }))
-      });
+      // Users with LINE
 
       if (usersWithLine.length === 0) {
         setNotificationData({
@@ -851,10 +843,7 @@ const SystemSettings = () => {
 
       const userIds = usersWithLine.map(user => user.user_id);
 
-      console.log('Making API call:', {
-        url: `${API_BASE}/notification-settings/bulk-toggle`,
-        payload: { userIds, enabled }
-      });
+      // Making API call
 
       const response = await authFetch(`${API_BASE}/notification-settings/bulk-toggle`, {
         method: 'PUT',
@@ -865,7 +854,7 @@ const SystemSettings = () => {
       });
 
       const data = await response.json();
-      console.log('API response:', data);
+      // API response
 
       if (data.success) {
         // Update local state immediately for better UX
@@ -875,7 +864,7 @@ const SystemSettings = () => {
               ? { ...user, line_notify_enabled: enabled ? 1 : 0 }
               : user
           );
-          console.log('Updated users state:', updated.filter(u => userIds.includes(u.user_id)));
+          // Updated users state
           return updated;
         });
 
@@ -891,18 +880,13 @@ const SystemSettings = () => {
               users_enabled_line: newEnabledCount
             }
           };
-          console.log('Updated notification stats:', {
-            previous: prev.overall,
-            new: newStats.overall,
-            enabled,
-            calculation: `${enabled ? 'enabling' : 'disabling'} all users with LINE`
-          });
+          // Updated notification stats
           return newStats;
         });
 
         // Delay server refresh to avoid UI flickering
         setTimeout(() => {
-          console.log('Refreshing global stats from server...');
+          // Refreshing global stats from server
           setIsUpdatingStats(false);
           fetchNotificationStats(true); // Force refresh
         }, 1000);
@@ -913,7 +897,7 @@ const SystemSettings = () => {
           type: 'success'
         });
       } else {
-        console.error('API error:', data.message);
+        // API error
         setNotificationData({
           title: 'เกิดข้อผิดพลาด',
           message: data.message,
@@ -921,7 +905,7 @@ const SystemSettings = () => {
         });
       }
     } catch (error) {
-      console.error('Error toggling all notifications:', error);
+      // Error toggling all notifications
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถเปลี่ยนการตั้งค่าการแจ้งเตือนทั้งหมดได้',
@@ -979,7 +963,7 @@ const SystemSettings = () => {
         });
       }
     } catch (error) {
-      console.error('Error updating contact info:', error);
+      // Error updating contact info
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถอัปเดตข้อมูลได้',
@@ -998,7 +982,7 @@ const SystemSettings = () => {
       const response = await fetch(`${API_BASE}/footer-settings`);
 
       if (!response.ok) {
-        console.warn(`Footer settings API returned ${response.status}, using default values`);
+        // Footer settings API returned status, using default values
         return;
       }
 
@@ -1006,8 +990,8 @@ const SystemSettings = () => {
       if (data.success && data.data) {
         setFooterSettings(data.data);
       }
-    } catch (error) {
-      console.warn('Footer settings not available:', error.message);
+          } catch (error) {
+        // Footer settings not available
       toast.warn('ไม่สามารถโหลดการตั้งค่า Footer ได้ กรุณาลองใหม่อีกครั้ง');
     } finally {
       setFooterLoading(false);
@@ -1063,7 +1047,7 @@ const SystemSettings = () => {
         setShowNotification(true);
       }
     } catch (error) {
-      console.error('Error saving footer settings:', error);
+      // Error saving footer settings
       setNotificationData({
         title: 'เกิดข้อผิดพลาด',
         message: 'ไม่สามารถบันทึกการตั้งค่าได้ กรุณาลองใหม่อีกครั้ง',
@@ -1593,12 +1577,7 @@ const SystemSettings = () => {
                            if (loading || notificationStats.overall.users_with_line === 0) return;
 
                            const allEnabled = notificationStats.overall.users_enabled_line === notificationStats.overall.users_with_line;
-                           console.log('Global switch clicked:', {
-                             allEnabled,
-                             users_enabled: notificationStats.overall.users_enabled_line,
-                             users_with_line: notificationStats.overall.users_with_line,
-                             will_toggle_to: !allEnabled
-                           });
+                           // Global switch clicked
 
                            toggleAllNotifications(!allEnabled);
                          }}

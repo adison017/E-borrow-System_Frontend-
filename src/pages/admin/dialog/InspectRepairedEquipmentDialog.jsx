@@ -67,8 +67,7 @@ export default function InspectRepairedEquipmentDialog({
             }
           });
         } catch (repairError) {
-          console.error('Error updating repair request:', repairError);
-          // ไม่หยุดการทำงานถ้า update repair request ไม่สำเร็จ
+          // Error updating repair request - ไม่หยุดการทำงานถ้า update repair request ไม่สำเร็จ
         }
       }
 
@@ -92,7 +91,7 @@ export default function InspectRepairedEquipmentDialog({
       setFormData({ inspectionNotes: '', isRepaired: true });
       onClose();
     } catch (error) {
-      console.error('Error submitting inspection:', error);
+      // Error submitting inspection
       if (error.response?.status === 401) {
         toast.error('ไม่มีสิทธิ์เข้าถึง กรุณาเข้าสู่ระบบใหม่');
       } else if (error.response?.status === 404) {

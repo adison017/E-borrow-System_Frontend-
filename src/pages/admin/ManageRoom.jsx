@@ -129,7 +129,7 @@ const ManageRoom = () => {
       });
       setRooms(response.data);
     } catch (error) {
-      console.error('Error fetching rooms:', error);
+      // Error fetching rooms
       notifyRoomAction('fetch_error');
     } finally {
       setLoading(false);
@@ -202,7 +202,7 @@ const ManageRoom = () => {
       resetForm();
       fetchRooms();
     } catch (error) {
-      console.error('Error submitting form:', error);
+      // Error submitting form
       const message = error.response?.data?.message || 'เกิดข้อผิดพลาดในการบันทึกข้อมูล';
       if (editingRoom) {
         notifyRoomAction("edit_error");
@@ -255,7 +255,7 @@ const ManageRoom = () => {
       notifyRoomAction("delete", selectedRoom.room_name);
       fetchRooms();
     } catch (error) {
-      console.error('Error deleting room:', error);
+      // Error deleting room
       notifyRoomAction("delete_error");
     }
     setDeleteDialogOpen(false);
@@ -419,7 +419,7 @@ const ManageRoom = () => {
         notifyRoomAction("image_delete_success");
       }
     } catch (error) {
-      console.error('Error removing image:', error);
+      // Error removing image
       notifyRoomAction("image_delete_error");
     } finally {
       // รีเซ็ต loading state
@@ -451,7 +451,7 @@ const ManageRoom = () => {
       saveAs(blob, 'rooms.xlsx');
       notifyRoomAction("export_success");
     } catch (error) {
-      console.error('Error exporting Excel:', error);
+      // Error exporting Excel
       notifyRoomAction("export_error");
     } finally {
       setIsExporting(false);

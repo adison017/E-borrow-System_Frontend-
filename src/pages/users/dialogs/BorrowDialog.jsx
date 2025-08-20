@@ -186,7 +186,7 @@ const BorrowDialog = ({
     try {
       await handleSubmitBorrow(e, selectedFiles);
     } catch (error) {
-      console.error('Error submitting borrow request:', error);
+              // Error submitting borrow request
     } finally {
       setIsSubmitting(false);
     }

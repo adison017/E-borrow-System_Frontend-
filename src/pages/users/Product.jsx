@@ -8,6 +8,7 @@ import { getCategories, getEquipment, updateEquipmentStatus, authFetch, API_BASE
 import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
+import { useBadgeCounts } from '../../hooks/useSocket';
 
 // ฟังก์ชันดึงวันพรุ่งนี้ของไทย (string YYYY-MM-DD)
 function getTomorrowTH() {
@@ -40,6 +41,8 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState({ show: false, title: '', message: '', type: 'info' });
 
+  const { subscribeToBadgeCounts } = useBadgeCounts();
+
   // Get user info from localStorage
   const userStr = localStorage.getItem('user');
   let globalUserData = null;
@@ -54,7 +57,7 @@ const Home = () => {
     setLoading(true);
     getEquipment()
       .then(data => {
-        console.log('API equipment data:', data); // เพิ่ม log เพื่อตรวจสอบข้อมูลที่ได้จาก API
+        // API equipment data received
         if (!Array.isArray(data)) {
           setEquipmentData([]);
           return;
@@ -248,6 +251,22 @@ const Home = () => {
       return;
     }
 
+    // ตรวจสอบข้อมูลที่จำเป็น
+    if (!borrowData.reason || borrowData.reason.trim() === '') {
+      setNotification({ show: true, title: 'แจ้งเตือน', message: 'กรุณากรอกวัตถุประสงค์การยืม', type: 'warning' });
+      return;
+    }
+
+    if (!borrowData.borrowDate) {
+      setNotification({ show: true, title: 'แจ้งเตือน', message: 'กรุณาเลือกวันที่ยืม', type: 'warning' });
+      return;
+    }
+
+    if (!borrowData.returnDate) {
+      setNotification({ show: true, title: 'แจ้งเตือน', message: 'กรุณาเลือกวันที่คืน', type: 'warning' });
+      return;
+    }
+
     // Create FormData for file upload
     const formData = new FormData();
     formData.append('user_id', globalUserData.user_id);
@@ -255,19 +274,13 @@ const Home = () => {
     formData.append('borrow_date', borrowData.borrowDate);
     formData.append('return_date', borrowData.returnDate);
     formData.append('items', JSON.stringify(items));
+    formData.append('files_count', selectedFiles.length.toString());
+
+
 
     // Add files to FormData
     selectedFiles.forEach((file, index) => {
       formData.append('important_documents', file);
-    });
-
-    console.log('FormData payload:', {
-      user_id: globalUserData.user_id,
-      purpose: borrowData.reason,
-      borrow_date: borrowData.borrowDate,
-      return_date: borrowData.returnDate,
-      items: items,
-      files_count: selectedFiles.length
     });
 
     // แสดง loading state พร้อม progress bar

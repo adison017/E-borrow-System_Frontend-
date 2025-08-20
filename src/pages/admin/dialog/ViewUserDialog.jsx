@@ -108,8 +108,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
           }
         }
       } catch (error) {
-        // eslint-disable-next-line
-        console.error('Error fetching view dialog data:', error);
+        // Error handling
       }
     };
     if (open) fetchData();

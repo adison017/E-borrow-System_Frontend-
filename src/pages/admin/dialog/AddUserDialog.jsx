@@ -74,9 +74,9 @@ export default function AddUserDialog({
       try {
         const user = JSON.parse(userStr);
         setCurrentUser(user);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-      }
+          } catch (error) {
+      // Error parsing user data
+    }
     }
 
     const fetchData = async () => {
@@ -102,16 +102,16 @@ export default function AddUserDialog({
           if (Array.isArray(data) && data.length > 0) {
             setProvinces(data);
           } else {
-            console.warn('Provinces dataset returned unexpected format');
+            // Provinces dataset returned unexpected format
             setProvinces([]);
           }
         } catch (addrErr) {
-          console.error('Error fetching provinces dataset:', addrErr);
+          // Error fetching provinces dataset
           setProvinces([]);
         }
 
       } catch (error) {
-        console.error('Error fetching data:', error);
+        // Error fetching data
       }
     };
 
@@ -295,18 +295,17 @@ export default function AddUserDialog({
 
   const handlePinSubmit = async (e) => {
     e.preventDefault();
-    console.log('handlePinSubmit called with pin:', pin);
+    // handlePinSubmit called with pin
 
     if (!currentUser) {
-      console.log('No currentUser found');
+      // No currentUser found
       setPinError("ไม่พบข้อมูลผู้ใช้ปัจจุบัน");
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
-      console.log('Token:', token ? 'exists' : 'missing');
-      console.log('Sending request to verify password...');
+      // Token verification
 
       const response = await axios.post(`${API_BASE}/users/verify-password`,
         { password: pin },
@@ -318,28 +317,27 @@ export default function AddUserDialog({
         }
       );
 
-      console.log('Response:', response.data);
+              // Response received
 
       if (response.data.success) {
-        console.log('Password verified successfully, calling handleSubmit');
+                  // Password verified successfully, calling handleSubmit
         setShowPin(false);
         setPin("");
         setPinError("");
         handleSubmit(); // call the real submit
-      } else {
-        console.log('Password verification failed');
+              } else {
+          // Password verification failed
         setPinError("รหัสผ่านไม่ถูกต้อง");
       }
-    } catch (error) {
-      console.error('Error in handlePinSubmit:', error);
-      console.error('Error response:', error.response?.data);
+          } catch (error) {
+        // Error in handlePinSubmit
       setPinError(error.response?.data?.message || "รหัสผ่านไม่ถูกต้อง");
     }
   };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    console.log('handleSubmit called');
+    // handleSubmit called
     if (isLoading) return; // ป้องกัน double submit
     setIsLoading(true);
     try {
@@ -378,16 +376,15 @@ export default function AddUserDialog({
 
       // 1. ตรวจสอบรูปภาพ - ถ้าเป็น Cloudinary URL ใช้เลย ถ้าเป็น File ให้อัปโหลดก่อน
       let avatarUrl = DEFAULT_PROFILE_URL;
-      console.log('formData.pic type:', typeof formData.pic);
-      console.log('formData.pic:', formData.pic);
+      // formData.pic type and value
 
       if (formData.pic && typeof formData.pic === 'string' && formData.pic.includes('cloudinary.com')) {
         // ถ้าเป็น Cloudinary URL ใช้เลย
-        console.log('Using existing Cloudinary URL');
+                  // Using existing Cloudinary URL
         avatarUrl = formData.pic;
       } else if (formData.pic instanceof File) {
         // ถ้าเป็น File ให้อัปโหลดก่อน
-        console.log('Uploading file to Cloudinary...');
+                  // Uploading file to Cloudinary
         const formDataImage = new FormData();
         formDataImage.append('user_code', formData.user_code);
         formDataImage.append('avatar', formData.pic);
@@ -398,10 +395,10 @@ export default function AddUserDialog({
               'Authorization': `Bearer ${token}`
             }
           });
-          console.log('File uploaded successfully:', uploadResponse.data.url);
+                      // File uploaded successfully
           avatarUrl = uploadResponse.data.url;
         } catch (uploadError) {
-          console.error('Upload error:', uploadError);
+                      // Upload error
           if (uploadError.response && uploadError.response.status === 401) {
             toast.error('Session หมดอายุ กรุณา login ใหม่');
             setIsLoading(false);
@@ -411,7 +408,7 @@ export default function AddUserDialog({
           }
         }
       } else {
-        console.log('Using default avatar URL');
+                  // Using default avatar URL
       }
 
       // 2. สร้าง user โดยใช้ชื่อไฟล์จริง
@@ -443,7 +440,7 @@ export default function AddUserDialog({
       onSave(userDataToSave); // ส่ง object user ที่จะบันทึก
       onClose();
     } catch (error) {
-      console.error('Add user error:', error.response?.data || error.message);
+      // Add user error
       toast.error(error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการเพิ่มผู้ใช้งาน');
     } finally {
       setIsLoading(false);

@@ -48,7 +48,6 @@ export default function RepairRequestDialog({
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        console.error('No token found');
         return;
       }
 
@@ -57,12 +56,6 @@ export default function RepairRequestDialog({
           'Authorization': `Bearer ${token}`
         }
       });
-
-      console.log('=== Debug: User Data from API ===');
-      console.log('API Response:', response.data);
-      console.log('User data:', response.data.user);
-      console.log('branch_name:', response.data.user?.branch_name);
-      console.log('position_name:', response.data.user?.position_name);
 
       setGlobalUserData(response.data.user);
     } catch (error) {
@@ -73,7 +66,6 @@ export default function RepairRequestDialog({
         try {
           const userData = JSON.parse(userStr);
           setGlobalUserData(userData);
-          console.log('Fallback to localStorage data:', userData);
         } catch (e) {
           console.error('Error parsing localStorage data:', e);
         }
@@ -90,16 +82,7 @@ export default function RepairRequestDialog({
     }
   }, [open]);
 
-  // Debug log เพื่อตรวจสอบข้อมูลผู้ใช้
-  console.log('=== Debug: User Data State ===');
-  console.log('globalUserData:', globalUserData);
-  console.log('branch_name:', globalUserData?.branch_name);
-  console.log('position_name:', globalUserData?.position_name);
-  console.log('branch_id:', globalUserData?.branch_id);
-  console.log('position_id:', globalUserData?.position_id);
-  console.log('user_id:', globalUserData?.user_id);
-  console.log('username:', globalUserData?.username);
-  console.log('Fullname:', globalUserData?.Fullname);
+
 
   const requesterInfo = {
     name: globalUserData?.Fullname || 'ไม่ระบุชื่อ',
@@ -187,8 +170,7 @@ export default function RepairRequestDialog({
         formData.append('images', file);
       });
 
-      console.log('Uploading images with repair code:', repairCode);
-      console.log('Files to upload:', files.length);
+
 
       const response = await axios.post(
         `${API_BASE}/repair-requests/upload-images`,
@@ -200,7 +182,7 @@ export default function RepairRequestDialog({
         }
       );
 
-      console.log('Upload response:', response.data);
+      
       return response.data.images;
     } catch (error) {
       console.error('Error uploading images:', error);
@@ -229,25 +211,8 @@ export default function RepairRequestDialog({
       // Generate repair code first
       const repairCode = generateRepairCode();
 
-      // Log all relevant data
-      console.log('=== Debug Information ===');
-      console.log('1. Equipment Object:', {
-        id: equipment.id,
-        item_id: equipment.item_id,
-        name: equipment.name,
-        item_code: equipment.item_code,
-        category: equipment.category
-      });
-      console.log('2. Form Data:', {
-        description: formData.description,
-        estimatedCost: formData.estimatedCost,
-        images: formData.images,
-        imageFiles: formData.imageFiles
-      });
-      console.log('3. Requester Info:', requesterInfo);
-      console.log('4. Request Date:', requestDate);
-      console.log('5. Global User Data:', globalUserData);
-      console.log('6. Generated Repair Code:', repairCode);
+
+
 
       // Upload images to server if there are any (with repair code)
       let uploadedImages = [];
@@ -268,7 +233,7 @@ export default function RepairRequestDialog({
         images: uploadedImages
       };
 
-      console.log('7. Final Data Being Sent to Server:', repairData);
+
 
       // ตรวจสอบรหัสซ้ำฝั่ง backend
       try {
@@ -278,20 +243,20 @@ export default function RepairRequestDialog({
           }
         });
 
-        console.log('8. Server Response:', response.data);
+
 
         // Update equipment status to "รออนุมัติซ่อม"
         try {
           // Use item_code as canonical identifier
           const equipmentCode = equipment.item_code || equipment.id || equipment.item_id;
-          console.log('Updating equipment status for item_code:', equipmentCode);
+
 
           if (equipmentCode) {
             const response = await axios.put(`${API_BASE}/equipment/${equipmentCode}/status`, {
               status: "รออนุมัติซ่อม"
             });
 
-            console.log('Equipment status update response:', response.data);
+
           } else {
             console.warn('No equipment item_code available for status update');
           }

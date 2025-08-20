@@ -51,33 +51,49 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
 
   useEffect(() => {
     // รับ badge real-time จาก backend
-    const unsubscribe = subscribeToBadgeCounts((badges) => {
-      if (typeof badges.pendingCount === 'number') setPendingCount(badges.pendingCount);
-      if (typeof badges.carryCount === 'number') setCarryCount(badges.carryCount);
-      if (typeof badges.returnCount === 'number') setReturnCount(badges.returnCount);
+    const computeCounts = async () => {
+      try {
+        const data = await getAllBorrows();
+        if (Array.isArray(data)) {
+          const pending = data.filter(b => b.status === 'pending' || b.status === 'pending_approval').length;
+          const carry = data.filter(b => b.status === 'carry').length;
+          const returnItems = data.filter(b => ['approved', 'overdue', 'waiting_payment'].includes(b.status)).length;
+          setPendingCount(pending);
+          setCarryCount(carry);
+          setReturnCount(returnItems);
+        }
+      } catch {}
+    };
+
+    const unsubscribe = subscribeToBadgeCounts(() => {
+      computeCounts();
     });
+
+    // Initial load
+    computeCounts();
 
     // cleanup
     return unsubscribe;
   }, [subscribeToBadgeCounts]);
 
-     useEffect(() => {
-     // ดึงข้อมูลจาก API โดยตรง (สำหรับ initial load) - เพิ่ม flag เพื่อป้องกันการเรียกซ้ำ
-     let isMounted = true;
-     getAllBorrows().then(data => {
-       if (isMounted && Array.isArray(data)) {
-         const count = data.filter(b => b.status === 'pending' || b.status === 'pending_approval').length;
-         setPendingCount(count);
-         const carry = data.filter(b => b.status === 'carry').length;
-         setCarryCount(carry);
-         const returnItems = data.filter(b => ['approved', 'overdue', 'waiting_payment'].includes(b.status)).length;
-         setReturnCount(returnItems);
-       }
-     });
-     return () => {
-       isMounted = false;
-     };
-   }, []);
+  // ลบ useEffect เดิมที่เรียก API โดยตรง
+  // useEffect(() => {
+  //   // ดึงข้อมูลจาก API โดยตรง (สำหรับ initial load) - เพิ่ม flag เพื่อป้องกันการเรียกซ้ำ
+  //   let isMounted = true;
+  //   getAllBorrows().then(data => {
+  //     if (isMounted && Array.isArray(data)) {
+  //       const count = data.filter(b => b.status === 'pending' || b.status === 'pending_approval').length;
+  //       setPendingCount(count);
+  //       const carry = data.filter(b => b.status === 'carry').length;
+  //       setCarryCount(carry);
+  //       const returnItems = data.filter(b => ['approved', 'overdue', 'waiting_payment'].includes(b.status)).length;
+  //       setReturnCount(returnItems);
+  //     }
+  //   });
+  //   return () => {
+  //     isMounted = false;
+  //   };
+  // }, []);
 
   const isActive = (path) => location.pathname === path;
 
