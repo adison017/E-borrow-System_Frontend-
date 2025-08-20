@@ -255,7 +255,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                                 <div className="relative">
                                                     <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-200 shadow-lg bg-gradient-to-br from-blue-100 to-indigo-100">
                                                         <img
-                                                            src={borrow.borrower.avatar ? `${UPLOAD_BASE}/user/${borrow.borrower.avatar}` : "/profile.png"}
+                                                            src={borrow.borrower.avatar ? (String(borrow.borrower.avatar).startsWith('http') ? borrow.borrower.avatar : `${UPLOAD_BASE}/uploads/user/${borrow.borrower.avatar}`) : '/profile.png'}
                                                             alt={borrow.borrower.name}
                                                             className="w-full h-full object-cover"
                                                             onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
