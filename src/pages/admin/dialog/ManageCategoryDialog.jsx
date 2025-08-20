@@ -41,7 +41,7 @@ export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify 
       const data = await getCategories();
       setCategories(data || []);
     } catch (err) {
-      console.error('fetchCategories', err);
+      // Error fetching categories
       setCategories([]);
       onNotify && onNotify("category_fetch_error");
     }
@@ -70,7 +70,7 @@ export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify 
       onSaved && onSaved();
       onNotify && onNotify("category_add_success");
     } catch (err) {
-      console.error('create category', err);
+      // Error creating category
       onNotify && onNotify("category_add_error");
     } finally {
       setLoading(false);
@@ -104,7 +104,7 @@ export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify 
       onSaved && onSaved();
       onNotify && onNotify("category_update_success");
     } catch (err) {
-      console.error('update category', err);
+      // Error updating category
       onNotify && onNotify("category_update_error");
     } finally {
       setLoading(false);
@@ -129,7 +129,7 @@ export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify 
       onSaved && onSaved();
       onNotify && onNotify("category_delete_success");
     } catch (err) {
-      console.error('delete category', err);
+      // Error deleting category
       onNotify && onNotify("category_delete_error");
     }
   };

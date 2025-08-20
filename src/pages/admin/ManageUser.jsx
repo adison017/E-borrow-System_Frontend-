@@ -204,7 +204,7 @@ function ManageUser() {
         throw new Error('รูปแบบข้อมูลที่ได้รับไม่ถูกต้อง');
       }
     } catch (error) {
-      console.error('เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้:', error);
+      // Error fetching users
       if (error.code === 'ECONNABORTED') {
         notifyUserAction('การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง', 'error');
       } else if (error.response?.status === 401) {
@@ -254,7 +254,7 @@ function ManageUser() {
         setBranches(branchesRes.data || []);
         setPositions(positionsRes.data || []);
       } catch (err) {
-        console.error('เกิดข้อผิดพลาดในการดึงข้อมูลตัวกรอง:', err);
+        // Error fetching filter data
         // Set empty arrays as fallback
         setRoles([]);
         setBranches([]);
@@ -293,7 +293,7 @@ function ManageUser() {
       setSelectedUser(null);
       notifyUserAction("delete", selectedUser.Fullname);
     } catch (error) {
-      console.error('เกิดข้อผิดพลาดในการลบผู้ใช้:', error);
+      // Error deleting user
       notifyUserAction('delete_error');
     } finally {
       setIsSubmitting(false);
@@ -438,7 +438,7 @@ function ManageUser() {
       saveAs(blob, 'users.xlsx');
       notifyUserAction("export_success");
     } catch (error) {
-      console.error('Error exporting Excel:', error);
+      // Error exporting Excel
       notifyUserAction("export_error");
     } finally {
       setIsExporting(false);
@@ -738,7 +738,7 @@ function ManageUser() {
                                   try {
                                     setTogglingUserId(user_id);
                                     const newValue = !line_notify_enabled ? 1 : 0;
-                                    console.log('กำลังสลับการแจ้งเตือน LINE สำหรับผู้ใช้:', user_id, 'เป็น:', newValue);
+                                    // Toggle LINE notification for user
 
                                     const response = await axios.patch(`${API_BASE}/users/${user_id}/line-notify`,
                                       { line_notify_enabled: newValue },
@@ -751,16 +751,15 @@ function ManageUser() {
                                       }
                                     );
 
-                                    console.log('การตอบกลับการสลับแจ้งเตือน LINE:', response.data);
+                                    // LINE notification toggle response
 
                                     setUserList(prevList => prevList.map(u =>
                                       u.user_id === user_id ? { ...u, line_notify_enabled: newValue } : u
                                     ));
 
                                     toast.success(newValue ? 'เปิดแจ้งเตือน LINE แล้ว' : 'ปิดแจ้งเตือน LINE แล้ว');
-                                  } catch (error) {
-                                    console.error('เกิดข้อผิดพลาดในการสลับแจ้งเตือน LINE:', error);
-                                    console.error('การตอบกลับข้อผิดพลาด:', error.response?.data);
+                                        } catch (error) {
+        // Error toggling LINE notification
                                     toast.error('เกิดข้อผิดพลาดในการอัปเดตแจ้งเตือน LINE: ' + (error.response?.data?.message || error.message));
                                   } finally {
                                     setTogglingUserId(null);

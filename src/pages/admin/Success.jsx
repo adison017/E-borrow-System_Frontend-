@@ -241,7 +241,6 @@ function Success() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedBorrows.length > 0 ? (
                   paginatedBorrows.map((borrow, idx) => (
-                    (console.log('DEBUG borrow.status:', borrow.status),
                     <tr key={borrow.borrow_id} className="hover:bg-gray-50">
                       <td className="w-28 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{borrow.borrow_code}</td>
                       <td className="w-48 px-4 py-4 whitespace-nowrap text-left">
@@ -304,7 +303,7 @@ function Success() {
                           </IconButton>
                         </Tooltip>
                       </td>
-                    </tr>)
+                    </tr>
                   ))
                 ) : (
                   <tr>

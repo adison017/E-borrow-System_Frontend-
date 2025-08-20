@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { BiSearchAlt2 } from "react-icons/bi";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
 import { API_BASE, UPLOAD_BASE } from '../../utils/api';
+import { useBadgeCounts } from '../../hooks/useSocket';
 
 export default function HistoryRepair() {
   const [repairRequests, setRepairRequests] = useState([]);
@@ -30,6 +31,8 @@ export default function HistoryRepair() {
   // Pagination state
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(5);
+
+  const { subscribeToBadgeCounts } = useBadgeCounts();
 
   // สถานะของคำขอซ่อม (ใช้ approved, completed, incomplete, rejected)
   const statusOptions = [
@@ -53,66 +56,68 @@ export default function HistoryRepair() {
     rejected: "ปฏิเสธ"
   };
 
-  useEffect(() => {
+  const fetchRepairHistoryData = async () => {
     // ดึงข้อมูลจาก API /api/repair-requests/history (getHistoryRequests)
-    const fetchRepairRequests = async () => {
-      setLoading(true);
-      try {
-        const response = await axios.get(`${API_BASE}/repair-requests/history`);
-        console.log('API DATA:', response.data); // debug log
-        // แปลงข้อมูลจาก API ให้ตรงกับรูปแบบที่ใช้ใน component (mapping ให้ตรง backend)
-        const formattedData = response.data.map(request => ({
-          requestId: request.id?.toString() || request.repair_code || "",
-          id: request.id,
-          user_id: request.user_id,
-          item_id: request.item_id,
-          problem_description: request.problem_description,
-          request_date: request.request_date,
-          estimated_cost: request.estimated_cost,
-          status: request.status,
-          created_at: request.created_at,
-          pic_filename: request.pic_filename,
-          repair_code: request.repair_code,
-          note: request.note,
-          budget: request.budget,
-          responsible_person: request.responsible_person,
-          approval_date: request.approval_date,
-          rejection_reason: request.rejection_reason,
-          inspection_notes: request.inspection_notes,
-          equipment_code: request.equipment_code || (request.equipment && request.equipment.code),
-          images: Array.isArray(request.repair_pic) ? request.repair_pic : [],
-          equipment: {
-            id: request.item_id,
-            code: request.equipment_code,
-            name: request.equipment_name,
-            category: request.equipment_category,
-            image: request.equipment_pic || "/placeholder-equipment.png"
-          },
-          requester: {
-            name: request.requester_name,
-            department: request.branch_name,
-            avatar: request.avatar ? `${UPLOAD_BASE}/uploads/user/${request.avatar}` : "/placeholder-user.png"
-          },
-          description: request.problem_description,
-          requestDate: request.request_date ? new Date(request.request_date).toLocaleDateString('th-TH') : "-",
-          estimatedCost: request.estimated_cost,
-          // สำหรับ fallback กรณี template ใช้ field เดิม
-          equipment_pic: request.equipment_pic,
-          equipment_name: request.equipment_name,
-          equipment_category: request.equipment_category,
-          avatar: request.avatar,
-          branch_name: request.branch_name,
-          requester_name: request.requester_name,
-        }));
-        setRepairRequests(formattedData);
-      } catch (err) {
-        setRepairRequests([]);
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_BASE}/repair-requests/history`);
+      console.log('API DATA:', response.data); // debug log
+      // แปลงข้อมูลจาก API ให้ตรงกับรูปแบบที่ใช้ใน component (mapping ให้ตรง backend)
+      const formattedData = response.data.map(request => ({
+        requestId: request.id?.toString() || request.repair_code || "",
+        id: request.id,
+        user_id: request.user_id,
+        item_id: request.item_id,
+        problem_description: request.problem_description,
+        request_date: request.request_date,
+        estimated_cost: request.estimated_cost,
+        status: request.status,
+        created_at: request.created_at,
+        pic_filename: request.pic_filename,
+        repair_code: request.repair_code,
+        note: request.note,
+        budget: request.budget,
+        responsible_person: request.responsible_person,
+        approval_date: request.approval_date,
+        rejection_reason: request.rejection_reason,
+        inspection_notes: request.inspection_notes,
+        equipment_code: request.equipment_code || (request.equipment && request.equipment.code),
+        images: Array.isArray(request.repair_pic) ? request.repair_pic : [],
+        equipment: {
+          id: request.item_id,
+          name: request.equipment_name || (request.equipment && request.equipment.name) || "ไม่ระบุ",
+          code: request.equipment_code || (request.equipment && request.equipment.code) || "ไม่ระบุ",
+          category: request.equipment_category || (request.equipment && request.equipment.category) || "ไม่ระบุ",
+          image: request.equipment_pic || (request.equipment && request.equipment.image) || null,
+          equipment_pic_filename: request.equipment_pic_filename || null
+        },
+        requester: {
+          id: request.user_id,
+          name: request.requester_name || (request.user && request.user.name) || "ไม่ระบุ",
+          email: request.requester_email || (request.user && request.user.email) || "ไม่ระบุ",
+          phone: request.requester_phone || (request.user && request.user.phone) || "ไม่ระบุ"
+        }
+      }));
+      setRepairRequests(formattedData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching repair history:', error);
+      setRepairRequests([]);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRepairHistoryData();
+    
+    // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต repair history list แบบ real-time ===
+    const handleBadgeUpdate = () => {
+      fetchRepairHistoryData();
     };
-    fetchRepairRequests();
-  }, []);
+    const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
+    return unsubscribe;
+    // === จบ logic ===
+  }, [subscribeToBadgeCounts]);
 
   // ส่ง raw request (จาก response.data) ให้ RepairApprovalDialog เพื่อให้มีข้อมูลครบ
   const handleOpenDialog = (request) => {
@@ -339,7 +344,7 @@ export default function HistoryRepair() {
                         <div className="flex-shrink-0 h-15 w-15">
                           <img
                             className="h-full w-full object-contain rounded-lg"
-                            src={request.equipment?.image || request.equipment_pic || (request.equipment_pic_filename ? `${UPLOAD_BASE}/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
+                            src={request.equipment?.image || (request.equipment_pic_filename ? `${UPLOAD_BASE}/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
                             alt={request.equipment?.name || request.equipment_name}
                             onError={e => { e.target.src = "/placeholder-equipment.png"; }}
                           />
@@ -355,7 +360,7 @@ export default function HistoryRepair() {
                         <div className="flex-shrink-0 h-12 w-12">
                           <img
                             className="h-full w-full rounded-full object-cover"
-                            src={request.avatar ? (typeof request.avatar === 'string' && request.avatar.startsWith('http') ? request.avatar : `${UPLOAD_BASE}/uploads/user/${request.avatar}`) : "/placeholder-user.png"}
+                            src={request.requester?.avatar ? (typeof request.requester.avatar === 'string' && request.requester.avatar.startsWith('http') ? request.requester.avatar : `${UPLOAD_BASE}/uploads/user/${request.requester.avatar}`) : "/placeholder-user.png"}
                             alt={request.requester?.name || request.requester_name}
                             onError={e => { e.target.src = "/placeholder-user.png"; }}
                           />

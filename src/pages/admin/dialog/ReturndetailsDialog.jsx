@@ -235,7 +235,7 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                   </div>
                   <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-blue-200 shadow-sm">
                     <span className="text-sm font-medium text-gray-600">สถานะ</span>
-                    {console.log('DEBUG returnItem.status:', returnItem.status)}
+                    {/* Debug returnItem.status */}
                     {getStatusBadge(returnItem.status)}
                   </div>
                 </div>

@@ -59,7 +59,7 @@ const WebcamSignatureDialog = ({
                             }}
                             onUserMedia={() => setCameraReady(true)}
                             onUserMediaError={(error) => {
-                                console.error("Camera error:", error);
+                                // Camera error
                                 setCameraReady(false);
 
                                 // แสดง Permission Request Dialog สำหรับ permission errors

@@ -3,7 +3,8 @@ import {
   FunnelIcon,
   MagnifyingGlassIcon,
   QrCodeIcon,
-  TrashIcon
+  TrashIcon,
+  CurrencyDollarIcon
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
 import { useBadgeCounts } from '../../hooks/useSocket';
@@ -38,6 +39,7 @@ import Notification from "../../components/Notification";
 import ScannerDialog from "../../components/ScannerDialog";
 import ReturnFormDialog from "./dialog/ReturnFormDialog";
 import ReturndetailsDialog from "./dialog/ReturndetailsDialog";
+import DamageManagementDialog from "./dialog/DamageManagementDialog";
 
 
 
@@ -153,6 +155,10 @@ const ReturnList = () => {
   });
   const [paymentLoading, setPaymentLoading] = useState(false);
 
+  // Damage management dialog states
+  const [isDamageDialogOpen, setIsDamageDialogOpen] = useState(false);
+  const [selectedBorrowForDamage, setSelectedBorrowForDamage] = useState(null);
+
   // Current data states
   const [selectedBorrowedItem, setSelectedBorrowedItem] = useState(null);
   const [selectedReturnItem, setSelectedReturnItem] = useState(null);
@@ -178,14 +184,12 @@ const ReturnList = () => {
 
   // ฟังก์ชัน fetch returns ใหม่ (ใช้ทั้งใน useEffect และหลังคืนของ)
   const fetchReturns = async () => {
-    console.log('=== ReturnList fetchReturns Debug ===');
     const res = await authFetch(`${API_BASE}/returns`);
     if (res.status === 401) {
       window.location.href = '/login';
       return;
     }
     const data = await res.json();
-    console.log('Raw API response:', data);
 
     if (!Array.isArray(data)) {
       setReturns([]);
@@ -193,17 +197,6 @@ const ReturnList = () => {
     }
 
     // Debug: Check first item for signature_image, handover_photo, and important_documents
-    if (data.length > 0) {
-      console.log('First item data:', {
-        borrow_id: data[0].borrow_id,
-        borrow_code: data[0].borrow_code,
-        signature_image: data[0].signature_image ? 'EXISTS' : 'NULL/EMPTY',
-        handover_photo: data[0].handover_photo ? 'EXISTS' : 'NULL/EMPTY',
-        important_documents: data[0].important_documents ? 'EXISTS' : 'NULL/EMPTY',
-        important_documents_value: data[0].important_documents,
-        keys: Object.keys(data[0])
-      });
-    }
 
     // Mapping: ให้แน่ใจว่ามี field borrower และ equipment เป็น array
     const mapped = data.map(item => {
@@ -226,14 +219,7 @@ const ReturnList = () => {
       };
     });
 
-    console.log('Mapped data first item:', {
-      borrow_id: mapped[0]?.borrow_id,
-      borrow_code: mapped[0]?.borrow_code,
-      signature_image: mapped[0]?.signature_image ? 'EXISTS' : 'NULL/EMPTY',
-      handover_photo: mapped[0]?.handover_photo ? 'EXISTS' : 'NULL/EMPTY',
-      important_documents: mapped[0]?.important_documents ? 'EXISTS' : 'NULL/EMPTY',
-      important_documents_value: mapped[0]?.important_documents
-    });
+    // Mapped data first item
 
     setReturns(mapped);
   };
@@ -400,6 +386,39 @@ const ReturnList = () => {
     }
   };
 
+  // Damage management handlers
+  const handleManageDamage = (borrowItem) => {
+    setSelectedBorrowForDamage(borrowItem);
+    setIsDamageDialogOpen(true);
+  };
+
+  const handleDamageSubmit = async (damageData) => {
+    try {
+      // เรียก API เพื่อบันทึกข้อมูลความเสียหาย
+      const res = await authFetch(`${API_BASE}/damage-levels/${damageData.damage_id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: damageData.name,
+          fine_percent: damageData.fine_percent,
+          detail: damageData.detail
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data?.success) {
+        showNotification('บันทึกข้อมูลความเสียหายสำเร็จ', 'success');
+        setIsDamageDialogOpen(false);
+        // รีเฟรชข้อมูล
+        fetchReturns();
+      } else {
+        showNotification(data?.message || 'บันทึกข้อมูลความเสียหายไม่สำเร็จ', 'error');
+      }
+    } catch (error) {
+      showNotification('เกิดข้อผิดพลาดในการบันทึกข้อมูลความเสียหาย', 'error');
+    }
+  };
+
   // เพิ่มฟังก์ชันนี้เพื่อให้ ReturnFormDialog เรียกเมื่อยืนยันการคืน
   const handleReturnConfirm = async (returnData) => {
     await fetchReturns(); // ดึงข้อมูลใหม่ทันทีหลังคืนของ
@@ -409,8 +428,7 @@ const ReturnList = () => {
   };
 
   const handleViewDetails = async (returnItem) => {
-    console.log('DEBUG returnItem:', returnItem);
-    console.log('DEBUG returnItem.status:', returnItem?.status);
+    // Debug returnItem
     let enriched = returnItem;
     try {
       if (returnItem?.status === 'waiting_payment') {
@@ -634,6 +652,21 @@ const ReturnList = () => {
                   </>
                 )}
               </Button>
+              <Button
+                className="flex items-center gap-2 px-4 py-3 rounded-full bg-orange-600 text-white hover:bg-orange-700 transition-colors duration-200"
+                onClick={() => {
+                  // เปิด dialog สำหรับจัดการค่าเสียหายแบบ global
+                  setSelectedBorrowForDamage({
+                    borrow_code: 'GLOBAL',
+                    borrower: { name: 'ระบบทั่วไป' },
+                    equipment: { name: 'ครุภัณฑ์ทั้งหมด' },
+                    borrow_date: new Date().toISOString()
+                  });
+                  setIsDamageDialogOpen(true);
+                }}
+              >
+                <CurrencyDollarIcon className="h-4 w-4" /> จัดการค่าเสียหาย
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -663,7 +696,6 @@ const ReturnList = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedReturns.length > 0 ? (
                   paginatedReturns.map((item, idx) => (
-                    (console.log('DEBUG item.status:', item.status),
                     <tr key={item.borrow_id} className="hover:bg-gray-50">
                       <td className="w-24 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{item.borrow_code}</td>
                       <td className="w-48 px-6 py-4 whitespace-nowrap text-left">
@@ -751,7 +783,7 @@ const ReturnList = () => {
                           </Tooltip>
                         </div>
                       </td>
-                    </tr>)
+                    </tr>
                   ))
                 ) : (
                   <tr>
@@ -945,6 +977,14 @@ const ReturnList = () => {
             </div>
           </div>
         )}
+
+        {/* Damage Management Dialog */}
+        <DamageManagementDialog
+          isOpen={isDamageDialogOpen}
+          onClose={() => setIsDamageDialogOpen(false)}
+          borrowItem={selectedBorrowForDamage}
+          onSubmit={handleDamageSubmit}
+        />
 
         
       </Card>

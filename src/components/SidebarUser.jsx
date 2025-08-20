@@ -109,8 +109,14 @@ function SidebarUser({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen })
       } catch {}
     };
 
+    // Initial load
     computeCounts();
-    const unsubscribe = subscribeToBadgeCounts(() => computeCounts());
+    
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeToBadgeCounts(() => {
+      computeCounts();
+    });
+    
     return unsubscribe;
   }, [subscribeToBadgeCounts]);
 

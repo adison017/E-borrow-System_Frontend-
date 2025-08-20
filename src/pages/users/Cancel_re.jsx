@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { motion } from 'framer-motion';
 import BorrowingRequestDialog from "./dialogs/BorrowingRequestDialog";
 import { authFetch, API_BASE } from '../../utils/api';
+import { useBadgeCounts } from '../../hooks/useSocket';
 
 const RequirementList = () => {
   const [borrowList, setBorrowList] = useState([]);
@@ -11,7 +12,9 @@ const RequirementList = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const { subscribeToBadgeCounts } = useBadgeCounts();
+
+  const fetchCancelData = () => {
     // Get user info from localStorage
     const userStr = localStorage.getItem('user');
     let globalUserData = null;
@@ -49,7 +52,19 @@ const RequirementList = () => {
         setBorrowList([]);
         setLoading(false);
       });
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchCancelData();
+    
+    // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต cancel list แบบ real-time ===
+    const handleBadgeUpdate = () => {
+      fetchCancelData();
+    };
+    const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
+    return unsubscribe;
+    // === จบ logic ===
+  }, [subscribeToBadgeCounts]);
 
   const handleNext = (borrowId) => {
     setCurrentImageIndices(prev => {

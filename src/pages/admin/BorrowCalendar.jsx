@@ -395,27 +395,20 @@ const BorrowCalendar = () => {
         return;
       }
 
-      console.log('Making API call to:', `${API_BASE}/borrows`);
       const data = await getAllBorrows();
-      console.log('Fetched borrows data:', data);
-      console.log('Data type:', typeof data);
-      console.log('Is array:', Array.isArray(data));
 
       setDebugInfo(`ได้รับข้อมูล: ${Array.isArray(data) ? data.length : 'ไม่ใช่ array'} รายการ`);
 
       if (Array.isArray(data)) {
         setBorrows(data);
-        console.log('Set borrows state with', data.length, 'items');
         setDebugInfo(`โหลดข้อมูลสำเร็จ: ${data.length} รายการ`);
 
         // แสดงตัวอย่างข้อมูลแรก
         if (data.length > 0) {
-          console.log('Sample data:', data[0]);
           setDebugInfo(`โหลดข้อมูลสำเร็จ: ${data.length} รายการ - ตัวอย่าง: ${data[0].borrow_code}`);
         }
       } else if (data && data.message) {
         // กรณี API ส่ง error message กลับมา
-        console.error('API Error:', data.message);
         setDebugInfo(`API Error: ${data.message}`);
         setNotificationData({
           title: 'เกิดข้อผิดพลาด',
@@ -424,7 +417,6 @@ const BorrowCalendar = () => {
         });
         setShowNotification(true);
       } else {
-        console.error('Data is not an array:', data);
         setDebugInfo(`ข้อมูลไม่ถูกต้อง: ${typeof data} - ${JSON.stringify(data).slice(0, 100)}`);
 
         // ลองสร้างข้อมูลทดสอบ
@@ -444,12 +436,7 @@ const BorrowCalendar = () => {
         setDebugInfo(`ใช้ข้อมูลทดสอบ: ${testData.length} รายการ`);
       }
     } catch (error) {
-      console.error('Error fetching borrows:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        name: error.name
-      });
+      // Error fetching borrows
 
       setDebugInfo(`เกิดข้อผิดพลาด: ${error.message}`);
       setNotificationData({
@@ -481,13 +468,7 @@ const BorrowCalendar = () => {
 
      // แปลงข้อมูลการยืมเป็น events สำหรับปฏิทิน
    const events = useMemo(() => {
-     console.log('Creating events from borrows:', borrows);
-     console.log('Borrows length:', borrows.length);
-     console.log('Filter status:', filterStatus);
-     console.log('Search term:', searchTerm);
-
      if (!Array.isArray(borrows) || borrows.length === 0) {
-       console.log('No borrows data available');
        return [];
      }
 
@@ -505,11 +486,10 @@ const BorrowCalendar = () => {
          return matchesStatus && matchesSearch;
        });
 
-     console.log('Filtered borrows:', filteredBorrows);
-     console.log('Filtered borrows length:', filteredBorrows.length);
+
 
       const events = filteredBorrows.map(borrow => {
-       console.log('Processing borrow:', borrow.borrow_code, 'dates:', borrow.borrow_date, borrow.return_date);
+       // Processing borrow dates
 
        // สร้าง title ที่เข้าใจง่าย
        const borrowerName = borrow.borrower?.name || 'ไม่ระบุ';
@@ -528,12 +508,10 @@ const BorrowCalendar = () => {
 
          // ตรวจสอบว่าวันที่ถูกต้องหรือไม่
          if (isNaN(startDate.getTime())) {
-           console.warn('Invalid start date for borrow:', borrow.borrow_code);
            startDate = new Date(); // ใช้วันนี้เป็น default
          }
 
          if (isNaN(endDate.getTime())) {
-           console.warn('Invalid end date for borrow:', borrow.borrow_code);
            endDate = new Date(startDate.getTime() + 7*24*60*60*1000); // 7 วันหลังจาก start date
          }
 
@@ -543,7 +521,7 @@ const BorrowCalendar = () => {
          }
 
        } catch (error) {
-         console.error('Error parsing dates for borrow:', borrow.borrow_code, error);
+         // Error parsing dates for borrow
          startDate = new Date();
          endDate = new Date(startDate.getTime() + 7*24*60*60*1000);
        }
@@ -572,18 +550,9 @@ const BorrowCalendar = () => {
          }
        };
 
-       console.log('Created event:', {
-         id: event.id,
-         title: event.title.split('\n')[0], // แสดงแค่ borrow_code
-         start: event.start.toISOString(),
-         end: event.end.toISOString(),
-         status: event.status
-       });
-
        return event;
      });
 
-     console.log('Generated events:', events.length, 'events');
      return events;
    }, [borrows, filterStatus, searchTerm]);
 
@@ -664,7 +633,7 @@ const BorrowCalendar = () => {
 
   // จัดการเมื่อคลิก slot ว่าง
   const handleSelectSlot = (slotInfo) => {
-    console.log('Selected slot:', slotInfo);
+    // Handle slot selection
   };
 
   // จัดการเมื่อคลิก event

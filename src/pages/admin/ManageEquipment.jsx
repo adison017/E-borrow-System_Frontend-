@@ -234,7 +234,7 @@ function ManageEquipment() {
       notifyEquipmentAction("delete", selectedEquipment.name);
       setSelectedEquipment(null);
     } catch (error) {
-      console.error('Error deleting equipment:', error);
+      // Error deleting equipment
       notifyEquipmentAction("delete_error");
     } finally {
       setIsSubmitting(false);
@@ -292,7 +292,7 @@ function ManageEquipment() {
       saveAs(blob, 'equipment.xlsx');
       notifyEquipmentAction("export_success");
     } catch (error) {
-      console.error('Error exporting Excel:', error);
+      // Error exporting Excel
       notifyEquipmentAction("export_error");
     } finally {
       setIsExporting(false);
@@ -387,7 +387,7 @@ function ManageEquipment() {
         notifyEquipmentAction("repair_request", equipmentToUpdate.name);
       }
     } catch (error) {
-      console.error('Error submitting repair request:', error);
+      // Error submitting repair request
       notifyEquipmentAction("repair_request_error");
     }
     setRepairDialogOpen(false);
@@ -422,7 +422,7 @@ function ManageEquipment() {
 
   const handleInspectSubmit = async (inspectionData) => {
     try {
-      console.log('Inspection data received:', inspectionData);
+      // Inspection data received
 
       // Update equipment status in the local state
       const updatedEquipment = equipmentList.map(item => {
@@ -443,7 +443,7 @@ function ManageEquipment() {
       const statusText = inspectionData.status === 'พร้อมใช้งาน' ? 'พร้อมใช้งาน' : 'ชำรุด';
       notifyEquipmentAction("inspect_success", `${inspectionData.equipment.name} เป็น "${statusText}"`);
     } catch (error) {
-      console.error('Error handling inspection submit:', error);
+      // Error handling inspection submit
       notifyEquipmentAction("inspect_error");
     }
   };
@@ -465,7 +465,7 @@ function ManageEquipment() {
     if (isSubmitting) return;
     setIsSubmitting(true);
     const equipment = selectedEquipmentForPrint;
-    console.log('Downloading QR Code for:', equipment);
+    // Downloading QR Code
 
     // สร้าง canvas สำหรับ QR Code
     const canvas = document.createElement('canvas');
@@ -539,7 +539,7 @@ function ManageEquipment() {
 
         // แปลงเป็น blob และดาวน์โหลด
         canvas.toBlob((blob) => {
-          console.log('Canvas blob created:', blob);
+          // Canvas blob created
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
@@ -555,7 +555,7 @@ function ManageEquipment() {
           notifyEquipmentAction("qr_download_success", equipment.item_code);
         }, 'image/png');
       } else {
-        console.error('QR Code SVG not found');
+        // QR Code SVG not found
         notifyEquipmentAction("qr_download_error");
       }
     } catch (error) {
