@@ -17,7 +17,7 @@ export default function DeleteBranchDialog({ open, onClose, selectedBranch, onCo
         const user = JSON.parse(userStr);
         setCurrentUser(user);
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        // Error parsing user data
       }
     }
   }, []);
@@ -54,7 +54,7 @@ export default function DeleteBranchDialog({ open, onClose, selectedBranch, onCo
         setPinError("รหัสผ่านไม่ถูกต้อง");
       }
     } catch (error) {
-      console.error('Error in handlePinSubmit:', error);
+      // Error in handlePinSubmit
       setPinError(error.response?.data?.message || "รหัสผ่านไม่ถูกต้อง");
     }
   };

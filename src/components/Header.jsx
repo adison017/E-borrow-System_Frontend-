@@ -493,19 +493,13 @@ function Header({ userRole, changeRole }) {
     // Subscribe to real-time updates
     unsubscribe = subscribeToBadgeCounts((badges = {}) => {
       if (userRole === 'admin') {
-        const { pendingCount, carryCount, returnCount } = badges;
-        setAdminCounts(prev => ({
-          pending: typeof pendingCount === 'number' ? pendingCount : prev.pending,
-          carry: typeof carryCount === 'number' ? carryCount : prev.carry,
-          returns: typeof returnCount === 'number' ? returnCount : prev.returns,
-        }));
-        // Rebuild list lazily
+        // Always recompute from API to ensure accuracy (like executive)
         refreshAdmin();
       } else if (userRole === 'executive') {
         // Always recompute from API to ensure accuracy
         refreshExecutive();
       } else if (userRole === 'user') {
-        // For user, just refresh personal counts on any badge update
+        // Always recompute from API to ensure accuracy (like executive)
         refreshUser();
       }
     });

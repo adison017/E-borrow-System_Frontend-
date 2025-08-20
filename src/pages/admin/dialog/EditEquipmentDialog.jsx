@@ -176,9 +176,7 @@ export default function EditEquipmentDialog({
       if (dataToSave.pic instanceof File) {
         setIsUploading(true);
         try {
-          console.log('[EDIT EQUIPMENT] Uploading image for item_code:', dataToSave.item_code);
           dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
-          console.log('[EDIT EQUIPMENT] Image uploaded successfully:', dataToSave.pic);
           setUploadSuccess(true);
           setTimeout(() => setUploadSuccess(false), 3000); // แสดงข้อความ 3 วินาที
         } finally {
@@ -191,7 +189,7 @@ export default function EditEquipmentDialog({
       onSave(payload);
       onClose();
     } catch (error) {
-      console.error('[EDIT EQUIPMENT] Error during submit:', error);
+      // Error during submit
       setMissingFields([`เกิดข้อผิดพลาด: ${error.message}`]);
     }
   };

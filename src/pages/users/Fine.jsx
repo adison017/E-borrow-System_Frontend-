@@ -9,6 +9,7 @@ import { MdPayment } from "react-icons/md";
 import { FaMoneyCheckAlt } from "react-icons/fa";
 import { API_BASE, authFetch } from '../../utils/api';
 import { toast } from 'react-toastify';
+import { useBadgeCounts } from '../../hooks/useSocket';
 
 const Fine = () => {
   const [fineList, setFineList] = useState([]);
@@ -23,7 +24,9 @@ const Fine = () => {
   const [paymentSettings, setPaymentSettings] = useState(null);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState(null);
+  const [damageLevels, setDamageLevels] = useState([]); // เพิ่ม state สำหรับ damage levels
 
+  const { subscribeToBadgeCounts } = useBadgeCounts();
 
   // Get user info from localStorage
   const userStr = localStorage.getItem('user');
@@ -34,7 +37,7 @@ const Fine = () => {
     } catch (e) {}
   }
 
-  useEffect(() => {
+  const fetchFineData = () => {
     const user_id = globalUserData?.user_id;
     if (!user_id) {
       setLoading(false);
@@ -48,7 +51,19 @@ const Fine = () => {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchFineData();
+    
+    // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต fine list แบบ real-time ===
+    const handleBadgeUpdate = () => {
+      fetchFineData();
+    };
+    const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
+    return unsubscribe;
+    // === จบ logic ===
+  }, [subscribeToBadgeCounts]);
 
   // Load payment settings for displaying method (PromptPay / Bank)
   useEffect(() => {
@@ -70,6 +85,22 @@ const Fine = () => {
     loadPaymentSettings();
   }, []);
 
+  // Load damage levels for condition status
+  useEffect(() => {
+    const loadDamageLevels = async () => {
+      try {
+        const res = await authFetch(`${API_BASE}/damage-levels`);
+        const data = await res.json();
+        if (data?.success && data?.data) {
+          setDamageLevels(data.data);
+        }
+      } catch (_) {
+        // ignore UI failure silently
+      }
+    };
+    loadDamageLevels();
+  }, []);
+
   // รับฟัง event appNotify เพื่อแสดงข้อความที่ถูกต้อง
   useEffect(() => {
     const handleAppNotify = (event) => {
@@ -78,7 +109,7 @@ const Fine = () => {
         // แสดงข้อความ "รอผู้ใช้งานทำรายการใหม่" แทน success alert
         setShowSuccessAlert(false);
         setShowRejectAlert(true);
-        console.log('ได้รับข้อความ:', message);
+        // Message received from server
       }
     };
 
@@ -118,7 +149,7 @@ const Fine = () => {
   };
 
   const closeDialog = (shouldShowAlert = false) => {
-    console.log('closeDialog called');
+    // Close dialog function called
     const currentBorrowId = selectedRequest?.borrow_id;
     setIsDialogOpen(false);
     setSelectedRequest(null);
@@ -134,7 +165,7 @@ const Fine = () => {
           const updatedRequest = updatedData.find(req => req.borrow_id === currentBorrowId);
           if (updatedRequest && (updatedRequest.pay_status === 'awaiting_payment' || updatedRequest.pay_status === 'failed')) {
             // ถ้าสถานะเป็น "awaiting_payment" หรือ "failed" ไม่ต้องแสดง success alert
-            console.log('ไม่แสดง success alert เพราะสถานะเป็น "รอยืนยันชำระ" หรือ "การชำระผิดพลาด"');
+            // Skip success alert for pending or failed payment status
           } else {
             setShowSuccessAlert(true);
           }
@@ -170,29 +201,20 @@ const Fine = () => {
 
   // ฟังก์ชันแปลง fine_percent เป็นสภาพครุภัณฑ์และสี
   function getConditionInfo(fine_percent) {
-    console.log('fine_percent received:', fine_percent);
+            // Fine percentage received from server
     const percent = Number(fine_percent) || 0;
-    if (percent >= 70) return { text: 'ชำรุด', color: 'bg-red-100 text-red-700 border-red-400' };
+    if (percent >= 50) return { text: 'ชำรุด', color: 'bg-red-100 text-red-700 border-red-400' };
     if (percent >= 30) return { text: 'ปานกลาง', color: 'bg-yellow-100 text-yellow-800 border-yellow-400' };
     return { text: 'ดี', color: 'bg-green-100 text-green-700 border-green-400' };
   }
 
   // ฟังก์ชันแปลง damage_level_id เป็นข้อความและสี
   function getConditionStatus(damage_level_id) {
-    switch (Number(damage_level_id)) {
-      case 5:
-        return { text: 'สภาพดี', color: 'bg-green-100 text-green-700 border-green-400' };
-      case 6:
-        return { text: 'ชำรุดเล็กน้อย', color: 'bg-yellow-100 text-yellow-800 border-yellow-400' };
-      case 7:
-        return { text: 'ชำรุดปานกลาง', color: 'bg-orange-100 text-orange-800 border-orange-400' };
-      case 8:
-        return { text: 'ชำรุดหนัก', color: 'bg-red-100 text-red-700 border-red-400' };
-      case 9:
-        return { text: 'สูญหาย', color: 'bg-gray-300 text-gray-800 border-gray-400' };
-      default:
-        return { text: 'ดี', color: 'bg-green-100 text-green-700 border-green-400' };
+    const level = damageLevels.find(dl => dl.damage_id === Number(damage_level_id));
+    if (level) {
+      return { text: level.name, color: level.color_class };
     }
+    return { text: 'ดี', color: 'bg-green-100 text-green-700 border-green-400' };
   }
 
   if (loading) return (

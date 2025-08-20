@@ -166,7 +166,7 @@ function formatThaiDateTime(dateStr) {
 const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine, showImageModal, activeStep, dialogShouldClose, forceOpen, afterClose }) => {
   if (!request && !showSuccessAlert) return null;
 
-  console.log('BorrowingRequestDialog request:', request);
+      // BorrowingRequestDialog request received
 
   // Determine current step based on status
   let currentStep = 1;
@@ -278,7 +278,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
 
         // แปลงเป็น blob และดาวน์โหลด
         canvas.toBlob((blob) => {
-          console.log('Canvas blob created:', blob);
+          // Canvas blob created successfully
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
@@ -294,7 +294,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
       };
 
       img.onerror = (error) => {
-        console.error('Error loading SVG image:', error);
+        // Error loading SVG image
         // ลองใช้วิธีสำรอง
         try {
           // สร้าง QR Code ใหม่โดยตรง
@@ -354,14 +354,14 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
 
           fallbackImg.src = fallbackUrl;
         } catch (fallbackError) {
-          console.error('Fallback error:', fallbackError);
+          // Fallback error occurred
           setIsDownloadingQR(false);
         }
       };
 
       img.src = svgUrl;
     } catch (error) {
-      console.error('Error downloading QR code:', error);
+              // Error downloading QR code
       setIsDownloadingQR(false);
     }
   };
@@ -369,7 +369,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
   // ถ้า dialogShouldClose เป็น true และ afterClose มี ให้ปิด dialog จริง
   useEffect(() => {
     if (dialogShouldClose && afterClose) {
-      console.log('afterClose called');
+      // afterClose function called
       afterClose();
     }
   }, [dialogShouldClose, afterClose]);
@@ -659,7 +659,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                             if (afterClose) afterClose(true);
                           }, 1500);
                         } catch (err) {
-                          console.error('Submit slip error:', err);
+                          // Submit slip error occurred
                           setUploadError("เกิดข้อผิดพลาดในการส่งสลิป: " + err.message);
                         } finally {
                           setIsUploading(false);
@@ -816,7 +816,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
         type="success"
         duration={3000}
         onClose={() => {
-          console.log('AlertDialog onClose called');
+          // AlertDialog onClose function called
           setShowSuccessAlert(false);
           if (onClose) onClose();
         }}

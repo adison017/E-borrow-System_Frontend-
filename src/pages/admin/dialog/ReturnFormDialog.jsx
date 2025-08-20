@@ -61,17 +61,26 @@ const ReturnFormDialog = ({
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    console.log('[FRONTEND] Fetching damage levels...');
+    // FRONTEND: Fetching damage levels
     fetch(`${API_BASE}/damage-levels`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
       .then(data => {
-        console.log('[FRONTEND] Received damage levels:', data);
-        setDamageLevels(data);
+        // FRONTEND: Received damage levels
+        // ตรวจสอบว่า data เป็น array หรือมี data property
+        if (Array.isArray(data)) {
+          setDamageLevels(data);
+        } else if (data && data.success && Array.isArray(data.data)) {
+          setDamageLevels(data.data);
+        } else {
+          setDamageLevels([]);
+        }
       })
       .catch(err => {
-        console.error('[FRONTEND] Error fetching damage levels:', err);
+        // FRONTEND: Error fetching damage levels
+        console.error('Error fetching damage levels:', err);
+        setDamageLevels([]);
       });
   }, []);
 
@@ -156,13 +165,6 @@ const ReturnFormDialog = ({
   if (!isOpen || !borrowedItem) return null;
 
   // Debug: Check important_documents data
-  console.log('ReturnFormDialog - borrowedItem:', {
-    borrow_id: borrowedItem.borrow_id,
-    borrow_code: borrowedItem.borrow_code,
-    important_documents: borrowedItem.important_documents ? 'EXISTS' : 'NULL/EMPTY',
-    important_documents_value: borrowedItem.important_documents,
-    important_documents_type: typeof borrowedItem.important_documents
-  });
 
   const handleConfirm = () => {
     setIsSubmitting(true);
@@ -276,31 +278,29 @@ const ReturnFormDialog = ({
     const proofImage = null;
 
     // === เพิ่ม logic คำนวณ fine_amount ของแต่ละชิ้น ===
-    console.log('[FRONTEND] Original itemConditions:', itemConditions);
-    console.log('[FRONTEND] Equipment items:', equipmentItems);
-    console.log('[FRONTEND] Damage levels:', damageLevels);
+    // FRONTEND: Original itemConditions, Equipment items, Damage levels
 
     const itemConditionsWithFine = {};
     equipmentItems.forEach(eq => {
       const cond = itemConditions[eq.item_id] || {};
-      console.log(`[FRONTEND] Processing equipment ${eq.item_code} (item_id: ${eq.item_id}):`, cond);
+      // FRONTEND: Processing equipment
 
       const level = damageLevels.find(dl => String(dl.damage_id) === String(cond.damageLevelId));
-      console.log(`[FRONTEND] Found damage level for ${eq.item_code}:`, level);
+              // FRONTEND: Found damage level
 
       let fine = 0;
       if (level && level.fine_percent) {
         const price = Number(eq.price || 0);
         const percent = Number(level.fine_percent) / 100;
         fine = Math.round(price * percent * (eq.quantity || 1));
-        console.log(`[FRONTEND] Calculated fine for ${eq.item_code}: price=${price}, percent=${percent}, fine=${fine}`);
+        // FRONTEND: Calculated fine
       }
       itemConditionsWithFine[eq.item_id] = {
         ...cond,
         fine_amount: fine
       };
     });
-    console.log('[FRONTEND] Final itemConditionsWithFine:', itemConditionsWithFine);
+    // FRONTEND: Final itemConditionsWithFine
     // === จบ logic ===
 
     const payload = {
@@ -320,7 +320,7 @@ const ReturnFormDialog = ({
       paymentMethod,
       item_conditions: itemConditionsWithFine, // ส่งแบบใหม่
     };
-    console.log('submit payload', payload);
+    // submit payload
     notify('กำลังส่งข้อมูลการคืน... ดู log เพิ่มเติมใน console', 'info');
     try {
       const res = await authFetch(`${API_BASE}/returns`, {
@@ -328,10 +328,10 @@ const ReturnFormDialog = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      console.log('API /returns response:', res);
+              // API /returns response
       if (!res.ok) {
         const errText = await res.text();
-        console.error('API /returns error:', errText);
+                  // API /returns error
         alert('เกิดข้อผิดพลาดในการบันทึกการคืน: ' + errText);
         throw new Error('เกิดข้อผิดพลาดในการบันทึกการคืน: ' + errText);
       }
@@ -343,7 +343,7 @@ const ReturnFormDialog = ({
       }
       onClose();
     } catch (err) {
-      console.error('Return error:', err);
+      // Return error
       notify(err.message || 'เกิดข้อผิดพลาดในการบันทึกการคืน', 'error');
       alert('เกิดข้อผิดพลาด: ' + (err.message || 'ไม่ทราบสาเหตุ'));
       setIsSubmitting(false);
@@ -772,35 +772,49 @@ const ReturnFormDialog = ({
                           <div className="text-xs text-gray-500 mt-0.5 leading-tight">{eq.item_code}</div>
                         </div>
                       </div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-3 mt-2">เลือกสภาพครุภัณฑ์</label>
-                      <select
-                        value={itemConditions[eq.item_id]?.damageLevelId || ''}
-                        onChange={e => {
-                          console.log(`[FRONTEND] User selected damage level for ${eq.item_code} (item_id: ${eq.item_id}):`, e.target.value);
-                          setItemConditions(prev => {
-                            const newState = {
-                              ...prev,
-                              [eq.item_id]: {
-                                ...prev[eq.item_id],
-                                damageLevelId: e.target.value
-                              }
-                            };
-                            console.log(`[FRONTEND] Updated itemConditions state:`, newState);
-                            return newState;
-                          });
-                        }}
-                        className="w-full p-3 border-2 border-blue-200 rounded-xl bg-white text-gray-800 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 hover:border-blue-300"
-                      >
-                        <option value="" disabled className="text-gray-400">
-                          เลือกสภาพครุภัณฑ์
-                        </option>
-                        {Array.isArray(damageLevels) && damageLevels.map(dl => (
-                          <option key={dl.damage_id} value={dl.damage_id} className="text-gray-800">
-                            {dl.name}{dl.fine_percent !== undefined && dl.fine_percent !== null && ` (${dl.fine_percent}%)`}
-                          </option>
-                        ))}
-                      </select>
-                      {/* แสดง detail ของ damageLevels ที่เลือก */}
+                      <label className="block text-sm font-semibold text-gray-700 mb-1 mt-2" htmlFor={`condition-select-${eq.item_id}`}>เลือกสภาพครุภัณฑ์</label>
+                      <div className="relative">
+                        <select
+                          id={`condition-select-${eq.item_id}`}
+                          className="w-full p-2.5 border-2 border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-500 text-gray-800 bg-white transition-all duration-150 appearance-none pr-10 shadow-sm hover:border-blue-400"
+                          value={itemConditions[eq.item_id]?.damageLevelId || ''}
+                          onChange={e => {
+                            console.log(`[FRONTEND] User selected damage level for ${eq.item_code} (item_id: ${eq.item_id}):`, e.target.value);
+                            setItemConditions(prev => {
+                              const newState = {
+                                ...prev,
+                                [eq.item_id]: {
+                                  ...prev[eq.item_id],
+                                  damageLevelId: e.target.value
+                                }
+                              };
+                              console.log(`[FRONTEND] Updated itemConditions state:`, newState);
+                              return newState;
+                            });
+                          }}
+                        >
+                          <option value="">เลือกสภาพ</option>
+                          {Array.isArray(damageLevels) && damageLevels
+                            .sort((a, b) => Number(a.fine_percent) - Number(b.fine_percent))
+                            .map(dl => {
+                            let badge = '';
+                            if (dl.name?.includes('ดี')) badge = '🟢';
+                            else if (dl.name?.includes('เล็กน้อย')) badge = '🟡';
+                            else if (dl.name?.includes('ปานกลาง')) badge = '🟠';
+                            else if (dl.name?.includes('หนัก')) badge = '🔴';
+                            else if (dl.name?.includes('สูญหาย')) badge = '⚫';
+                            return (
+                              <option key={dl.damage_id} value={dl.damage_id}>
+                                {badge} {dl.name} {dl.fine_percent !== undefined && dl.fine_percent !== null ? `${dl.fine_percent}%` : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                          <svg className="h-5 w-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                        </div>
+                      </div>
+                      {/* แสดง detail ของ damageLevels ที่เลือกเป็นข้อความเล็กๆ พร้อม badge สี */}
                       {(() => {
                         const selectedId = itemConditions[eq.item_id]?.damageLevelId;
                         const selectedLevel = Array.isArray(damageLevels) ? damageLevels.find(dl => String(dl.damage_id) === String(selectedId)) : null;

@@ -473,7 +473,6 @@ const ManageNews = () => {
     } finally {
       // รีเซ็ต loading state
       setIsSubmitting(false);
-      console.log('isSubmitting set to FALSE (finally block)');
     }
   };
 

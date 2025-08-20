@@ -116,15 +116,12 @@ const BorrowList = () => {
   useEffect(() => {
     getAllBorrows()
       .then(data => {
-        console.log('API /api/borrows response:', data);
         if (Array.isArray(data)) {
           setBorrows(data);
-          console.log('setBorrows:', data);
         }
       })
       .catch(err => {
-        // สามารถแจ้งเตือนหรือ log error ได้
-        console.error('เกิดข้อผิดพลาดในการโหลดข้อมูลการยืม:', err);
+        // Error loading borrow data
       });
     // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต borrow list แบบ real-time ===
     const handleBadgeUpdate = () => {

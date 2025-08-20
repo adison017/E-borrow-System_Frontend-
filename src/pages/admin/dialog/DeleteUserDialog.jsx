@@ -23,7 +23,7 @@ export default function DeleteUserDialog({
         const user = JSON.parse(userStr);
         setCurrentUser(user);
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        // Error handling
       }
     }
   }, []);
@@ -34,18 +34,14 @@ export default function DeleteUserDialog({
 
   const handlePinSubmit = async (e) => {
     e.preventDefault();
-    console.log('handlePinSubmit called with pin:', pin);
 
     if (!currentUser) {
-      console.log('No currentUser found');
       setPinError("ไม่พบข้อมูลผู้ใช้ปัจจุบัน");
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
-      console.log('Token:', token ? 'exists' : 'missing');
-      console.log('Sending request to verify password...');
 
       const response = await axios.post(`${API_BASE}/users/verify-password`,
         { password: pin },
@@ -57,21 +53,15 @@ export default function DeleteUserDialog({
         }
       );
 
-      console.log('Response:', response.data);
-
       if (response.data.success) {
-        console.log('Password verified successfully, calling onConfirm');
         setPinOpen(false);
         setPin("");
         setPinError("");
         onConfirm();
       } else {
-        console.log('Password verification failed');
         setPinError("รหัสผ่านไม่ถูกต้อง");
       }
     } catch (error) {
-      console.error('Error in handlePinSubmit:', error);
-      console.error('Error response:', error.response?.data);
       setPinError(error.response?.data?.message || "รหัสผ่านไม่ถูกต้อง");
     }
   };

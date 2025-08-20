@@ -65,9 +65,9 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
       try {
         const user = JSON.parse(userStr);
         setCurrentUser(user);
-      } catch (error) {
-        console.error('Error parsing user data:', error);
-      }
+          } catch (error) {
+      // Error parsing user data
+    }
     }
 
     const fetchData = async () => {
@@ -90,54 +90,34 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
         // If we have user data, set the address data
         if (userData) {
-          console.log('Setting initial address data for user:', {
-            province: userData.province,
-            district: userData.district,
-            parish: userData.parish,
-            postal_no: userData.postal_no
-          });
+          // Setting initial address data for user
 
           // Find the matching province
           const province = provincesResponse.find(p => p.name_th === userData.province);
           if (province) {
-            console.log('Found matching province:', province.name_th);
             setAmphures(province.amphure);
 
             // Find the matching amphure (district)
             const amphure = province.amphure.find(a => a.name_th === userData.district);
             if (amphure) {
-              console.log('Found matching district:', amphure.name_th);
               setTambons(amphure.tambon);
 
               // Find the matching tambon (parish)
               const tambon = amphure.tambon.find(t => t.name_th === userData.parish);
               if (tambon) {
-                console.log('Found matching parish:', tambon.name_th);
                 setSelected({
                   province_id: province.id,
                   amphure_id: amphure.id,
                   tambon_id: tambon.id
                 });
-              } else {
-                console.log('No matching parish found for:', userData.parish);
               }
-            } else {
-              console.log('No matching district found for:', userData.district);
             }
-          } else {
-            console.log('No matching province found for:', userData.province);
           }
         }
 
-        console.log('Fetched data:', {
-          positions: positionsResponse.data,
-          branches: branchesResponse.data,
-          roles: rolesResponse.data,
-          provinces: provincesResponse,
-          userData: userData
-        });
+        // Fetched data successfully
       } catch (error) {
-        console.error('Error fetching data:', error);
+        // Error fetching data
       }
     };
 
@@ -220,7 +200,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   useEffect(() => {
     if (userData) {
       const avatarPath = getAvatarUrl(userData.avatar);
-      console.log('Setting form data with user data:', userData);
+              // Setting form data with user data
 
       // Find province, amphure, and tambon IDs based on names
       const province = provinces.find(p => p.name_th === userData.province);
@@ -272,11 +252,11 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    console.log('Handling change for:', name, 'with value:', value);
+            // Handling change
 
     if (name === 'position_name') {
       const selectedPosition = positions.find(p => p.position_name === value);
-      console.log('Selected position:', selectedPosition);
+              // Selected position
       setFormData(prev => ({
         ...prev,
         position_name: value,
@@ -284,7 +264,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
       }));
     } else if (name === 'branch_name') {
       const selectedBranch = branches.find(b => b.branch_name === value);
-      console.log('Selected branch:', selectedBranch);
+              // Selected branch
       setFormData(prev => ({
         ...prev,
         branch_name: value,
@@ -292,7 +272,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
       }));
     } else if (name === 'role_name') {
       const selectedRole = roles.find(r => r.role_name === value);
-      console.log('Selected role:', selectedRole);
+              // Selected role
       setFormData(prev => ({
         ...prev,
         role_name: value,
@@ -359,18 +339,17 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
   const handlePinSubmit = async (e) => {
     e.preventDefault();
-    console.log('handlePinSubmit called with pin:', pin);
+    // handlePinSubmit called
 
     if (!currentUser) {
-      console.log('No currentUser found');
+              // No currentUser found
       setPinError("ไม่พบข้อมูลผู้ใช้ปัจจุบัน");
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
-      console.log('Token:', token ? 'exists' : 'missing');
-      console.log('Sending request to verify password...');
+              // Token check and sending request
 
       const response = await axios.post(`${API_BASE}/users/verify-password`,
         { password: pin },
@@ -382,21 +361,20 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         }
       );
 
-      console.log('Response:', response.data);
+              // Response received
 
       if (response.data.success) {
-        console.log('Password verified successfully, calling handleSubmit');
+                  // Password verified successfully
         setShowPin(false);
         setPin("");
         setPinError("");
         handleSubmit(); // call the real submit
       } else {
-        console.log('Password verification failed');
+                  // Password verification failed
         setPinError("รหัสผ่านไม่ถูกต้อง");
       }
     } catch (error) {
-      console.error('Error in handlePinSubmit:', error);
-      console.error('Error response:', error.response?.data);
+              // Error in handlePinSubmit
       setPinError(error.response?.data?.message || "รหัสผ่านไม่ถูกต้อง");
     }
   };
@@ -404,7 +382,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   // ปรับ handleSubmit ให้ไม่รับ event ถ้ามาจาก PIN
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    console.log('handleSubmit called');
+    // handleSubmit called
     setIsLoading(true);
     setError(null);
 
@@ -418,16 +396,15 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     try {
       // ตรวจสอบรูปภาพ - ถ้าเป็น Cloudinary URL ใช้เลย ถ้าเป็น File ให้อัปโหลดก่อน
       let avatarUrl = formData.pic;
-      console.log('formData.pic type:', typeof formData.pic);
-      console.log('formData.pic:', formData.pic);
+              // formData.pic type and value
 
       if (formData.pic && typeof formData.pic === 'string' && formData.pic.includes('cloudinary.com')) {
         // ถ้าเป็น Cloudinary URL ใช้เลย
-        console.log('Using existing Cloudinary URL');
+                  // Using existing Cloudinary URL
         avatarUrl = formData.pic;
       } else if (formData.pic instanceof File) {
         // ถ้าเป็น File ให้อัปโหลดก่อน
-        console.log('Uploading file to Cloudinary...');
+                  // Uploading file to Cloudinary
         const formDataImage = new FormData();
         formDataImage.append('user_code', formData.user_code);
         formDataImage.append('avatar', formData.pic);
@@ -440,18 +417,15 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
             }
           });
           if (uploadResponse.data && uploadResponse.data.url) {
-            console.log('File uploaded successfully:', uploadResponse.data.url);
+            // File uploaded successfully
             avatarUrl = uploadResponse.data.url;
           }
         } catch (uploadError) {
-          console.error('Upload error:', uploadError);
           setError(uploadError.response?.data?.message || 'เกิดข้อผิดพลาดในการอัพโหลดรูปภาพ');
           setIsLoading(false);
           return;
         }
-      } else {
-        console.log('Using existing avatar URL or default');
-      }
+              }
       const updateData = {
         user_id: formData.user_id,
         user_code: formData.user_code,
@@ -473,18 +447,13 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         updateData.password = formData.password;
       }
 
-      console.log('Update data:', updateData);
-
       const validationErrors = validateForm(updateData);
-      console.log('Validation errors:', validationErrors);
 
       if (Object.keys(validationErrors).length > 0) {
-        console.log('Validation failed');
         setError('กรุณากรอกข้อมูลให้ครบถ้วน');
         setIsLoading(false);
         return;
       }
-      console.log('Sending PATCH request to update user...');
       const response = await axios.patch(
         `${API_BASE}/users/id/${formData.user_id}`,
         updateData,
@@ -496,18 +465,11 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         }
       );
 
-      console.log('PATCH response:', response.data);
-
       if (response.data?.user) {
-        console.log('Update successful, calling onSave and onClose');
         onSave(response.data.user);
         onClose();
-      } else {
-        console.log('No user data in response');
       }
     } catch (error) {
-      console.error('Error in handleSubmit:', error);
-      console.error('Error response:', error.response?.data);
       setError(error.response?.data?.message || 'เกิดข้อผิดพลาดในการอัพเดทข้อมูล');
     } finally {
       setIsLoading(false);

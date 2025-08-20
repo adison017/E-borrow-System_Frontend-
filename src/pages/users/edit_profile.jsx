@@ -70,7 +70,7 @@ const PersonalInfoEdit = () => {
         setBranches(branchesResponse.data);
         setRoles(rolesResponse.data);
       } catch (error) {
-        console.error('Error fetching data:', error);
+        // Error fetching data
       }
     };
 
@@ -112,12 +112,7 @@ const PersonalInfoEdit = () => {
     }
 
     if (globalUserData) {
-      console.log('=== Initial Data Load ===');
-      console.log('Global user data:', globalUserData);
-      console.log('Avatar from global data:', globalUserData.avatar);
-
       const avatarPath = getAvatarUrl(globalUserData.avatar);
-      console.log('Generated avatar path:', avatarPath);
 
       setFormData({
         user_id: globalUserData.user_id,
@@ -140,11 +135,7 @@ const PersonalInfoEdit = () => {
         postal_no: globalUserData.postal_no || '',
         password: ''
       });
-      console.log('Form data set with avatar:', globalUserData.avatar);
       setPreviewImage(avatarPath);
-      console.log('Preview image set to:', avatarPath);
-    } else {
-      console.log('No global user data available');
     }
   }, []); // <--- Only run once
 
@@ -154,7 +145,6 @@ const PersonalInfoEdit = () => {
   useEffect(() => {
     const handleProfileImageUpdate = (event) => {
       if (event.detail && event.detail.imagePath) {
-        console.log('Profile image update event received:', event.detail.imagePath);
         setPreviewImage(event.detail.imagePath);
       }
     };
@@ -535,8 +525,6 @@ const PersonalInfoEdit = () => {
                           alt="Profile"
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            console.error('Image load error:', e);
-                            console.log('Failed to load image:', previewImage);
                             e.target.onerror = null;
                             e.target.src = "/logo_it.png";
                           }}
@@ -548,7 +536,6 @@ const PersonalInfoEdit = () => {
                             alt="Default Profile"
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              console.error('Default image load error:', e);
                               e.target.onerror = null;
                             }}
                           />

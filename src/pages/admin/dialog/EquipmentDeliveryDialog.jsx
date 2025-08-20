@@ -156,7 +156,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
         setIsSubmitting(true);
         try {
             // ตรวจสอบว่า borrow มี property อะไรบ้าง (debug)
-            console.log('DEBUG borrow object:', borrow);
+            // Debug borrow object
             const id = borrow && (borrow.borrow_id || borrow.id);
             if (!id) {
                 setIsSubmitting(false);

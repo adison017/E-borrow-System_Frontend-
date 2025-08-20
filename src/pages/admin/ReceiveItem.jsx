@@ -94,17 +94,7 @@ const ReceiveItem = () => {
   useEffect(() => {
     // Fetch borrows from backend
     getAllBorrows().then(data => {
-      console.log('=== DEBUG: getAllBorrows response ===');
-      console.log('Data type:', typeof data);
-      console.log('Is array:', Array.isArray(data));
-      console.log('Data length:', data?.length);
-      if (Array.isArray(data) && data.length > 0) {
-        console.log('First item structure:', data[0]);
-        console.log('First item equipment:', data[0].equipment);
-        console.log('First item borrow_date:', data[0].borrow_date);
-        console.log('First item return_date:', data[0].return_date);
-        console.log('First item due_date:', data[0].due_date);
-      }
+      // DEBUG: getAllBorrows response
       setBorrows(Array.isArray(data) ? data : []);
     });
     // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต receive list แบบ real-time ===
@@ -215,28 +205,23 @@ const ReceiveItem = () => {
   };
 
   const handleDeliveryConfirm = async (deliveryData) => {
-    console.log('=== handleDeliveryConfirm Debug ===');
-    console.log('deliveryData:', deliveryData);
-    console.log('signature_image exists:', !!deliveryData.signature_image);
-    console.log('signature_image starts with data:image/:', deliveryData.signature_image?.startsWith('data:image/'));
-    console.log('handover_photo exists:', !!deliveryData.handover_photo);
-    console.log('handover_photo starts with data:image/:', deliveryData.handover_photo?.startsWith('data:image/'));
+    // handleDeliveryConfirm Debug
 
     // ต้องเป็น base64 เท่านั้น (กรณีเซ็นใหม่) ถ้าไม่ใช่ให้แจ้งเตือน
     if (!deliveryData.signature_image || !deliveryData.signature_image.startsWith('data:image/')) {
-      console.log('❌ Invalid signature_image');
+      // Invalid signature_image
       notifyReceiveAction("no_signature");
       return;
     }
 
     // ตรวจสอบ handover_photo
     if (!deliveryData.handover_photo || !deliveryData.handover_photo.startsWith('data:image/')) {
-      console.log('❌ Invalid handover_photo');
+      // Invalid handover_photo
       notifyReceiveAction("no_handover_photo");
       return;
     }
 
-    console.log('✅ Both images are valid, calling updateBorrowStatus...');
+    // Both images are valid, calling updateBorrowStatus
     await updateBorrowStatus(
       deliveryData.borrow_id,
       'approved', // ส่ง status ที่ถูกต้อง
@@ -372,12 +357,7 @@ const ReceiveItem = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedDeliveries.length > 0 ? (
                   paginatedDeliveries.map((item, index) => {
-                    console.log(`=== DEBUG: Rendering item ${index} ===`);
-                    console.log('Item:', item);
-                    console.log('Equipment:', item.equipment);
-                    console.log('Equipment length:', item.equipment?.length);
-                    console.log('Borrow date:', item.borrow_date);
-                    console.log('Return date:', item.return_date);
+                        // DEBUG: Rendering item
                     return (
                       <tr key={item.borrow_id} className="hover:bg-gray-50">
                       <td className="w-28 px-4 py-4 whitespace-nowrap font-bold text-gray-900 text-left">{item.borrow_code}</td>

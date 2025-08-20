@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import { BiSearchAlt2 } from "react-icons/bi";
 import { UPLOAD_BASE } from '../../utils/api';
 import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
+import { useBadgeCounts } from '../../hooks/useSocket';
 
 export default function HistoryBorrow() {
   const [borrowRequests, setBorrowRequests] = useState([]);
@@ -31,6 +32,8 @@ export default function HistoryBorrow() {
   const rowsPerPage = 5;
   // ...existing code...
 
+  const { subscribeToBadgeCounts } = useBadgeCounts();
+
   // นับจำนวนแต่ละสถานะจากข้อมูลจริง (ป้องกัน borrowRequests ไม่ใช่ array)
   const statusCounts = Array.isArray(borrowRequests)
     ? borrowRequests.reduce((acc, request) => {
@@ -42,28 +45,27 @@ export default function HistoryBorrow() {
 
   // สถานะของคำขอยืม (พร้อม count จริง)
   const statusOptions = [
-    { value: "approved", label: "ถูกยืม", count: statusCounts["approved"] || 0 },
-    { value: "rejected", label: "ปฏิเสธ", count: statusCounts["rejected"] || 0 },
-    { value: "completed", label: "คืนแล้ว", count: statusCounts["completed"] || 0 },
-    { value: "waiting_payment", label: "ค้างชำระ", count: statusCounts["waiting_payment"] || 0 }
+    { value: "approved", label: "อนุมัติแล้ว", count: statusCounts.approved || 0 },
+    { value: "rejected", label: "ปฏิเสธ", count: statusCounts.rejected || 0 },
+    { value: "completed", label: "เสร็จสิ้น", count: statusCounts.completed || 0 },
+    { value: "waiting_payment", label: "ค้างชำระ", count: statusCounts.waiting_payment || 0 }
   ];
 
   const statusBadgeStyle = {
-    approved: "bg-blue-50 text-blue-800 border-blue-200",
+    approved: "bg-green-50 text-green-800 border-green-200",
     rejected: "bg-red-50 text-red-800 border-red-200",
-    completed: "bg-green-50 text-green-800 border-green-200",
+    completed: "bg-purple-50 text-purple-800 border-purple-200",
     waiting_payment: "bg-yellow-50 text-yellow-800 border-yellow-200"
   };
 
-
   const statusTranslation = {
-    approved: "ถูกยืม",
+    approved: "อนุมัติแล้ว",
     rejected: "ปฏิเสธ",
-    completed: "คืนแล้ว",
+    completed: "เสร็จสิ้น",
     waiting_payment: "ค้างชำระ"
   };
 
-  useEffect(() => {
+  const fetchHistoryData = () => {
     setLoading(true);
     // ดึง token จาก localStorage (หรือ session/cookie ตามที่ระบบใช้)
     const token = localStorage.getItem('token');
@@ -89,7 +91,19 @@ export default function HistoryBorrow() {
         setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล (401 Unauthorized)", type: "error" });
         setLoading(false);
       });
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchHistoryData();
+    
+    // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต history list แบบ real-time ===
+    const handleBadgeUpdate = () => {
+      fetchHistoryData();
+    };
+    const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
+    return unsubscribe;
+    // === จบ logic ===
+  }, [subscribeToBadgeCounts]);
 
   const handleOpenDialog = (request) => {
     setSelectedRequest(request);
@@ -230,9 +244,9 @@ export default function HistoryBorrow() {
                     (() => {
                       const active = statusFilter.includes(option.value);
                       const colorMap = {
-                        approved: 'blue',
+                        approved: 'green',
                         rejected: 'red',
-                        completed: 'green',
+                        completed: 'purple',
                         waiting_payment: 'yellow',
                       };
                       const color = colorMap[option.value] || 'gray';
