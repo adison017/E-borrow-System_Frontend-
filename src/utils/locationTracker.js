@@ -41,7 +41,7 @@ class LocationTracker {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })
         };
         
         console.log('Location object created:', location);
