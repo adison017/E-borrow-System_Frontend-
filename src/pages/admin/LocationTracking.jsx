@@ -163,11 +163,13 @@ const LocationTracking = () => {
                         {(() => {
                           const now = new Date();
                           const lastUpdate = new Date(borrower.last_location_update);
-                          const diffMs = now - lastUpdate;
+                          const diffMs = Math.max(0, now - lastUpdate);
                           const diffMins = Math.floor(diffMs / 60000);
                           const diffSecs = Math.floor((diffMs % 60000) / 1000);
                           
-                          if (diffMins < 1) {
+                          if (diffMs < 1000) {
+                            return `🟢 เพิ่งอัพเดท`;
+                          } else if (diffMins < 1) {
                             return `🟢 ${diffSecs} วินาทีที่แล้ว`;
                           } else if (diffMins < 60) {
                             return `🟡 ${diffMins} นาทีที่แล้ว`;
