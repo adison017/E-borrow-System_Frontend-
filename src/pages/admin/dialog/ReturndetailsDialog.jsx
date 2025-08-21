@@ -52,9 +52,6 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
     : null;
 
 
-
-
-
     const handleViewImage = (imagePath, title) => {
     if (!imagePath) return;
 
@@ -168,75 +165,140 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
   };
 
   return (
-    <>
     <div className="modal modal-open">
-      <div className="modal-box bg-white rounded-xl shadow-xl w-full max-w-8xl transform transition-all duration-300 max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <div className="flex items-center gap-3">
-              <div className="bg-blue-100 p-2.5 rounded-lg shadow-sm">
-                <DocumentCheckIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">รายละเอียดการคืนครุภัณฑ์</h2>
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <span className="text-sm font-mono font-medium text-blue-600">รหัสการยืม: {returnItem.borrow_code}</span>
+        <div data-theme="light" className="max-w-8xl w-full h-full max-h-[95vh] rounded-2xl shadow-2xl bg-gradient-to-br from-blue-50 to-indigo-50">
+          <div className="flex flex-col h-full">
+            {/* Enhanced Header with gradient and status badge */}
+            <div className="sticky z-10 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg rounded-2xl">
+              <div className="p-6">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-white/20 rounded-full backdrop-blur-sm">
+                      <DocumentCheckIcon className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <h2 className="text-xl font-bold text-white">
+                          รายละเอียดการคืนครุภัณฑ์
+                        </h2>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-white">
+                        <span className="flex items-center gap-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                          </svg>
+                          รหัส: <span className="font-mono font-semibold text-white">{returnItem.borrow_code || '-'}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="p-2 bg-white/20 hover:bg-white/30 text-white rounded-full transition-all duration-200 hover:scale-105"
+                  >
+                    <MdClose className="w-6 h-6" />
+                  </button>
                 </div>
               </div>
+              {/* Decorative wave */}
+              <div className="h-4 bg-gradient-to-r from-blue-500 to-indigo-600 mb-3">
+                <svg viewBox="0 0 1200 120" preserveAspectRatio="none" className="w-full h-full">
+                  <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" opacity=".25" fill="currentColor" className="text-blue-50"></path>
+                  <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" opacity=".5" fill="currentColor" className="text-blue-50"></path>
+                  <path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z" fill="currentColor" className="text-blue-50"></path>
+                </svg>
+              </div>
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 transition-all duration-200 p-2 rounded-xl hover:bg-gray-100 hover:scale-110 shadow-sm"
-            >
-              <MdClose className="w-6 h-6" />
-            </button>
-          </div>
+            <div className="overflow-y-auto p-6 flex-grow bg-gradient-to-b from-transparent to-blue-50/30">
 
           {/* Content */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Right/Borrower Info (1/3) */}
-            <div className="space-y-6">
-              <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 rounded-xl p-5 shadow-lg border border-blue-200/50">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-sm">
-                    <UserCircleIcon className="h-5 w-5 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-800">ข้อมูลผู้ยืม</h3>
+            {/* Borrower Info */}
+            <div className="space-y-6 lg:order-1">
+              {/* SectionHeader component */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-500 rounded-xl shadow-md">
+                  <span className="text-white">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                    </svg>
+                  </span>
                 </div>
-
-                <div className="flex flex-col items-center gap-4">
-                  <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-lg">
-                    <img
-                      src={
-                        returnItem.borrower.avatar
-                          ? returnItem.borrower.avatar.startsWith('http')
-                            ? returnItem.borrower.avatar
-                            : `${UPLOAD_BASE}/uploads/user/${returnItem.borrower.avatar}`
-                          : '/profile.png'
-                      }
-                      alt={returnItem.borrower.name}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-
-                  <div className="text-center">
-                    <p className="text-gray-500 "><span className="font-mono">{returnItem.borrower.student_id}</span></p>
-                    <p className="font-bold text-lg text-gray-800">{returnItem.borrower.name}</p>
-                    <p className="text-gray-500 ">{returnItem.borrower.position}</p>
-                    <p className="text-gray-500 mt-1">{returnItem.borrower.department}</p>
-                  </div>
+                <div>
+                  <h4 className="text-lg font-bold text-gray-800">ข้อมูลผู้ยืม</h4>
+                  <div className="w-12 h-1 bg-blue-500 rounded-full"></div>
                 </div>
-
-                <div className="mt-6 space-y-3">
-                  <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-blue-200 shadow-sm">
-                    <span className="text-sm font-medium text-gray-600">รหัสการยืม</span>
-                    <span className="font-mono text-blue-700">{returnItem.borrow_code}</span>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="p-6">
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative">
+                      <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-200 shadow-lg bg-gradient-to-br from-blue-100 to-indigo-100">
+                        <img
+                          src={
+                            returnItem.borrower.avatar
+                              ? returnItem.borrower.avatar.startsWith('http')
+                                ? returnItem.borrower.avatar
+                                : `${UPLOAD_BASE}/uploads/user/${returnItem.borrower.avatar}`
+                              : '/profile.png'
+                          }
+                          alt={returnItem.borrower.name}
+                          className="w-full h-full object-cover"
+                          onClick={() => handleViewImage(
+                            returnItem.borrower.avatar
+                              ? returnItem.borrower.avatar.startsWith('http')
+                                ? returnItem.borrower.avatar
+                                : `${UPLOAD_BASE}/uploads/user/${returnItem.borrower.avatar}`
+                              : null,
+                            `รูปภาพนิสิต - ${returnItem.borrower.name}`
+                          )}
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = '/profile.png';
+                          }}
+                        />
+                      </div>
+                      <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-2 border-white rounded-full flex items-center justify-center">
+                        <CheckCircleSolidIcon className="w-3 h-3 text-white" />
+                      </div>
+                    </div>
+                    <div className="text-center space-y-2">
+                      <h3 className="font-bold text-xl text-gray-800">{returnItem.borrower.name}</h3>
+                      {returnItem.borrower.position && (
+                        <p className="text-blue-600 font-medium">{returnItem.borrower.position}</p>
+                      )}
+                      {returnItem.borrower.department && (
+                        <p className="text-gray-600 text-sm bg-gray-100 px-3 py-1 rounded-full inline-block">{returnItem.borrower.department}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-blue-200 shadow-sm">
-                    <span className="text-sm font-medium text-gray-600">สถานะ</span>
-                    {/* Debug returnItem.status */}
-                    {getStatusBadge(returnItem.status)}
+                  <div className="mt-6 space-y-3">
+                    <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-blue-200 shadow-sm">
+                      <span className="text-sm font-medium text-gray-600">รหัสการยืม</span>
+                      <span className="text-sm font-medium text-blue-700">{returnItem.borrow_code}</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2 bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
+                        <span className="text-gray-500">วันที่ยืม</span>
+                        <span className="text-blue-700 text-sm font-medium">
+                          {returnItem.borrow_date ? new Date(returnItem.borrow_date).toLocaleDateString('th-TH') :
+                           returnItem.borrowDate ? new Date(returnItem.borrowDate).toLocaleDateString('th-TH') : '-'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center gap-2 bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
+                        <span className="text-gray-500">กำหนดคืน</span>
+                        <span className=" text-blue-700 text-sm font-medium">
+                          {returnItem.due_date ? new Date(returnItem.due_date).toLocaleDateString('th-TH') :
+                           returnItem.dueDate ? new Date(returnItem.dueDate).toLocaleDateString('th-TH') : '-'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
+                        <span className="text-sm font-medium text-gray-700">วันที่คืน</span>
+                        <span className="text-sm font-medium text-blue-700">{(paymentDetails?.return_date || returnItem?.return_date) ? new Date(paymentDetails?.return_date || returnItem?.return_date).toLocaleString('th-TH') : '-'}</span>
+                      </div>
+                    <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-blue-200 shadow-sm">
+                      <span className="text-sm font-medium text-gray-600">สถานะ</span>
+                      {getStatusBadge(returnItem.status)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -245,193 +307,213 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
 
                {/* Fine and Notes Box - Moved to left column */}
                {(returnItem.fine_amount > 0 || returnItem.notes) && (
-                 <div className={`rounded-xl p-5 space-y-3 shadow-lg ${returnItem.fine_amount > 0 ? 'bg-gradient-to-br from-amber-50 via-orange-50 to-amber-100 border border-amber-200/50' : 'bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 border border-blue-200/50'}`}>
-                   <div className="flex items-center gap-2">
-                     {returnItem.fine_amount > 0 ? (
-                       <div className="bg-gradient-to-r from-amber-500 to-orange-600 p-2 rounded-lg shadow-sm">
-                         <ExclamationTriangleIcon className="h-5 w-5 text-white" />
-                       </div>
-                     ) : (
-                       <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-sm">
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                         </svg>
-                       </div>
-                     )}
-                     <h3 className={`font-semibold ${returnItem.fine_amount > 0 ? 'text-amber-800' : 'text-gray-800'}`}>
-                       {returnItem.fine_amount > 0 ? 'รายละเอียดค่าปรับ' : 'หมายเหตุ'}
-                     </h3>
-                   </div>
-
-                   {returnItem.fine_amount > 0 && (
-                     <div className="flex items-center justify-between px-4 py-2 bg-white rounded-full border border-amber-200 shadow-sm">
-                       <span className="font-medium text-amber-800">จำนวนค่าปรับ</span>
-                       <span className="text-amber-800 font-semibold">{returnItem.fine_amount} บาท</span>
-                     </div>
-                   )}
-
-                   {returnItem.notes && (
-                     <div className="p-3 bg-white rounded-full border border-blue-200 shadow-sm">
-                       <p className="text-gray-700 whitespace-pre-line">{returnItem.notes}</p>
-                     </div>
-                   )}
-                 </div>
-               )}
-
-               {/* รูปภาพการยืม - ย้ายมาด้านล่างข้อมูลผู้ยืม */}
-               {(returnItem?.signature_image || returnItem?.handover_photo) && (
-                 <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 rounded-xl p-4 shadow-lg border border-blue-200/50 relative overflow-hidden">
-                   {/* Background Pattern */}
-                   <div className="absolute inset-0 bg-gradient-to-br from-blue-100/20 to-transparent"></div>
-                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-blue-200/30 to-transparent rounded-full -translate-y-16 translate-x-16"></div>
-
-                   <div className="relative z-10">
-                     {/* Header */}
-                     <div className="flex items-center justify-between mb-4">
-                       <div className="flex items-center gap-3">
-                         <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-lg">
+                 <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                   <div className="p-6">
+                     <div className="flex items-center gap-3 mb-4">
+                       <div className={`p-2 rounded-xl shadow-md ${returnItem.fine_amount > 0 ? 'bg-amber-500' : 'bg-blue-500'}`}>
+                         {returnItem.fine_amount > 0 ? (
+                           <ExclamationTriangleIcon className="h-5 w-5 text-white" />
+                         ) : (
                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                            </svg>
-                         </div>
-                         <div>
-                           <h3 className="text-lg font-bold text-gray-800">รูปภาพการยืม</h3>
-                           <p className="text-xs text-blue-600 font-medium">หลักฐานการยืมครุภัณฑ์</p>
-                         </div>
+                         )}
                        </div>
-                       <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                         หลักฐาน
-                       </span>
+                       <div>
+                         <h4 className="text-lg font-bold text-gray-800">
+                           {returnItem.fine_amount > 0 ? 'รายละเอียดค่าปรับ' : 'หมายเหตุ'}
+                         </h4>
+                         <div className="w-12 h-1 bg-blue-500 rounded-full"></div>
+                       </div>
                      </div>
 
-                     {/* Images Grid - Show directly */}
-                     {(
-                       <div className="relative">
-                         <div className="bg-white rounded-xl p-4 shadow-md border border-blue-100 hover:shadow-lg transition-all duration-300">
+                     {returnItem.fine_amount > 0 && (
+                       <div className="flex items-center justify-between px-4 py-2 bg-amber-50 rounded-full border border-amber-200 shadow-sm mb-3">
+                         <span className="font-medium text-amber-800">จำนวนค่าปรับ</span>
+                         <span className="text-amber-800 font-semibold">{returnItem.fine_amount} บาท</span>
+                       </div>
+                     )}
 
-
-                                                       <div className="space-y-3">
-                               {/* ลายเซ็นการยืม */}
-                               {returnItem?.signature_image && (
-                                 <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-blue-200 shadow-sm hover:shadow-md transition-all duration-200">
-                                   <div className="flex items-center gap-3">
-                                     <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-sm">
-                                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                       </svg>
-                                     </div>
-                                     <h4 className="font-semibold text-gray-800 text-sm">ลายเซ็นการยืม</h4>
-                                   </div>
-                                   <button
-                                     onClick={() => handleViewImage(returnItem.signature_image, 'ลายเซ็นการยืม')}
-                                     className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center gap-2 font-semibold text-sm"
-                                     title="ดูภาพ"
-                                   >
-                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                     </svg>
-                                     ดูภาพ
-                                   </button>
-                                 </div>
-                               )}
-
-                               {/* รูปถ่ายส่งมอบครุภัณฑ์ */}
-                               {returnItem?.handover_photo && (
-                                 <div className="flex items-center justify-between bg-white rounded-lg p-3 border border-blue-200 shadow-sm hover:shadow-md transition-all duration-200">
-                                   <div className="flex items-center gap-3">
-                                     <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-sm">
-                                       <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                                       </svg>
-                                     </div>
-                                     <h4 className="font-semibold text-gray-800 text-sm">รูปถ่ายส่งมอบครุภัณฑ์</h4>
-                                   </div>
-                                   <button
-                                     onClick={() => handleViewImage(returnItem.handover_photo, 'รูปถ่ายส่งมอบครุภัณฑ์')}
-                                     className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-4 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center gap-2 font-semibold text-sm"
-                                     title="ดูภาพ"
-                                   >
-                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                                     </svg>
-                                     ดูภาพ
-                                   </button>
-                                 </div>
-                               )}
-                             </div>
-                         </div>
+                     {returnItem.notes && (
+                       <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
+                         <p className="text-gray-700 whitespace-pre-line">{returnItem.notes}</p>
                        </div>
                      )}
                    </div>
                  </div>
                )}
-            </div>
 
-            {/* Left/Main Info (2/3) */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Equipment List */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-700 flex items-center gap-2">
-                  <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-sm">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              {/* รูปภาพการยืม */}
+              <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                   </div>
-                  รายการครุภัณฑ์ที่คืน
-                </h3>
+                  <div>
+                    <h3 className="font-semibold text-gray-800 text-sm">รูปภาพการยืม</h3>
+                    <p className="text-xs text-gray-500">หลักฐานการยืมครุภัณฑ์</p>
+                  </div>
+                </div>
 
-                <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 rounded-xl p-5 shadow-lg border border-blue-200/50">
-                  <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                    <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
-                      <span className="text-gray-500">รหัสการยืม:</span>
-                      <span className="font-mono text-blue-700 font-medium">{returnItem.borrow_code}</span>
+                <div className="space-y-3">
+                  {/* ลายเซ็นการยืม */}
+                  {returnItem?.signature_image && (
+                    <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-blue-600 p-2 rounded-full shadow-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </div>
+                        <h4 className="font-semibold text-gray-800 text-sm">ลายเซ็นการยืม</h4>
+                      </div>
+                      <button
+                        onClick={() => handleViewImage(returnItem.signature_image, 'ลายเซ็นการยืม')}
+                        className="bg-blue-500  text-white px-3 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
+                        title="ดูภาพ"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                        ดูภาพ
+                      </button>
+                    </div>
+                  )}
+
+                  {/* รูปถ่ายส่งมอบครุภัณฑ์ */}
+                  {returnItem?.handover_photo && (
+                    <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-blue-600 p-2 rounded-full shadow-sm">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </div>
+                        <h4 className="font-semibold text-gray-800 text-sm">รูปถ่ายส่งมอบครุภัณฑ์</h4>
+                      </div>
+                      <button
+                        onClick={() => handleViewImage(returnItem.handover_photo, 'รูปถ่ายส่งมอบครุภัณฑ์')}
+                        className="bg-blue-500  text-white px-3 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
+                        title="ดูภาพ"
+                      >
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                        </svg>
+                        ดูภาพ
+                      </button>
+                    </div>
+                  )}
+
+                  {/* แสดงข้อความเมื่อไม่มีรูปภาพ */}
+                  {!returnItem?.signature_image && !returnItem?.handover_photo && (
+                    <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-emerald-200">
+                      <div className="bg-gradient-to-r from-emerald-100 to-teal-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-medium text-gray-600">ไม่มีรูปภาพการยืม</p>
+                      <p className="text-xs text-gray-400 mt-1">ยังไม่มีการอัปโหลดรูปภาพหลักฐาน</p>
+                    </div>
+                  )}
+                   {/* เอกสารสำคัญที่แนบ */}
+                    <div className="mt-4 pt-3">
+                      <DocumentViewer
+                        documents={returnItem.important_documents || []}
+                        title="เอกสารสำคัญที่แนบ"
+                      />
+                    </div>
+                </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Equipment List and Form */}
+            <div className="lg:col-span-2 space-y-6 lg:order-2">
+              {/* Equipment List */}
+              <div className="space-y-4">
+                {/* SectionHeader for equipment */}
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-500 rounded-xl shadow-md">
+                    <span className="text-white">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                      </svg>
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-bold text-gray-800">รายการครุภัณฑ์ที่คืน</h4>
+                    <div className="w-12 h-1 bg-blue-500 rounded-full"></div>
+                  </div>
+                </div>
+                {/* Equipment Summary Card */}
+                <div className="bg-black rounded-4xl p-6 text-white shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">สรุปรายการ</h3>
+                      <p className="text-white">จำนวนครุภัณฑ์ทั้งหมด</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold">{equipmentItems?.reduce((total, eq) => total + (eq.quantity || 1), 0) || 0}</div>
+                      <div className="text-sm text-white">รายการ</div>
                     </div>
                   </div>
+                </div>
 
+                <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-4xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
                   <div className="overflow-x-auto">
                     <div className="min-w-[340px]">
-                      <table className="min-w-full divide-y divide-blue-200">
-                        <thead className="bg-blue-100/50">
+                      <table className="min-w-full">
+                        <thead className="bg-blue-500">
                           <tr>
-                            <th className="px-2 py-3 text-center text-xs font-semibold text-blue-700 uppercase tracking-wider">รูป</th>
-                            <th className="px-4 py-3 text-left text-xs font-semibold text-blue-700 uppercase tracking-wider">ครุภัณฑ์</th>
-                            <th className="px-4 py-3 text-right text-xs font-semibold text-blue-700 uppercase tracking-wider">จำนวน</th>
+                            <th className="px-4 py-4 text-center text-sm font-semibold text-white uppercase tracking-wider">รูป</th>
+                            <th className="px-6 py-4 text-left text-sm font-semibold text-white uppercase tracking-wider">ครุภัณฑ์</th>
+                            <th className="px-6 py-4 text-center text-sm font-semibold text-white uppercase tracking-wider">จำนวน</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-blue-200">
+                        <tbody className="divide-y divide-blue-100">
                           {equipmentItems.length > 0 ? equipmentItems.map((item, index) => (
-                            <tr key={index} className="hover:bg-blue-50/50">
-                              <td className="px-2 py-3 align-middle text-center">
-                                <div className="w-12 h-12 rounded-lg overflow-hidden flex items-center justify-center mx-auto border border-blue-200 bg-white shadow-sm">
-                                  {item.pic ? (
-                                    <img
-                                      src={item.pic}
-                                      alt={item.name}
-                                      className="max-w-full max-h-full object-contain p-1"
-                                      style={{ display: 'block', margin: 'auto' }}
-                                      onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
-                                    />
-                                  ) : (
-                                    <div className="bg-blue-100 w-full h-full flex items-center justify-center text-blue-400">
-                                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                      </svg>
-                                    </div>
-                                  )}
+                            <tr key={item.item_id || index} className="hover:bg-blue-50/50 transition-colors duration-200">
+                              <td className="px-4 py-4 text-center">
+                                <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center mx-auto border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm">
+                                  <img
+                                    src={item.pic?.startsWith('http') ? item.pic : `${UPLOAD_BASE}/equipment/${item.item_code || item.code}.jpg`}
+                                    alt={item.name}
+                                    className="max-w-full max-h-full object-contain p-2"
+                                    onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
+                                  />
                                 </div>
                               </td>
-                              <td className="px-4 py-3 align-middle">
-                                <span className="font-semibold text-gray-800 text-base leading-tight">{item.name}</span>
-                                <div className="text-xs text-gray-500 italic mt-1 leading-tight">{item.code}</div>
+                              <td className="px-6 py-4">
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-gray-800 text-base leading-tight">{item.name}</span>
+                                  <div className="flex items-center gap-2 mt-2">
+                                    <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs font-mono rounded-md">
+                                      {item.item_code}
+                                    </span>
+                                  </div>
+                                </div>
                               </td>
-                              <td className="px-4 py-3 text-right align-middle">
-                                <span className="font-medium text-blue-700 text-base">{item.quantity || 1}</span>
+                              <td className="px-6 py-4 text-center">
+                                <div className="inline-flex items-center justify-center w-12 h-12 bg-black text-white font-bold text-lg rounded-full shadow-md">
+                                  {item.quantity || 1}
+                                </div>
                               </td>
                             </tr>
                           )) : (
                             <tr>
-                              <td colSpan={3} className="p-8 text-center text-gray-400 text-base">ไม่พบข้อมูลครุภัณฑ์</td>
+                              <td colSpan={3} className="p-12 text-center">
+                                <div className="flex flex-col items-center gap-3">
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                  </svg>
+                                  <p className="text-gray-400 text-lg">ไม่พบข้อมูลครุภัณฑ์</p>
+                                </div>
+                              </td>
                             </tr>
                           )}
                         </tbody>
@@ -442,68 +524,30 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
               </div>
 
               {/* Loan Details & Return Status */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 rounded-xl p-5 shadow-lg border border-blue-200/50">
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <h3 className="font-semibold text-gray-700">ข้อมูลการยืม-คืน</h3>
-                  </div>
-
-                                     <div className="space-y-3">
-                     <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
-                       <span className="text-gray-500">วันที่ยืม:</span>
-                       <span className="font-mono text-blue-700 font-medium">
-                         {returnItem.borrow_date ? new Date(returnItem.borrow_date).toLocaleDateString('th-TH') :
-                          returnItem.borrowDate ? new Date(returnItem.borrowDate).toLocaleDateString('th-TH') : '-'}
-                       </span>
-                     </div>
-                     <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
-                       <span className="text-gray-500">กำหนดคืน:</span>
-                       <span className="font-mono text-blue-700 font-medium">
-                         {returnItem.due_date ? new Date(returnItem.due_date).toLocaleDateString('th-TH') :
-                          returnItem.dueDate ? new Date(returnItem.dueDate).toLocaleDateString('th-TH') : '-'}
-                       </span>
-                     </div>
-                     <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
-                       <span className="text-sm text-gray-600">วันที่คืนจริง</span>
-                       <span className="font-medium text-blue-700">
-                         {(paymentDetails?.return_date || returnItem?.return_date) ? new Date(paymentDetails?.return_date || returnItem?.return_date).toLocaleString('th-TH') : '-'}
-                       </span>
-                     </div>
-                   </div>
-
-                   {/* เอกสารสำคัญที่แนบ */}
-                   <div className="mt-4 pt-3 border-t border-blue-200">
-                     <DocumentViewer
-                       documents={returnItem.important_documents || []}
-                       title="เอกสารสำคัญที่แนบ"
-                     />
-                   </div>
-                </div>
-
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                 {/* Section: Payment Details (always show) */}
-                <div className="bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 rounded-xl p-5 shadow-lg border border-blue-200/50">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-lg shadow-sm">
+                <div className="bg-blue-50 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 mb-3">
+                  <div className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-blue-500 rounded-xl shadow-md">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 10c-4.41 0-8-1.79-8-4V6c0-2.21 3.59-4 8-4s8 1.79 8 4v8c0 2.21-3.59 4-8 4z" />
                         </svg>
                       </div>
-                      <h3 className="font-semibold text-blue-700">สถานะการชำระเงิน</h3>
+                      <div>
+                        <h4 className="text-lg font-bold text-black">สถานะการชำระเงิน</h4>
+                        <div className="w-12 h-1 bg-blue-500 rounded-full"></div>
+                      </div>
                     </div>
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
+                      <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm font-medium text-sm">
                         <span className="text-sm text-gray-600">สถานะชำระเงิน</span>
                         {(() => {
                           const payStatus = (paymentDetails && paymentDetails.pay_status) || returnItem.pay_status;
-                          let badgeClass = 'bg-yellow-100 text-yellow-800';
+                          let badgeClass = 'bg-yellow-100 text-yellow-800 text-sm p-2';
                           let label = 'รอยืนยันชำระ';
-                          if (payStatus === 'paid') { badgeClass = 'bg-green-100 text-green-700'; label = 'ชำระแล้ว'; }
-                          if (payStatus === 'failed') { badgeClass = 'bg-red-100 text-red-700'; label = 'การชำระผิดพลาด'; }
+                          if (payStatus === 'paid') { badgeClass = 'bg-green-100 text-green-700 text-sm p-2'; label = 'ชำระแล้ว'; }
+                          if (payStatus === 'failed') { badgeClass = 'bg-red-100 text-red-700 text-sm p-2'; label = 'การชำระผิดพลาด'; }
                           return (
                             <span className={`font-semibold px-2 py-1 rounded-full ${badgeClass}`}>{label}</span>
                           );
@@ -513,10 +557,6 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                         <span className="text-sm font-medium text-gray-700">วิธีชำระเงิน</span>
                         <span className="font-semibold text-blue-700">{paymentDetails?.payment_method || returnItem?.payment_method || '-'}</span>
                       </div>
-                      <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
-                        <span className="text-sm font-medium text-gray-700">วันที่คืน</span>
-                        <span className="font-semibold text-blue-700">{(paymentDetails?.return_date || returnItem?.return_date) ? new Date(paymentDetails?.return_date || returnItem?.return_date).toLocaleString('th-TH') : '-'}</span>
-                      </div>
                       {(paymentDetails?.fine_amount || returnItem?.fine_amount) > 0 && (
                         <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-amber-200 shadow-sm">
                           <span className="text-sm text-gray-600">จำนวนค่าปรับ</span>
@@ -524,9 +564,9 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                         </div>
                       )}
                       {(paymentDetails?.notes || returnItem?.notes) && (
-                        <div className="bg-white rounded-lg p-3 border border-blue-200 shadow-sm mt-2">
-                          <span className="text-sm text-gray-600">หมายเหตุ</span>
-                          <div className="text-gray-800 text-sm mt-1 whitespace-pre-line">{paymentDetails?.notes || returnItem?.notes}</div>
+                        <div className="bg-red-600 rounded-2xl py-3 px-6  shadow-sm mt-2">
+                          <span className="text-sm font-bold text-white">หมายเหตุ</span>
+                          <div className="text-white text-sm mt-1 font-bold whitespace-pre-line">{paymentDetails?.notes || returnItem?.notes}</div>
                         </div>
                       )}
                       {slipImage && (
@@ -545,75 +585,107 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                             </button>
                           </div>
                           <div className="w-full flex justify-center">
-                            <img
-                              src={slipImage}
-                              alt="slip"
-                              className="max-h-60 object-contain rounded-lg border"
-                              onError={(e) => { e.target.onerror = null; e.target.src = '/lo.png'; }}
-                            />
+                            <div className="relative group cursor-pointer" onClick={() => handleViewImage(slipImage, 'สลิป/หลักฐานการโอน')}>
+                              <img
+                                src={slipImage}
+                                alt="slip"
+                                className="max-h-60 object-contain rounded-lg border transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
+                                onError={(e) => { e.target.onerror = null; e.target.src = '/lo.png'; }}
+                              />
+                              {/* Hover Overlay */}
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center">
+                                <div className="text-white text-center">
+                                  <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                  </svg>
+                                  <p className="text-sm font-semibold">คลิกเพื่อดูขนาดใหญ่</p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
-                      {returnItem.status === 'waiting_payment' && slipImage && (paymentDetails?.pay_status !== 'failed' && returnItem.pay_status !== 'failed') && (
-                        <div className="flex gap-3 mt-4">
-                          <button
-                            onClick={handleApprove}
-                            disabled={isSubmitting}
-                            className={`px-6 py-3 rounded-xl text-white font-semibold transition-all duration-200 transform hover:scale-105 ${
-                              isSubmitting
-                                ? 'bg-gray-400 cursor-not-allowed shadow-sm'
-                                : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 shadow-lg hover:shadow-xl'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              {isSubmitting ? (
-                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                              ) : (
-                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              )}
-                              {isSubmitting ? 'กำลังอนุมัติ...' : 'อนุมัติสลิป'}
-                            </div>
-                          </button>
-                          <button
-                            onClick={handleReject}
-                            disabled={isSubmitting}
-                            className={`px-6 py-3 rounded-xl text-white font-semibold transition-all duration-200 transform hover:scale-105 ${
-                              isSubmitting
-                                ? 'bg-gray-400 cursor-not-allowed shadow-sm'
-                                : 'bg-red-500 hover:from-red-600 hover:to-rose-700 shadow-lg hover:shadow-xl'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2">
-                              {isSubmitting ? (
-                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                              ) : (
-                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                              )}
-                              <span>{isSubmitting ? 'กำลังปฏิเสธ...' : 'ปฏิเสธ/ให้แนบใหม่'}</span>
-                            </div>
-                          </button>
-                        </div>
-                      )}
+
                     </div>
                   </div>
                 </div>
-
-
+              </div>
+            </div>
+              </div>
+            
+            {/* Enhanced Footer */}
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-full sticky bottom-0">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                {/* Status info on left */}
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-full">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">รายละเอียดการคืนครุภัณฑ์</p>
+                    <p className="text-xs text-white">
+                      {returnItem.status === 'waiting_payment' && slipImage ? 'รอการตรวจสอบสลิป' : 'ข้อมูลการคืนครุภัณฑ์'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Action buttons on right */}
+                <div className="flex justify-end gap-2">
+                  
+                  {/* Conditional action buttons for waiting payment status */}
+                  {returnItem.status === 'waiting_payment' && slipImage && (paymentDetails?.pay_status !== 'failed' && returnItem.pay_status !== 'failed') && (
+                    <>
+                      <button
+                        onClick={handleReject}
+                        disabled={isSubmitting}
+                        className={`btn rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-transparent ${
+                          isSubmitting
+                            ? 'bg-gray-400 cursor-not-allowed text-white'
+                            : 'bg-red-600 hover:bg-red-700 text-white'
+                        }`}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="w-5 h-5 border-2 bg-gray-200 border-transparent rounded-full animate-spin"></div>
+                            กำลังปฏิเสธ...
+                          </>
+                        ) : (
+                          <>
+                            <XCircleIcon className="w-5 h-5" />
+                            ปฏิเสธ/ให้แนบใหม่
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleApprove}
+                        disabled={isSubmitting}
+                        className={`btn rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-transparent ${
+                          isSubmitting
+                            ? 'bg-gray-400 cursor-not-allowed text-white'
+                            : 'bg-green-600 hover:bg-green-700 text-white'
+                        }`}
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="w-5 h-5 border-2 bg-gray-200 border-transparent rounded-full animate-spin"></div>
+                            กำลังอนุมัติ...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircleSolidIcon className="w-5 h-5" />
+                            อนุมัติสลิป
+                          </>
+                        )}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
       <form method="dialog" className="modal-backdrop">
         <button onClick={onClose}>close</button>
       </form>
@@ -673,7 +745,7 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
         </div>
       )}
 
-             {/* Reject Reason Dialog */}
+       {/* Reject Reason Dialog */}
        {showRejectDialog && (
          <div className="fixed inset-0 backdrop-blur-sm bg-black/30 flex items-center justify-center z-[9999] p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-xl transform transition-all duration-300 overflow-hidden">
@@ -757,7 +829,8 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
           </div>
         </div>
       )}
-    </>
+      </div>
+    </div>
   );
 };
 
