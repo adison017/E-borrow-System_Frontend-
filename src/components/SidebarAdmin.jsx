@@ -1,3 +1,5 @@
+import { SiOpenstreetmap } from "react-icons/si"; 
+import { BiMapAlt } from "react-icons/bi"; 
 import { TbPackages } from "react-icons/tb";
 import { GiBackForth } from "react-icons/gi";
 import { FaNewspaper } from "react-icons/fa";
@@ -26,7 +28,7 @@ const menuItems = [
   { to: '/ReceiveItem', icon: <GiHandTruck size={30} />, label: 'ส่งมอบครุภัณฑ์', key: 'receiveItem' },
   { to: '/return-list', icon: <GiBackForth size={23} />, label: 'รายการคืนครุภัณฑ์', key: 'returnList' },
   { to: '/success', icon: <BsClipboardCheckFill size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
-  { to: '/location-tracking', icon: <MapPinIcon size={22} />, label: 'ติดตามตำแหน่ง', key: 'locationTracking' },
+  { to: '/location-tracking', icon: <SiOpenstreetmap size={22} />, label: 'ติดตามตำแหน่ง', key: 'locationTracking' },
   { to: '/borrow-calendar', icon: <MdCalendarMonth size={22} />, label: 'ปฏิทินการยืม', key: 'borrowCalendar' },
 ];
 
@@ -117,13 +119,6 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
        navigate(to, { replace: true });
      }
    };
-
-
-
-
-
-
-
   const iconSize = 22;
 
   return (
@@ -189,17 +184,17 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
                   animation: !isCollapsed && menuReady ? 'fadeIn 0.3s ease-in-out' : 'none'
                 }}
               >
-                                 <button
-                   onClick={() => handleMenuClick(item.to)}
-                   className={`flex items-center rounded-xl transition-all duration-200 touch-manipulation select-none
-                     ${isCollapsed
-                       ? 'justify-center w-12 h-12'
-                       : 'justify-start w-full p-3'}
-                     ${isActive(item.to)
-                       ? 'bg-blue-500 text-white shadow-md shadow-blue-200'
-                       : 'hover:bg-blue-50 text-gray-700'}`}
-                   title={isCollapsed ? item.label : undefined}
-                   style={{ WebkitTapHighlightColor: 'transparent' }}
+                <button
+                  onClick={() => handleMenuClick(item.to)}
+                  className={`flex items-center rounded-xl transition-all duration-200 touch-manipulation select-none
+                    ${isCollapsed
+                      ? 'justify-center w-12 h-12'
+                      : 'justify-start w-full p-3'}
+                    ${isActive(item.to)
+                      ? 'bg-blue-500 text-white shadow-md shadow-blue-200'
+                      : 'hover:bg-blue-50 text-gray-700'}`}
+                  title={isCollapsed ? item.label : undefined}
+                  style={{ WebkitTapHighlightColor: 'transparent' }}
                  >
                   {React.cloneElement(item.icon, { size: iconSize })}
                   <span
@@ -230,7 +225,7 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
 
           {/* Logout button - moved to bottom */}
           <div className={`mt-auto px-4 pb-6 ${isCollapsed ? 'flex justify-center' : ''} transition-all duration-500 ease-in-out ${menuReady ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`} style={{ transitionDelay: menuReady ? `${(menuItems.length + 1) * 100}ms` : '0ms' }}>
-                         <button
+            <button
                onClick={handleLogout}
                className={`${isCollapsed
                  ? "flex items-center justify-center w-12 h-12 rounded-xl bg-red-50 hover:bg-red-100 text-red-500 transition-all duration-200"
@@ -261,8 +256,6 @@ function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }
           ]}
         />
       )}
-
-
     </>
   );
 }
