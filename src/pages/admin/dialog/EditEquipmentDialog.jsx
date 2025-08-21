@@ -34,6 +34,7 @@ export default function EditEquipmentDialog({
     item_code: "",
     name: "",
     category: "",
+    category_id: "",
     description: "",
     quantity: "",
     unit: "",
@@ -67,6 +68,7 @@ export default function EditEquipmentDialog({
       item_code: "",
       name: "",
       category: "",
+      category_id: "",
       description: "",
       quantity: "",
       unit: "",
@@ -76,9 +78,10 @@ export default function EditEquipmentDialog({
 
     if (equipmentData) {
       setFormData({
-        item_code: equipmentData.item_code || equipmentData.item_id || equipmentData.id || "",
+        item_code: equipmentData.item_code || equipmentData.item_id || "",
         name: equipmentData.name || "",
-        category: equipmentData.category || "",
+        category: equipmentData.category || equipmentData.category_name || "",
+        category_id: equipmentData.category_id || "",
         description: equipmentData.description || "",
         quantity: equipmentData.quantity || "",
         unit: equipmentData.unit || "",
@@ -107,10 +110,7 @@ export default function EditEquipmentDialog({
       setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
     }
 
-    // If equipmentData uses id, map it to item_code for compatibility
-    if (equipmentData && equipmentData.id && !equipmentData.item_code) {
-      setFormData(prev => ({ ...prev, item_code: equipmentData.id }));
-    }
+    // ไม่ต้อง map id เป็น item_code แล้ว เพราะเราต้องการให้ user กรอกเอง
   }, [equipmentData, open]);
 
   const handleChange = (e) => {
@@ -122,10 +122,20 @@ export default function EditEquipmentDialog({
       }));
       return;
     }
-    setFormData(prev => ({
-      ...prev,
-      [name]: value || "" // Ensure value is never undefined
-    }));
+    if (name === 'category') {
+      // Find the selected category and set both category name and category_id
+      const selectedCategory = categories.find(cat => cat.name === value);
+      setFormData(prev => ({
+        ...prev,
+        category: value,
+        category_id: selectedCategory ? selectedCategory.category_id : ""
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value || "" // Ensure value is never undefined
+      }));
+    }
   };
 
   const handleImageChange = (e) => {
@@ -158,6 +168,7 @@ export default function EditEquipmentDialog({
         { key: 'name', label: 'ชื่อครุภัณฑ์' },
         { key: 'quantity', label: 'จำนวน' },
         { key: 'category', label: 'หมวดหมู่' },
+        { key: 'category_id', label: 'หมวดหมู่' },
         { key: 'unit', label: 'หน่วย' },
         { key: 'status', label: 'สถานะ' },
         { key: 'purchaseDate', label: 'วันที่จัดซื้อ' },
@@ -194,7 +205,7 @@ export default function EditEquipmentDialog({
     }
   };
 
-  const isFormValid = formData.item_code && formData.name && formData.quantity && formData.category && formData.unit;
+  const isFormValid = formData.item_code && formData.name && formData.quantity && formData.category && formData.category_id && formData.unit;
 
   const StatusDisplay = ({ status }) => {
     const config = statusConfig[status] || {
@@ -298,7 +309,7 @@ export default function EditEquipmentDialog({
                 value={formData.item_code}
                 onChange={handleChange}
                 className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 transition-shadow"
-                placeholder="ระบุรหัสครุภัณฑ์"
+                placeholder="กรุณากรอกรหัสครุภัณฑ์ตามระบบของท่าน"
                 required
               />
             </div>
