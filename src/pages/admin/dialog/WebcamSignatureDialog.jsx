@@ -35,7 +35,7 @@ const WebcamSignatureDialog = ({
             <div className="modal-box bg-white rounded-xl shadow-2xl w-full max-w-lg transform transition-all duration-300">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-                    <h3 className="text-xl font-semibold text-gray-800">ถ่ายภาพลายเซ็น</h3>
+                    <h3 className="text-xl font-semibold text-gray-800">ถ่ายภาพ</h3>
                     <button
                         onClick={onClose}
                         className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100 transition-colors"
