@@ -534,8 +534,12 @@ const Home = () => {
   // Handle form submission
   const handleSubmitBorrow = async (e, selectedFiles = []) => {
     e.preventDefault();
+    
+    console.log('=== handleSubmitBorrow Debug ===');
+    console.log('Form submitted with data:', { borrowData, quantities, selectedFiles });
 
     if (!globalUserData?.user_id) {
+      console.log('❌ No user data found');
       setNotification({ show: true, title: 'กรุณาเข้าสู่ระบบ', message: 'กรุณาเข้าสู่ระบบก่อนทำรายการ', type: 'error' });
       return;
     }
@@ -543,6 +547,7 @@ const Home = () => {
     const items = Object.entries(quantities).map(([item_code, quantity]) => {
       const equipment = equipmentData.find(eq => String(eq.id) === String(item_code));
       if (!equipment || !equipment.item_id) {
+        console.log('❌ Equipment not found or missing item_id:', { item_code, equipment });
         setNotification({ show: true, title: 'เกิดข้อผิดพลาด', message: 'พบอุปกรณ์ที่ไม่มีรหัส item_id', type: 'error' });
         throw new Error('Missing item_id');
       }
@@ -552,23 +557,29 @@ const Home = () => {
       };
     });
 
+    console.log('Processed items:', items);
+
     if (items.length === 0) {
+      console.log('❌ No items selected');
       setNotification({ show: true, title: 'แจ้งเตือน', message: 'กรุณาเลือกอุปกรณ์อย่างน้อย 1 ชิ้น', type: 'warning' });
       return;
     }
 
     // ตรวจสอบข้อมูลที่จำเป็น
     if (!borrowData.reason || borrowData.reason.trim() === '') {
+      console.log('❌ No reason provided');
       setNotification({ show: true, title: 'แจ้งเตือน', message: 'กรุณากรอกวัตถุประสงค์การยืม', type: 'warning' });
       return;
     }
 
     if (!borrowData.borrowDate) {
+      console.log('❌ No borrow date provided');
       setNotification({ show: true, title: 'แจ้งเตือน', message: 'กรุณาเลือกวันที่ยืม', type: 'warning' });
       return;
     }
 
     if (!borrowData.returnDate) {
+      console.log('❌ No return date provided');
       setNotification({ show: true, title: 'แจ้งเตือน', message: 'กรุณาเลือกวันที่คืน', type: 'warning' });
       return;
     }
@@ -582,6 +593,15 @@ const Home = () => {
     formData.append('items', JSON.stringify(items));
     formData.append('files_count', selectedFiles.length.toString());
 
+    console.log('FormData created:', {
+      user_id: globalUserData.user_id,
+      purpose: borrowData.reason,
+      borrow_date: borrowData.borrowDate,
+      return_date: borrowData.returnDate,
+      items: JSON.stringify(items),
+      files_count: selectedFiles.length
+    });
+
     // แจ้งเตือนเกี่ยวกับการติดตามตำแหน่ง
     if (locationPermission === 'granted') {
       setNotification({
@@ -591,34 +611,7 @@ const Home = () => {
         type: 'info',
         duration: 4000
       });
-      
-      // เริ่มติดตามตำแหน่งทันทีเมื่อยืมอุปกรณ์
-      if (locationTracker && !locationTracker.isTracking) {
-        // รวบรวม active borrow IDs รวมถึง borrow ใหม่ที่เพิ่งสร้าง
-        const activeBorrowIds = borrowList
-          .filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status))
-          .map(borrow => borrow.borrow_id);
-        
-        // เพิ่ม borrow_id ใหม่ที่เพิ่งสร้าง
-        if (data.borrow_id) {
-          activeBorrowIds.push(data.borrow_id);
-        }
-        
-        console.log('Starting location tracking for new borrow with IDs:', activeBorrowIds);
-        
-        locationTracker.startTracking(
-          (location) => {
-            console.log('Location tracking started for new borrow:', location);
-          },
-          (error) => {
-            console.error('Location tracking error:', error);
-          },
-          activeBorrowIds // ส่ง active borrow IDs
-        );
-      }
     }
-
-
 
     // Add files to FormData
     selectedFiles.forEach((file, index) => {
@@ -635,42 +628,74 @@ const Home = () => {
     });
 
     try {
+      console.log('Sending request to:', `${API_BASE}/borrows`);
       const response = await authFetch(`${API_BASE}/borrows`, {
         method: 'POST',
         // Don't set Content-Type header for FormData - let browser set it with boundary
         body: formData
       });
-            const data = await response.json();
-             if (response.ok) {
-         setShowBorrowDialog(false);
-         setNotification({
-           show: true,
-           title: 'สำเร็จ',
-           message: 'ส่งคำขอยืมสำเร็จ รหัส ' + (data.borrow_code || 'ไม่พบรหัส'),
-           type: 'success',
-           duration: 5000 // แสดง 5 วินาที
-         });
-         setQuantities({});
-         setBorrowData({ reason: '', borrowDate: '', returnDate: '' });
+      
+      console.log('Response received:', { status: response.status, ok: response.ok });
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (response.ok) {
+        console.log('✅ Borrow request successful');
+        setShowBorrowDialog(false);
+        setNotification({
+          show: true,
+          title: 'สำเร็จ',
+          message: 'ส่งคำขอยืมสำเร็จ รหัส ' + (data.borrow_code || 'ไม่พบรหัส'),
+          type: 'success',
+          duration: 5000 // แสดง 5 วินาที
+        });
+        setQuantities({});
+        setBorrowData({ reason: '', borrowDate: '', returnDate: '' });
 
-         // ส่งตำแหน่งไปยังเซิร์ฟเวอร์เมื่อยืมสำเร็จ
-         console.log('=== Checking location send conditions ===');
-         console.log('locationPermission:', locationPermission);
-         console.log('locationTracker exists:', !!locationTracker);
-         console.log('locationTracker.lastLocation exists:', !!locationTracker?.lastLocation);
-         console.log('data.borrow_id:', data.borrow_id);
-         
-         if (locationPermission === 'granted' && locationTracker && locationTracker.lastLocation && data.borrow_id) {
-           try {
-             console.log('Sending location for new borrow...');
-             await locationTracker.sendLocationToServer(data.borrow_id, locationTracker.lastLocation);
-             console.log('✅ Location sent for new borrow:', data.borrow_id);
-           } catch (error) {
-             console.error('❌ Failed to send location for new borrow:', error);
-           }
-         } else {
-           console.log('⚠️ Location not sent - conditions not met');
-         }
+        // เริ่มติดตามตำแหน่งทันทีเมื่อยืมสำเร็จ
+        if (locationPermission === 'granted' && locationTracker && !locationTracker.isTracking) {
+          // รวบรวม active borrow IDs รวมถึง borrow ใหม่ที่เพิ่งสร้าง
+          const activeBorrowIds = borrowList
+            .filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status))
+            .map(borrow => borrow.borrow_id);
+          
+          // เพิ่ม borrow_id ใหม่ที่เพิ่งสร้าง
+          if (data.borrow_id) {
+            activeBorrowIds.push(data.borrow_id);
+          }
+          
+          console.log('Starting location tracking for new borrow with IDs:', activeBorrowIds);
+          
+          locationTracker.startTracking(
+            (location) => {
+              console.log('Location tracking started for new borrow:', location);
+            },
+            (error) => {
+              console.error('Location tracking error:', error);
+            },
+            activeBorrowIds // ส่ง active borrow IDs
+          );
+        }
+
+        // ส่งตำแหน่งไปยังเซิร์ฟเวอร์เมื่อยืมสำเร็จ
+        console.log('=== Checking location send conditions ===');
+        console.log('locationPermission:', locationPermission);
+        console.log('locationTracker exists:', !!locationTracker);
+        console.log('locationTracker.lastLocation exists:', !!locationTracker?.lastLocation);
+        console.log('data.borrow_id:', data.borrow_id);
+        
+        if (locationPermission === 'granted' && locationTracker && locationTracker.lastLocation && data.borrow_id) {
+          try {
+            console.log('Sending location for new borrow...');
+            await locationTracker.sendLocationToServer(data.borrow_id, locationTracker.lastLocation);
+            console.log('✅ Location sent for new borrow:', data.borrow_id);
+          } catch (error) {
+            console.error('❌ Failed to send location for new borrow:', error);
+          }
+        } else {
+          console.log('⚠️ Location not sent - conditions not met');
+        }
 
         // อัปเดตสถานะอุปกรณ์แบบ async (ไม่ต้องรอ)
         setTimeout(() => {
@@ -686,6 +711,7 @@ const Home = () => {
           }
         }, 100);
       } else {
+        console.log('❌ Borrow request failed:', data);
         setNotification({
           show: true,
           title: 'เกิดข้อผิดพลาด',
@@ -694,7 +720,8 @@ const Home = () => {
           duration: 5000 // แสดง 5 วินาที
         });
       }
-    } catch {
+    } catch (error) {
+      console.error('❌ Borrow request error:', error);
       setNotification({
         show: true,
         title: 'เกิดข้อผิดพลาด',
