@@ -133,11 +133,19 @@ const Home = () => {
   // เริ่มติดตามตำแหน่ง
   const startLocationTracking = () => {
     console.log('=== startLocationTracking Debug ===');
+    console.log('borrowList:', borrowList);
+    console.log('borrowList length:', borrowList.length);
     
     // รวบรวม borrow_id ที่ active
     const activeBorrowIds = borrowList
-      .filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status))
-      .map(borrow => borrow.borrow_id);
+      .filter(borrow => {
+        console.log(`Checking borrow ${borrow.borrow_id}: status = ${borrow.status}`);
+        return ['approved', 'carry', 'overdue'].includes(borrow.status);
+      })
+      .map(borrow => {
+        console.log(`Active borrow found: ${borrow.borrow_id}`);
+        return borrow.borrow_id;
+      });
     
     console.log('Active borrow IDs:', activeBorrowIds);
     console.log('Location permission:', locationPermission);
@@ -586,13 +594,26 @@ const Home = () => {
       
       // เริ่มติดตามตำแหน่งทันทีเมื่อยืมอุปกรณ์
       if (locationTracker && !locationTracker.isTracking) {
+        // รวบรวม active borrow IDs รวมถึง borrow ใหม่ที่เพิ่งสร้าง
+        const activeBorrowIds = borrowList
+          .filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status))
+          .map(borrow => borrow.borrow_id);
+        
+        // เพิ่ม borrow_id ใหม่ที่เพิ่งสร้าง
+        if (data.borrow_id) {
+          activeBorrowIds.push(data.borrow_id);
+        }
+        
+        console.log('Starting location tracking for new borrow with IDs:', activeBorrowIds);
+        
         locationTracker.startTracking(
           (location) => {
             console.log('Location tracking started for new borrow:', location);
           },
           (error) => {
             console.error('Location tracking error:', error);
-          }
+          },
+          activeBorrowIds // ส่ง active borrow IDs
         );
       }
     }
@@ -633,13 +654,22 @@ const Home = () => {
          setBorrowData({ reason: '', borrowDate: '', returnDate: '' });
 
          // ส่งตำแหน่งไปยังเซิร์ฟเวอร์เมื่อยืมสำเร็จ
+         console.log('=== Checking location send conditions ===');
+         console.log('locationPermission:', locationPermission);
+         console.log('locationTracker exists:', !!locationTracker);
+         console.log('locationTracker.lastLocation exists:', !!locationTracker?.lastLocation);
+         console.log('data.borrow_id:', data.borrow_id);
+         
          if (locationPermission === 'granted' && locationTracker && locationTracker.lastLocation && data.borrow_id) {
            try {
+             console.log('Sending location for new borrow...');
              await locationTracker.sendLocationToServer(data.borrow_id, locationTracker.lastLocation);
-             console.log('Location sent for new borrow:', data.borrow_id);
+             console.log('✅ Location sent for new borrow:', data.borrow_id);
            } catch (error) {
-             console.error('Failed to send location for new borrow:', error);
+             console.error('❌ Failed to send location for new borrow:', error);
            }
+         } else {
+           console.log('⚠️ Location not sent - conditions not met');
          }
 
         // อัปเดตสถานะอุปกรณ์แบบ async (ไม่ต้องรอ)
