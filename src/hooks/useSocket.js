@@ -124,15 +124,42 @@ export const useBadgeCounts = () => {
     };
   }
 
-  const { on, off } = useSocket();
+  const eventListenersRef = useRef(new Map());
 
   const subscribeToBadgeCounts = useCallback((callback) => {
-    on('badgeCountsUpdated', callback);
+    socketService.on('badgeCountsUpdated', callback);
+
+    // เก็บ reference สำหรับ cleanup
+    if (!eventListenersRef.current.has('badgeCountsUpdated')) {
+      eventListenersRef.current.set('badgeCountsUpdated', new Set());
+    }
+    eventListenersRef.current.get('badgeCountsUpdated').add(callback);
 
     return () => {
-      off('badgeCountsUpdated', callback);
+      socketService.off('badgeCountsUpdated', callback);
+      
+      const listeners = eventListenersRef.current.get('badgeCountsUpdated');
+      if (listeners) {
+        listeners.delete(callback);
+        if (listeners.size === 0) {
+          eventListenersRef.current.delete('badgeCountsUpdated');
+        }
+      }
     };
-  }, [on, off]);
+  }, []);
+
+  // Cleanup เมื่อ component unmount
+  useEffect(() => {
+    return () => {
+      // ลบ event listeners ทั้งหมดที่ component นี้เพิ่ม
+      eventListenersRef.current.forEach((listeners, event) => {
+        listeners.forEach(callback => {
+          socketService.off(event, callback);
+        });
+      });
+      eventListenersRef.current.clear();
+    };
+  }, []);
 
   return { subscribeToBadgeCounts };
 };
