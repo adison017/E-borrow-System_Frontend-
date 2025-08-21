@@ -66,6 +66,7 @@ export default function AddUserDialog({
   const [pin, setPin] = useState("");
   const [pinError, setPinError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
+  const hasInitialized = useRef(false);
 
   useEffect(() => {
     // Get current user from localStorage
@@ -121,79 +122,115 @@ export default function AddUserDialog({
   }, [open]);
 
   useEffect(() => {
-    if (initialFormData) {
-      setFormData({
-        user_code: initialFormData.user_code || "",
-        username: initialFormData.username || "",
-        Fullname: initialFormData.Fullname || "",
-        email: initialFormData.email || "",
-        phone: initialFormData.phone || "",
-        position_name: initialFormData.position_name || "",
-        branch_name: initialFormData.branch_name || "",
-        position_id: initialFormData.position_id || "",
-        branch_id: initialFormData.branch_id || "",
-        role_id: initialFormData.role_id || "",
-        role_name: initialFormData.role_name || "",
-        street: initialFormData.street || "",
-        province: initialFormData.province || "",
-        district: initialFormData.district || "",
-        parish: initialFormData.parish || "",
-        postal_no: initialFormData.postal_no || "",
-        password: "",
-        pic: initialFormData.pic || DEFAULT_PROFILE_URL
-      });
-      setPreviewImage(initialFormData.pic || DEFAULT_PROFILE_URL);
-    } else {
-      setFormData({
-        user_code: "",
-        username: "",
-        Fullname: "",
-        email: "",
-        phone: "",
-        position_name: "",
-        branch_name: "",
-        position_id: "",
-        branch_id: "",
-        role_id: "",
-        role_name: "",
-        street: "",
-        province: "",
-        district: "",
-        parish: "",
-        postal_no: "",
-        password: "",
-        pic: DEFAULT_PROFILE_URL
-      });
-      setPreviewImage(DEFAULT_PROFILE_URL);
+    console.log('🔄 AddUser useEffect triggered:', { initialFormData, open, hasInitialized: hasInitialized.current });
+    
+    // Only initialize form data once when dialog opens
+    if (open && !hasInitialized.current) {
+      hasInitialized.current = true;
+      console.log('🎯 AddUser Initializing form data for the first time');
+      
+      if (initialFormData) {
+        console.log('📝 AddUser Setting form data from initialFormData');
+        setFormData({
+          user_code: initialFormData.user_code || "",
+          username: initialFormData.username || "",
+          Fullname: initialFormData.Fullname || "",
+          email: initialFormData.email || "",
+          phone: initialFormData.phone || "",
+          position_name: initialFormData.position_name || "",
+          branch_name: initialFormData.branch_name || "",
+          position_id: initialFormData.position_id || "",
+          branch_id: initialFormData.branch_id || "",
+          role_id: initialFormData.role_id || "",
+          role_name: initialFormData.role_name || "",
+          street: initialFormData.street || "",
+          province: initialFormData.province || "",
+          district: initialFormData.district || "",
+          parish: initialFormData.parish || "",
+          postal_no: initialFormData.postal_no || "",
+          password: "",
+          pic: initialFormData.pic || DEFAULT_PROFILE_URL
+        });
+        setPreviewImage(initialFormData.pic || DEFAULT_PROFILE_URL);
+      } else {
+        // Only reset when dialog opens and there's no initial data
+        console.log('🆕 AddUser Resetting form data for new dialog');
+        setFormData({
+          user_code: "",
+          username: "",
+          Fullname: "",
+          email: "",
+          phone: "",
+          position_name: "",
+          branch_name: "",
+          position_id: "",
+          branch_id: "",
+          role_id: "",
+          role_name: "",
+          street: "",
+          province: "",
+          district: "",
+          parish: "",
+          postal_no: "",
+          password: "",
+          pic: DEFAULT_PROFILE_URL
+        });
+        setPreviewImage(DEFAULT_PROFILE_URL);
+      }
+    } else if (open && hasInitialized.current) {
+      console.log('⏭️ AddUser Dialog already initialized, skipping form reset');
+    }
+    
+    // Reset the flag when dialog closes
+    if (!open) {
+      console.log('🚪 AddUser Dialog closed, resetting initialization flag');
+      hasInitialized.current = false;
     }
   }, [initialFormData, open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log('🔵 AddUser handleChange called:', { name, value, currentFormData: formData });
 
     if (name === 'position_name') {
       const selectedPosition = positions.find(p => p.position_name === value);
-      setFormData(prev => ({
-        ...prev,
-        position_name: value,
-        position_id: selectedPosition ? selectedPosition.position_id : prev.position_id
-      }));
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          position_name: value,
+          position_id: selectedPosition ? selectedPosition.position_id : prev.position_id
+        };
+        console.log('✅ AddUser Updated formData (position):', newData);
+        return newData;
+      });
     } else if (name === 'branch_name') {
       const selectedBranch = branches.find(b => b.branch_name === value);
-      setFormData(prev => ({
-        ...prev,
-        branch_name: value,
-        branch_id: selectedBranch ? selectedBranch.branch_id : prev.branch_id
-      }));
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          branch_name: value,
+          branch_id: selectedBranch ? selectedBranch.branch_id : prev.branch_id
+        };
+        console.log('✅ AddUser Updated formData (branch):', newData);
+        return newData;
+      });
     } else if (name === 'role_name') {
       const selectedRole = roles.find(r => r.role_name === value);
-      setFormData(prev => ({
-        ...prev,
-        role_name: value,
-        role_id: selectedRole ? selectedRole.role_id : prev.role_id
-      }));
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          role_name: value,
+          role_id: selectedRole ? selectedRole.role_id : prev.role_id
+        };
+        console.log('✅ AddUser Updated formData (role):', newData);
+        return newData;
+      });
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData(prev => {
+        const newData = { ...prev, [name]: value };
+        console.log('✅ AddUser Updated formData (general):', newData);
+        return newData;
+      });
     }
   };
 
@@ -459,6 +496,13 @@ export default function AddUserDialog({
     formData.street &&
     formData.role_name;
 
+  // Debug logging
+  console.log('Form Data:', formData);
+  console.log('Is Form Valid:', isFormValid);
+  console.log('Positions:', positions);
+  console.log('Branches:', branches);
+  console.log('Roles:', roles);
+
   if (!open) return null;
 
   return (
@@ -558,7 +602,7 @@ export default function AddUserDialog({
                         value={formData.user_code}
                         onChange={e => {
                           const value = e.target.value.replace(/\D/g, "");
-                          setFormData({ ...formData, user_code: value });
+                          setFormData(prev => ({ ...prev, user_code: value }));
                         }}
                         onKeyPress={e => {
                           if (!/[0-9]/.test(e.key)) {
@@ -644,7 +688,7 @@ export default function AddUserDialog({
                         onChange={e => {
                           // อนุญาตเฉพาะ a-z, A-Z, 0-9, _ และ . เท่านั้น
                           const value = e.target.value.replace(/[^a-zA-Z0-9_.]/g, "");
-                          setFormData({ ...formData, username: value });
+                          setFormData(prev => ({ ...prev, username: value }));
                         }}
                         onKeyPress={e => {
                           // ไม่อนุญาตให้พิมพ์ถ้าไม่ใช่ a-z, A-Z, 0-9, _ หรือ .
@@ -671,7 +715,7 @@ export default function AddUserDialog({
                           onChange={e => {
                             // อนุญาตเฉพาะ a-z, A-Z, 0-9, _ และ . เท่านั้น (ไม่ให้เว้นวรรค)
                             const value = e.target.value.replace(/[^a-zA-Z0-9_.]/g, "");
-                            setFormData({ ...formData, password: value });
+                            setFormData(prev => ({ ...prev, password: value }));
                           }}
                           onKeyPress={e => {
                             // ไม่อนุญาตให้พิมพ์ถ้าไม่ใช่ a-z, A-Z, 0-9, _ หรือ .
@@ -729,7 +773,7 @@ export default function AddUserDialog({
                           onChange={e => {
                             // อนุญาตเฉพาะตัวเลขเท่านั้น
                             const value = e.target.value.replace(/\D/g, "");
-                            setFormData({ ...formData, phone: value });
+                            setFormData(prev => ({ ...prev, phone: value }));
                           }}
                           onKeyPress={e => {
                             // ไม่อนุญาตให้พิมพ์ถ้าไม่ใช่ตัวเลข

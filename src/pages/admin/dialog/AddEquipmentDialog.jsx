@@ -38,6 +38,7 @@ export default function AddEquipmentDialog({
   const [rooms, setRooms] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const hasInitialized = useRef(false);
 
   const statusConfig = {
     "พร้อมใช้งาน": { color: "green", icon: "CheckCircleIcon" },
@@ -49,58 +50,79 @@ export default function AddEquipmentDialog({
   };
 
   useEffect(() => {
-    if (open) {
+    console.log('🔄 AddEquipment useEffect triggered:', { equipmentData, initialFormData, open, hasInitialized: hasInitialized.current });
+    
+    if (open && !hasInitialized.current) {
+      hasInitialized.current = true;
+      console.log('🎯 AddEquipment Initializing form data for the first time');
+      
       getCategories().then(data => setCategories(data));
       getRooms().then(data => setRooms(data));
-    }
-    // สำหรับ AddEquipmentDialog ต้องให้ item_code เป็นค่าว่างเสมอ
-    const baseData = equipmentData || initialFormData || {};
-    setFormData({
-      item_code: "", // ต้องเป็นค่าว่างเสมอสำหรับการเพิ่มใหม่
-      name: baseData.name || "",
-      category: baseData.category || "",
-      category_id: baseData.category_id || "",
-      description: baseData.description || "",
-      quantity: baseData.quantity || "",
-      unit: baseData.unit || "",
-      status: baseData.status || "พร้อมใช้งาน",
-      pic: baseData.pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
-    });
+      
+      // สำหรับ AddEquipmentDialog ต้องให้ item_code เป็นค่าว่างเสมอ
+      const baseData = equipmentData || initialFormData || {};
+      console.log('📝 AddEquipment Setting form data from baseData:', baseData);
+      setFormData({
+        item_code: "", // ต้องเป็นค่าว่างเสมอสำหรับการเพิ่มใหม่
+        name: baseData.name || "",
+        category: baseData.category || "",
+        category_id: baseData.category_id || "",
+        description: baseData.description || "",
+        quantity: baseData.quantity || "",
+        unit: baseData.unit || "",
+        status: baseData.status || "พร้อมใช้งาน",
+        pic: baseData.pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
+      });
 
-    // ตั้งค่า previewImage ใหม่ทุกครั้งที่เปิด dialog
-    const pic = equipmentData?.pic || initialFormData?.pic;
-    if (pic) {
-      if (typeof pic === 'string') {
-        setPreviewImage(
-          pic.startsWith('http') || pic.startsWith('/uploads')
-            ? pic
-            : `/uploads/${pic}`
-        );
+      // ตั้งค่า previewImage ใหม่ทุกครั้งที่เปิด dialog
+      const pic = equipmentData?.pic || initialFormData?.pic;
+      if (pic) {
+        if (typeof pic === 'string') {
+          setPreviewImage(
+            pic.startsWith('http') || pic.startsWith('/uploads')
+              ? pic
+              : `/uploads/${pic}`
+          );
+        } else {
+          setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
+        }
       } else {
         setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
       }
-    } else {
-      setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
+    } else if (open && hasInitialized.current) {
+      console.log('⏭️ AddEquipment Dialog already initialized, skipping form reset');
     }
-
+    
+    // Reset the flag when dialog closes
+    if (!open) {
+      console.log('🚪 AddEquipment Dialog closed, resetting initialization flag');
+      hasInitialized.current = false;
+    }
     // ไม่ต้อง map id เป็น item_code แล้ว เพราะเราต้องการให้ user กรอกเอง
   }, [equipmentData, initialFormData, open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    console.log('🔵 AddEquipment handleChange called:', { name, value, currentFormData: formData });
+    
     if (name === 'category') {
       // Find the selected category and set both category name and category_id
       const selectedCategory = categories.find(cat => cat.name === value);
-      setFormData(prev => ({
-        ...prev,
-        category: value,
-        category_id: selectedCategory ? selectedCategory.category_id : ""
-      }));
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          category: value,
+          category_id: selectedCategory ? selectedCategory.category_id : ""
+        };
+        console.log('✅ Updated formData (category):', newData);
+        return newData;
+      });
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
+      setFormData(prev => {
+        const newData = { ...prev, [name]: value };
+        console.log('✅ Updated formData (general):', newData);
+        return newData;
+      });
     }
   };
 
