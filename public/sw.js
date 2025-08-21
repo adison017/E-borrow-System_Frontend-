@@ -33,6 +33,9 @@ self.addEventListener('fetch', (event) => {
 			return response;
 		})());
 	} else {
-		event.respondWith(fetch(request).catch(() => caches.match('/')));
+		event.respondWith(fetch(request).catch(async () => {
+			const fallback = await caches.match('/');
+			return fallback || new Response('Network error', { status: 503 });
+		}));
 	}
 });

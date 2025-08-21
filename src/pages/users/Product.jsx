@@ -340,22 +340,46 @@ const Home = () => {
   // โหลดข้อมูลจาก API
   useEffect(() => {
     setLoading(true);
-    getEquipment()
-      .then(data => {
+    Promise.all([
+      getEquipment(),
+      globalUserData?.user_id ? authFetch(`${API_BASE}/borrows?user_id=${globalUserData.user_id}`).then(res => res.ok ? res.json() : []) : Promise.resolve([])
+    ])
+      .then(([equipmentData, borrowData]) => {
         // API equipment data received
-        if (!Array.isArray(data)) {
+        if (!Array.isArray(equipmentData)) {
           setEquipmentData([]);
           return;
         }
+
+                                   // สร้าง map ของ borrow data เพื่อหา due_date (วันที่กำหนดคืน)
+          const borrowMap = {};
+          if (Array.isArray(borrowData)) {
+            borrowData.forEach(borrow => {
+              // ตรวจสอบทั้ง borrow.items และ borrow.equipment
+              const items = borrow.items || borrow.equipment || [];
+              if (Array.isArray(items)) {
+                items.forEach(item => {
+                                     if (item.item_code && ['pending', 'approved', 'carry', 'waiting_payment'].includes(borrow.status)) {
+                    borrowMap[String(item.item_code)] = {
+                      dueDate: borrow.due_date, // ใช้ due_date แทน return_date
+                      borrowStatus: borrow.status
+                    };
+                  }
+                });
+              }
+            });
+          }
+
         // map field ให้ตรงกับ UI เดิม โดยใช้ item_code เป็น string เสมอ
-        const mapped = data.map(item => ({
+        const mapped = equipmentData.map(item => ({
           id: String(item.item_code), // บังคับเป็น string
           item_id: item.item_id,      // เพิ่มบรรทัดนี้เพื่อให้ payload มี item_id จริง
           name: item.name,
           code: String(item.item_code), // บังคับเป็น string
           category: item.category,
           status: item.status,
-          dueDate: item.dueDate || item.return_date || item.due_date || '', // ใช้ข้อมูลจริงจาก API
+                     dueDate: borrowMap[String(item.item_code)]?.dueDate || item.due_date || item.dueDate || item.return_date || '', // ใช้ข้อมูลจาก borrow API
+          borrowStatus: borrowMap[String(item.item_code)]?.borrowStatus || '', // เพิ่มสถานะการยืม
           image: item.pic,
           available: item.quantity,
           specifications: item.description,
@@ -367,7 +391,7 @@ const Home = () => {
         setEquipmentData(mapped);
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [globalUserData?.user_id]);
 
   // โหลด category จาก API
   useEffect(() => {
@@ -1134,20 +1158,50 @@ const Home = () => {
                             {equipment.status === 'พร้อมยืม' && (
                               <p className="text-sm">คงเหลือ {equipment.available} ชิ้น</p>
                             )}
-                            {/* เพิ่มแสดงวันที่คืนเมื่อสถานะเป็น 'ถูกยืม' */}
-                            {equipment.status === 'ถูกยืม' && equipment.dueDate && (
-                              <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-full bg-yellow-100 border border-yellow-300 shadow-sm animate-pulse">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                </svg>
-                                <span className="text-sm font-bold text-black">
-                                  กำหนดคืน {new Date(equipment.dueDate).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' })}
-                                </span>
-                              </div>
-                            )}
-                            {equipment.dueDate && equipment.status !== 'พร้อมยืม' && equipment.status !== 'ถูกยืม' && (
-                              <p className="text-sm">กำหนดคืน {equipment.dueDate}</p>
-                            )}
+                                                                                      {/* แสดงวันที่คืนเมื่อมีสถานะการยืมที่ active หรือสถานะครุภัณฑ์เป็น 'ถูกยืม' */}
+                                                           {(equipment.borrowStatus && ['pending', 'approved', 'carry', 'waiting_payment'].includes(equipment.borrowStatus) || equipment.status === 'ถูกยืม') && (
+                               <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-full bg-yellow-100 border border-yellow-300 shadow-sm animate-pulse">
+                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                 </svg>
+                                                                   <span className="text-sm font-bold text-black">
+                                    กำหนดคืน {(() => {
+                                      // Debug: ตรวจสอบข้อมูล
+                                      console.log('Equipment debug:', {
+                                        id: equipment.id,
+                                        name: equipment.name,
+                                        status: equipment.status,
+                                        borrowStatus: equipment.borrowStatus,
+                                        dueDate: equipment.dueDate,
+                                        dueDateType: typeof equipment.dueDate,
+                                        dueDateValid: equipment.dueDate && equipment.dueDate !== '' && equipment.dueDate !== null && !isNaN(new Date(equipment.dueDate).getTime())
+                                      });
+                                      
+                                      // ตรวจสอบว่ามี dueDate ที่ถูกต้องก่อน (ไม่ว่าจะมาจาก borrow API หรือ equipment API)
+                                      if (equipment.dueDate && equipment.dueDate !== '' && equipment.dueDate !== null && !isNaN(new Date(equipment.dueDate).getTime())) {
+                                        return new Date(equipment.dueDate).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+                                      }
+                                      
+                                                                             // ถ้าไม่มี dueDate ที่ถูกต้อง แต่มีสถานะการยืมที่ active ให้แสดงข้อความที่เหมาะสม
+                                       if (equipment.borrowStatus === 'pending') {
+                                         return 'รออนุมัติ';
+                                       } else if (equipment.borrowStatus === 'approved') {
+                                         return 'รอรับมอบ';
+                                       } else if (equipment.borrowStatus === 'carry') {
+                                         return 'รอส่งมอบ';
+                                       } else if (equipment.borrowStatus === 'waiting_payment') {
+                                         return 'รอชำระเงิน';
+                                       } else if (equipment.status === 'ถูกยืม') {
+                                        // ถ้าสถานะครุภัณฑ์เป็น "ถูกยืม" แต่ไม่มีข้อมูล borrowStatus หรือ dueDate
+                                        // แสดงว่าเป็นครุภัณฑ์ที่ถูกยืมแล้วแต่ข้อมูลยังไม่ sync
+                                        return 'กำลังตรวจสอบ';
+                                      } else {
+                                        return 'ไม่ระบุ';
+                                      }
+                                    })()}
+                                  </span>
+                               </div>
+                             )}
                           </div>
 
                           <div className="card-actions flex-col items-center justify-center mt-2 ">
