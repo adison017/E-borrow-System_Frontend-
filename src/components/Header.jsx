@@ -10,6 +10,33 @@ import Notification from './Notification';
 function Header({ userRole, changeRole }) {
   const [username, setUsername] = useState("");
   const [avatar, setAvatar] = useState('/logo_it.png');
+  const [remainingTime, setRemainingTime] = useState(60 * 60); // 60 นาทีในวินาที
+  
+  // Countdown timer effect
+  useEffect(() => {
+    const countdownInterval = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 0) return 0;
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownInterval);
+  }, []);
+
+  // Format remaining time
+  const formatRemainingTime = () => {
+    const minutes = Math.floor(remainingTime / 60);
+    const seconds = remainingTime % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Get time color based on remaining time
+  const getTimeColor = () => {
+    if (remainingTime <= 300) return 'text-red-600'; // 5 นาที
+    if (remainingTime <= 600) return 'text-yellow-600'; // 10 นาที
+    return 'text-green-600';
+  };
   const resolveAvatarUrl = (path) => {
     if (!path) return '/logo_it.png';
     if (isCloudinaryUrl(path)) return getOptimizedCloudinaryUrl(path, 'thumbnail');

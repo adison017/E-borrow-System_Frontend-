@@ -1,13 +1,81 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { MdClose } from 'react-icons/md';
 import { MapPinIcon } from '@heroicons/react/24/outline';
 
 const LocationMapDialog = ({ isOpen, onClose, location, borrowerName }) => {
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen || !location) return;
+
+    // Load Leaflet CSS
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    link.integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+    link.crossOrigin = '';
+    document.head.appendChild(link);
+
+    // Load Leaflet JS
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.integrity = 'sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=';
+    script.crossOrigin = '';
+    
+    script.onload = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+      }
+
+      const { L } = window;
+      const { latitude, longitude } = location;
+
+      // สร้างแผนที่
+      const map = L.map(mapRef.current).setView([latitude, longitude], 15);
+      mapInstanceRef.current = map;
+
+      // เพิ่ม OpenStreetMap tile layer
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+        maxZoom: 19
+      }).addTo(map);
+
+      // เพิ่ม marker
+      const marker = L.marker([latitude, longitude]).addTo(map);
+      
+      // เพิ่ม popup
+      marker.bindPopup(`
+        <div style="text-align: center;">
+          <strong>${borrowerName}</strong><br>
+          📍 ${location.address || 'ไม่ระบุที่อยู่'}<br>
+          🌐 ${latitude.toFixed(6)}, ${longitude.toFixed(6)}
+        </div>
+      `).openPopup();
+
+      // ปรับ zoom ให้เห็น marker ชัดเจน
+      map.fitBounds(marker.getLatLng().toBounds(100));
+    };
+
+    document.head.appendChild(script);
+
+    // Cleanup function
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+      // ลบ script และ CSS ที่เพิ่มเข้าไป
+      const scripts = document.querySelectorAll('script[src*="leaflet"]');
+      const links = document.querySelectorAll('link[href*="leaflet"]');
+      scripts.forEach(s => s.remove());
+      links.forEach(l => l.remove());
+    };
+  }, [isOpen, location, borrowerName]);
+
   if (!isOpen || !location) return null;
 
   const { latitude, longitude, address, timestamp } = location;
-  const googleMapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
-  const embedUrl = `https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dpoWe2kVWCyydg&q=${latitude},${longitude}&zoom=15`;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md">
@@ -47,30 +115,25 @@ const LocationMapDialog = ({ isOpen, onClose, location, borrowerName }) => {
             </div>
           </div>
 
-          {/* Google Maps Embed */}
+          {/* OpenStreetMap Container */}
           <div className="relative w-full h-96 rounded-lg overflow-hidden border border-gray-300 shadow-lg">
-            <iframe
-              src={embedUrl}
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen=""
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              title="Location Map"
+            <div 
+              ref={mapRef} 
+              className="w-full h-full"
+              style={{ minHeight: '384px' }}
             />
           </div>
 
           {/* Action Buttons */}
           <div className="flex justify-center gap-3 mt-4">
             <a
-              href={googleMapsUrl}
+              href={`https://www.openstreetmap.org/?mlat=${latitude}&mlon=${longitude}&zoom=15`}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
             >
               <MapPinIcon className="w-4 h-4" />
-              เปิดใน Google Maps
+              เปิดใน OpenStreetMap
             </a>
           </div>
         </div>

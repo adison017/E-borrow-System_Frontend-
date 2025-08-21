@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPinIcon, UserIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, UserIcon, ClockIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { API_BASE, authFetch, getAllBorrows } from '../../utils/api';
 import LocationMapDialog from '../../components/LocationMapDialog';
 
@@ -9,9 +9,18 @@ const LocationTracking = () => {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selectedBorrower, setSelectedBorrower] = useState(null);
   const [showMap, setShowMap] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(new Date());
 
   useEffect(() => {
     fetchActiveBorrowers();
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(() => {
+      fetchActiveBorrowers();
+      setLastRefresh(new Date());
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchActiveBorrowers = async () => {
@@ -24,25 +33,19 @@ const LocationTracking = () => {
         ['approved', 'carry', 'overdue'].includes(borrow.status)
       );
       
-      // เพิ่ม mock location ข้อมูลสำหรับทดสอบ
-      const borrowersWithMockLocation = activeBorrowers.map((borrow, index) => ({
-        ...borrow,
-        borrower_location: index % 2 === 0 ? {
-          latitude: 16.2467 + (Math.random() - 0.5) * 0.01,
-          longitude: 103.2521 + (Math.random() - 0.5) * 0.01,
-          address: 'มหาวิทยาลัยมหาสารคาม',
-          timestamp: new Date().toISOString()
-        } : null,
-        last_location_update: new Date().toISOString()
-      }));
-      
-      console.log('Active borrowers with mock location:', borrowersWithMockLocation);
-      setBorrowers(borrowersWithMockLocation);
+      console.log('Active borrowers:', activeBorrowers);
+      setBorrowers(activeBorrowers);
     } catch (error) {
       console.error('Error fetching borrowers:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setLoading(true);
+    fetchActiveBorrowers();
+    setLastRefresh(new Date());
   };
 
   const handleViewLocation = (borrower) => {
@@ -64,11 +67,27 @@ const LocationTracking = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-          <MapPinIcon className="w-8 h-8 text-blue-600" />
-          ติดตามตำแหน่งผู้ยืม
-        </h1>
-        <p className="text-gray-600 mt-2">ดูตำแหน่งปัจจุบันของผู้ที่กำลังยืมครุภัณฑ์</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+              <MapPinIcon className="w-8 h-8 text-blue-600" />
+              ติดตามตำแหน่งผู้ยืม
+            </h1>
+            <p className="text-gray-600 mt-2">ดูตำแหน่งปัจจุบันของผู้ที่กำลังยืมครุภัณฑ์</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-sm text-gray-500">
+              อัพเดทล่าสุด: {lastRefresh.toLocaleTimeString('th-TH')}
+            </div>
+            <button
+              onClick={handleRefresh}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200"
+            >
+              <ArrowPathIcon className="w-4 h-4" />
+              รีเฟรช
+            </button>
+          </div>
+        </div>
       </div>
 
       {borrowers.length === 0 ? (
@@ -105,7 +124,7 @@ const LocationTracking = () => {
                     <h3 className="font-semibold text-gray-800">
                       {borrower.borrower?.first_name || borrower.borrower?.name || borrower.user?.first_name || borrower.user?.name || 'ไม่ระบุชื่อ'} {borrower.borrower?.last_name || borrower.user?.last_name || ''}
                     </h3>
-                    <p className="text-sm text-gray-500">{borrower.borrower?.email || borrower.user?.email || 'ไม่ระบุอีเมล'}</p>
+                    <p className="text-sm text-gray-500">{borrower.borrower?.department || borrower.user?.department || 'สาขา'}</p>
                   </div>
                 </div>
 
@@ -127,9 +146,36 @@ const LocationTracking = () => {
                     </div>
                     <div className="text-xs text-gray-600">
                       <p>📍 {borrower.borrower_location.address || 'ไม่ระบุที่อยู่'}</p>
-                      <div className="flex items-center gap-1 mt-1">
-                        <ClockIcon className="w-3 h-3" />
-                        <span>อัพเดท: {new Date(borrower.last_location_update).toLocaleString('th-TH')}</span>
+                      <div className="flex items-center gap-1 mt-2 p-2 bg-gray-50 rounded-lg">
+                        <ClockIcon className="w-3 h-3 text-blue-600" />
+                        <span className="text-blue-700 font-medium">
+                          อัพเดทล่าสุด: {new Date(borrower.last_location_update).toLocaleString('th-TH', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500">
+                        {(() => {
+                          const now = new Date();
+                          const lastUpdate = new Date(borrower.last_location_update);
+                          const diffMs = now - lastUpdate;
+                          const diffMins = Math.floor(diffMs / 60000);
+                          const diffSecs = Math.floor((diffMs % 60000) / 1000);
+                          
+                          if (diffMins < 1) {
+                            return `🟢 ${diffSecs} วินาทีที่แล้ว`;
+                          } else if (diffMins < 60) {
+                            return `🟡 ${diffMins} นาทีที่แล้ว`;
+                          } else {
+                            const diffHours = Math.floor(diffMins / 60);
+                            return `🔴 ${diffHours} ชั่วโมงที่แล้ว`;
+                          }
+                        })()}
                       </div>
                     </div>
                   </div>
