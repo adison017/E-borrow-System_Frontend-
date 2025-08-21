@@ -87,19 +87,6 @@ const EquipmentDetailDialog = ({
                     </div>
                   </div>
                 </div>
-              </div>              {/* History Section */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 text-black flex items-center gap-2">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  ประวัติการใช้งาน
-                </h3>
-                <div className="space-y-4">
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <p className="text-gray-500">ไม่มีประวัติการใช้งาน</p>
-                    </div>
-                </div>
               </div>
             </div>
           </motion.div>
