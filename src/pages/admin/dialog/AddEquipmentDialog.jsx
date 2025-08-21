@@ -23,6 +23,7 @@ export default function AddEquipmentDialog({
     item_code: "",
     name: "",
     category: "",
+    category_id: "",
     description: "",
     quantity: "",
     unit: "",
@@ -52,15 +53,18 @@ export default function AddEquipmentDialog({
       getCategories().then(data => setCategories(data));
       getRooms().then(data => setRooms(data));
     }
-    setFormData(equipmentData || initialFormData || {
-      item_code: "",
-      name: "",
-      category: "",
-      description: "",
-      quantity: "",
-      unit: "",
-      status: "พร้อมใช้งาน",
-      pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
+    // สำหรับ AddEquipmentDialog ต้องให้ item_code เป็นค่าว่างเสมอ
+    const baseData = equipmentData || initialFormData || {};
+    setFormData({
+      item_code: "", // ต้องเป็นค่าว่างเสมอสำหรับการเพิ่มใหม่
+      name: baseData.name || "",
+      category: baseData.category || "",
+      category_id: baseData.category_id || "",
+      description: baseData.description || "",
+      quantity: baseData.quantity || "",
+      unit: baseData.unit || "",
+      status: baseData.status || "พร้อมใช้งาน",
+      pic: baseData.pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
     });
 
     // ตั้งค่า previewImage ใหม่ทุกครั้งที่เปิด dialog
@@ -79,18 +83,25 @@ export default function AddEquipmentDialog({
       setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
     }
 
-    // If initialFormData uses id, map it to item_code for compatibility
-    if (initialFormData && initialFormData.id && !initialFormData.item_code) {
-      setFormData(prev => ({ ...prev, item_code: initialFormData.id }));
-    }
+    // ไม่ต้อง map id เป็น item_code แล้ว เพราะเราต้องการให้ user กรอกเอง
   }, [equipmentData, initialFormData, open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'category') {
+      // Find the selected category and set both category name and category_id
+      const selectedCategory = categories.find(cat => cat.name === value);
+      setFormData(prev => ({
+        ...prev,
+        category: value,
+        category_id: selectedCategory ? selectedCategory.category_id : ""
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleImageChange = (e) => {
@@ -127,9 +138,11 @@ export default function AddEquipmentDialog({
     try {
       // ตรวจสอบฟิลด์ที่จำเป็น (ยกเว้น description)
       const requiredFields = [
+        { key: 'item_code', label: 'รหัสครุภัณฑ์' },
         { key: 'name', label: 'ชื่อครุภัณฑ์' },
         { key: 'quantity', label: 'จำนวน' },
         { key: 'category', label: 'หมวดหมู่' },
+        { key: 'category_id', label: 'หมวดหมู่' },
         { key: 'unit', label: 'หน่วย' },
         { key: 'status', label: 'สถานะ' },
         { key: 'purchaseDate', label: 'วันที่จัดซื้อ' },
@@ -167,7 +180,19 @@ export default function AddEquipmentDialog({
       const payload = { ...dataToSave, item_id: formData.item_id };
       await onSave(payload);
 
-      setFormData(prev => ({ ...prev, item_code: "" }));
+      // Reset form data after successful save
+      setFormData({
+        item_code: "",
+        name: "",
+        category: "",
+        category_id: "",
+        description: "",
+        quantity: "",
+        unit: "",
+        status: "พร้อมใช้งาน",
+        pic: "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
+      });
+      setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
       onClose();
     } catch (error) {
       // Error during submit
@@ -175,7 +200,7 @@ export default function AddEquipmentDialog({
     }
   };
 
-  const isFormValid = formData.name && formData.quantity && formData.category && formData.unit;
+  const isFormValid = formData.item_code && formData.name && formData.quantity && formData.category && formData.category_id && formData.unit;
 
   const StatusDisplay = ({ status }) => {
     const config = statusConfig[status] || {
@@ -274,16 +299,18 @@ export default function AddEquipmentDialog({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="group">
-              <label className="block text-sm font-semibold text-gray-800 mb-2">รหัสครุภัณฑ์</label>
-              <input
-                type="text"
-                name="item_code"
-                value={formData.item_code}
-                onChange={handleChange}
-                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
-                placeholder="ระบุรหัสครุภัณฑ์"
-                required
-              />
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                รหัสครุภัณฑ์ <span className="text-rose-500">*</span>
+              </label>
+                             <input
+                 type="text"
+                 name="item_code"
+                 value={formData.item_code}
+                 onChange={handleChange}
+                 className="w-full px-4 py-3 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-gray-800 shadow-sm group-hover:shadow-md transition-all duration-300"
+                 placeholder="กรุณากรอกรหัสครุภัณฑ์ตามระบบของท่าน"
+                 required
+               />
             </div>
             <div className="group">
               <label className="block text-sm font-semibold text-gray-800 mb-2">
