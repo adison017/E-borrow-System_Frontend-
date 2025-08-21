@@ -37,6 +37,7 @@ import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { jsPDF } from 'jspdf';
 import Notification from "../../components/Notification";
 import { addEquipment, deleteEquipment, getEquipment, getRepairRequestsByItemId, updateEquipment, uploadImage } from "../../utils/api";
 import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
@@ -570,8 +571,6 @@ function ManageEquipment() {
     console.log('Downloading all QR Codes as PDF...');
 
     try {
-      // Import jsPDF dynamically
-      const { jsPDF } = await import('jspdf');
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
@@ -1581,10 +1580,10 @@ function ManageEquipment() {
           // สร้าง QR Code จริงโดยใช้ react-qr-code library
           const React = await import('react');
           const ReactDOM = await import('react-dom');
-          const QRCodeComponent = await import('react-qr-code');
+          const QRCodeComponent = QRCode;
 
           // สร้าง QR Code component
-          const qrElement = React.createElement(QRCodeComponent.default, {
+          const qrElement = React.createElement(QRCode, {
             value: equipment.item_code,
             size: 200,
             level: 'M',
@@ -1950,10 +1949,10 @@ function ManageEquipment() {
           // สร้าง QR Code โดยใช้ react-qr-code library
           const React = await import('react');
           const ReactDOM = await import('react-dom');
-          const QRCodeComponent = await import('react-qr-code');
+          const QRCodeComponent = QRCode;
 
           // สร้าง QR Code component
-          const qrElement = React.createElement(QRCodeComponent.default, {
+          const qrElement = React.createElement(QRCode, {
             value: equipment.item_code,
             size: 200,
             level: 'M',
@@ -2191,10 +2190,10 @@ function ManageEquipment() {
           // สร้าง QR Code โดยใช้ react-qr-code library
           const React = await import('react');
           const ReactDOM = await import('react-dom');
-          const QRCodeComponent = await import('react-qr-code');
+          const QRCodeComponent = QRCode;
 
           // สร้าง QR Code component
-          const qrElement = React.createElement(QRCodeComponent.default, {
+          const qrElement = React.createElement(QRCode, {
             value: equipment.item_code,
             size: 200,
             level: 'M',

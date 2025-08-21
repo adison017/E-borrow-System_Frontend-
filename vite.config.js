@@ -15,6 +15,21 @@ export default defineConfig(({ mode }) => {
     base: '/',
     build: {
       outDir: 'dist',
+      chunkSizeWarningLimit: 3000,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            charts: ['recharts'],
+            ui: ['@material-tailwind/react', '@heroicons/react'],
+            icons: ['@mui/icons-material'],
+            motion: ['framer-motion'],
+            router: ['react-router-dom'],
+            pdf: ['jspdf', 'html2canvas'],
+            qr: ['react-qr-code']
+          }
+        }
+      }
     },
     resolve: {
       alias: {
