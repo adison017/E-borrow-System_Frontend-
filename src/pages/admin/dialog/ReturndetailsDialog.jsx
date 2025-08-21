@@ -563,12 +563,6 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
                           <span className="font-medium text-amber-800">{(paymentDetails?.fine_amount || returnItem?.fine_amount)} บาท</span>
                         </div>
                       )}
-                      {(paymentDetails?.notes || returnItem?.notes) && (
-                        <div className="bg-red-600 rounded-2xl py-3 px-6  shadow-sm mt-2">
-                          <span className="text-sm font-bold text-white">หมายเหตุ</span>
-                          <div className="text-white text-sm mt-1 font-bold whitespace-pre-line">{paymentDetails?.notes || returnItem?.notes}</div>
-                        </div>
-                      )}
                       {slipImage && (
                         <div className="mt-3 bg-white rounded-xl p-3 border border-blue-200 shadow-sm">
                           <div className="flex items-center justify-between mb-2">
