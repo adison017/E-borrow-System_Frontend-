@@ -607,21 +607,40 @@ const AuthSystem = (props) => {
   };
 
   // Memoize options to reduce re-render
-  const positionOptions = useMemo(() => positions.map(pos => (
-    <option key={pos.position_id} value={pos.position_id}>{pos.position_name}</option>
-  )), [positions]);
-  const branchOptions = useMemo(() => branches.map(branch => (
-    <option key={branch.branch_id} value={branch.branch_id}>{branch.branch_name}</option>
-  )), [branches]);
-  const provinceOptions = useMemo(() => provinces.map(province => (
-    <option key={province.id} value={province.id}>{province.name_th}</option>
-  )), [provinces]);
-  const amphureOptions = useMemo(() => amphures.map(amphure => (
-    <option key={amphure.id} value={amphure.id}>{amphure.name_th}</option>
-  )), [amphures]);
-  const tambonOptions = useMemo(() => tambons.map(tambon => (
-    <option key={tambon.id} value={tambon.id}>{tambon.name_th}</option>
-  )), [tambons]);
+  const positionOptions = useMemo(() => {
+    if (!Array.isArray(positions)) return [];
+    return positions.map(pos => (
+      <option key={pos.position_id} value={pos.position_id}>{pos.position_name}</option>
+    ));
+  }, [positions]);
+  
+  const branchOptions = useMemo(() => {
+    if (!Array.isArray(branches)) return [];
+    return branches.map(branch => (
+      <option key={branch.branch_id} value={branch.branch_id}>{branch.branch_name}</option>
+    ));
+  }, [branches]);
+  
+  const provinceOptions = useMemo(() => {
+    if (!Array.isArray(provinces)) return [];
+    return provinces.map(province => (
+      <option key={province.id} value={province.id}>{province.name_th}</option>
+    ));
+  }, [provinces]);
+  
+  const amphureOptions = useMemo(() => {
+    if (!Array.isArray(amphures)) return [];
+    return amphures.map(amphure => (
+      <option key={amphure.id} value={amphure.id}>{amphure.name_th}</option>
+    ));
+  }, [amphures]);
+  
+  const tambonOptions = useMemo(() => {
+    if (!Array.isArray(tambons)) return [];
+    return tambons.map(tambon => (
+      <option key={tambon.id} value={tambon.id}>{tambon.name_th}</option>
+    ));
+  }, [tambons]);
 
   return (
     <div data-theme="light" className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 flex items-center justify-center p-4 relative overflow-hidden">

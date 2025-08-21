@@ -18,6 +18,7 @@ import AlertDialog from '../../../components/Notification.jsx';
 import { API_BASE, authFetch } from '../../../utils/api';
 import { MdContentCopy } from "react-icons/md";
 import { toast } from 'react-toastify';
+import locationTracker from '../../../utils/locationTracker';
 
 // เพิ่มฟังก์ชัน formatThaiDate ในไฟล์นี้
 function formatThaiDate(dateStr) {
@@ -213,12 +214,46 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
 
   const qrValueDynamic = buildPaymentQRValue();
 
+  // ฟังก์ชันส่งตำแหน่งไปยังเซิร์ฟเวอร์เมื่อมีการยืนยันการรับครุภัณฑ์
+  const sendLocationOnReceipt = async () => {
+    try {
+      // ตรวจสอบว่ามีการติดตามตำแหน่งอยู่หรือไม่
+      if (locationTracker.isTracking && locationTracker.lastLocation) {
+        console.log('Sending location on receipt confirmation:', locationTracker.lastLocation);
+        await locationTracker.sendLocationToServer(request.borrow_id, locationTracker.lastLocation);
+        console.log('Location sent successfully on receipt confirmation');
+      } else {
+        console.log('No location tracking active or no last location available');
+      }
+    } catch (error) {
+      console.error('Failed to send location on receipt confirmation:', error);
+      // ไม่แสดง error ให้ผู้ใช้ เพราะไม่ใช่ส่วนสำคัญของการยืนยัน
+    }
+  };
+
   const copyText = async (text) => {
     try {
       if (!text) return;
       await navigator.clipboard.writeText(text);
       toast.success('คัดลอกแล้ว');
     } catch (_) {}
+  };
+
+  // ฟังก์ชันยืนยันการรับครุภัณฑ์พร้อมส่งตำแหน่ง
+  const handleConfirmReceipt = async () => {
+    try {
+      // ส่งตำแหน่งไปยังเซิร์ฟเวอร์ก่อน
+      await sendLocationOnReceipt();
+      
+      // เรียกใช้ฟังก์ชัน onConfirmReceipt ที่ส่งมาจาก parent component
+      if (onConfirmReceipt) {
+        await onConfirmReceipt(request);
+      }
+    } catch (error) {
+      console.error('Error in handleConfirmReceipt:', error);
+      // แสดง error ให้ผู้ใช้ทราบ
+      toast.error('เกิดข้อผิดพลาดในการยืนยันการรับครุภัณฑ์');
+    }
   };
 
   // ฟังก์ชันแปลง QR Code เป็นไฟล์ภาพและดาวน์โหลด

@@ -2,6 +2,19 @@ import { useEffect, useRef, useCallback } from 'react';
 import socketService from '../utils/socketService';
 
 export const useSocket = () => {
+  // ตรวจสอบว่า React context พร้อมหรือไม่
+  if (typeof window === 'undefined') {
+    return {
+      on: () => {},
+      off: () => {},
+      emit: () => {},
+      isConnected: () => false,
+      isAuthenticated: () => false,
+      authenticate: async () => false,
+      socket: null
+    };
+  }
+
   const eventListenersRef = useRef(new Map());
 
   // Connect on mount with token and keep it across reconnects
@@ -104,6 +117,13 @@ export const useSocket = () => {
 
 // Hook สำหรับ badge counts
 export const useBadgeCounts = () => {
+  // ตรวจสอบว่า React context พร้อมหรือไม่
+  if (typeof window === 'undefined') {
+    return {
+      subscribeToBadgeCounts: () => () => {}
+    };
+  }
+
   const { on, off } = useSocket();
 
   const subscribeToBadgeCounts = useCallback((callback) => {

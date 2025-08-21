@@ -66,7 +66,6 @@ const RequirementList = () => {
     // === จบ logic ===
   }, [subscribeToBadgeCounts]);
 
-
   const handleNext = (borrowId) => {
     setCurrentImageIndices(prev => {
       const currentIndex = prev[borrowId] || 0;
@@ -229,6 +228,7 @@ const RequirementList = () => {
                         <p className="text-gray-600 text-sm md:text-base">{request.due_date ? new Date(request.due_date).toLocaleDateString() : '-'}</p>
                       </div>
                     </div>
+
                     {/* Footer */}
                     <div className="pt-4 border-t border-gray-200 mt-auto">
                       <div className="flex flex-col md:flex-row justify-between items-center gap-4">

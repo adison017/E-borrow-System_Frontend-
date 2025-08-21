@@ -12,7 +12,8 @@ import './sidebar.css';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import socketService from './utils/socketService';
-import { API_BASE } from './utils/api';
+import { API_BASE, authFetch } from './utils/api';
+import locationTracker from './utils/locationTracker';
 
 // Admin Pages
 import BorrowList from './pages/admin/BorrowList';
@@ -75,8 +76,9 @@ function AppInner() {
   };
 
   const inactivityTimer = useRef(null);
-  const INACTIVITY_MINUTES = 45; // Enforce 45 minutes globally
+  const INACTIVITY_MINUTES = 60; // เพิ่มเป็น 60 นาที
   const inactivityMinutes = INACTIVITY_MINUTES;
+  const [remainingTime, setRemainingTime] = useState(inactivityMinutes * 60); // เวลาที่เหลือในวินาที
 
   // ฟังก์ชัน logout
   const autoLogout = () => {
@@ -89,8 +91,21 @@ function AppInner() {
   // ฟังก์ชัน reset timer
   const resetInactivityTimer = () => {
     if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    setRemainingTime(inactivityMinutes * 60); // รีเซ็ตเวลา
     inactivityTimer.current = setTimeout(autoLogout, inactivityMinutes * 60 * 1000);
   };
+
+  // Countdown timer
+  useEffect(() => {
+    const countdownInterval = setInterval(() => {
+      setRemainingTime(prev => {
+        if (prev <= 0) return 0;
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(countdownInterval);
+  }, []);
 
   useEffect(() => {
     // เริ่มจับ event
@@ -130,28 +145,29 @@ function AppInner() {
       }
       setUserRole(payload.role);
 
+      // ตั้งค่า role ทันทีจาก token แทนที่จะรอ backend verification
+      setCheckingAuth(false);
+
       // Ensure socket connection with token for real-time updates
       socketService.connect(token);
 
-      // Verify กับ backend (ใช้ endpoint ที่ require auth เช่น /api/users/verify-token)
+      // Verify กับ backend ในพื้นหลัง (ไม่บล็อก UI)
       fetch(`${API_BASE}/users/verify-token`, {
         headers: { Authorization: `Bearer ${token}` }
       })
         .then(res => {
           if (res.status === 401 || res.status === 403) {
+            console.log('Token expired or invalid, logging out');
             setUserRole(null);
             localStorage.removeItem('token');
-            setCheckingAuth(false);
             navigate('/login', { replace: true });
           } else {
-            setCheckingAuth(false);
+            console.log('Token verified successfully');
           }
         })
-        .catch(() => {
-          setUserRole(null);
-          localStorage.removeItem('token');
-          setCheckingAuth(false);
-          navigate('/login', { replace: true });
+        .catch((error) => {
+          console.error('Backend verification failed:', error);
+          console.log('Continuing with existing token due to backend connection error');
         });
     } catch (e) {
       setUserRole(null);
@@ -163,9 +179,11 @@ function AppInner() {
 
   // Navigate to the first menu item on application startup
   useEffect(() => {
-    // Always navigate to the default route for the current role on app startup
-    navigate(defaultRoutes[userRole] || '/DashboardUs');
-  }, []); // Empty dependency array ensures this runs only once on mount
+    // Only navigate if userRole is set and not checking auth
+    if (userRole && !checkingAuth) {
+      navigate(defaultRoutes[userRole] || '/DashboardUs');
+    }
+  }, [userRole, checkingAuth]); // Depend on userRole and checkingAuth
 
   // Handle route changes or root navigation
   useEffect(() => {
@@ -198,25 +216,162 @@ function AppInner() {
     }
   }, [userRole, location.pathname, navigate]);
 
-  // ถ้ายังเช็ค token อยู่ ให้ render null (หรือ loading)
-  // if (checkingAuth) return null;
+  // เพิ่ม Global Location Tracking สำหรับ User
+  const [locationPermission, setLocationPermission] = useState(null);
+  const [borrowList, setBorrowList] = useState([]);
 
+  // ตรวจสอบ location permission เมื่อ user login
   useEffect(() => {
-    if (checkingAuth) return;
-    if (!userRole) {
-      if (location.pathname !== '/login') {
-        navigate('/login', { replace: true });
-      }
-    } else {
-      // ถ้า login แล้ว และไม่ได้อยู่ที่ defaultRoutes[userRole] ให้ redirect
-      if (location.pathname === '/login' || location.pathname === '/') {
-        navigate(defaultRoutes[userRole], { replace: true });
-      }
-    }
-  }, [userRole, checkingAuth, location.pathname, navigate]);
+    if (!userRole || userRole !== 'user') return;
 
-  // ถ้ายังเช็ค token อยู่ ให้ render null (หรือ loading)
-  if (checkingAuth) return null;
+    const checkLocationPermission = async () => {
+      if (!navigator.geolocation) {
+        setLocationPermission('not_supported');
+        return;
+      }
+
+      try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+        if (permission.state === 'granted') {
+          setLocationPermission('granted');
+        } else if (permission.state === 'denied') {
+          setLocationPermission('denied');
+        } else {
+          setLocationPermission('prompt');
+        }
+      } catch (error) {
+        console.error('Error checking location permission:', error);
+        setLocationPermission('unknown');
+      }
+    };
+
+    checkLocationPermission();
+  }, [userRole]);
+
+  // ดึงข้อมูลรายการขอยืมสำหรับ location tracking
+  useEffect(() => {
+    if (!userRole || userRole !== 'user' || locationPermission !== 'granted') return;
+
+    const userStr = localStorage.getItem('user');
+    let globalUserData = null;
+    if (userStr) {
+      try {
+        globalUserData = JSON.parse(userStr);
+      } catch (e) {}
+    }
+
+    if (!globalUserData?.user_id) return;
+
+    const fetchBorrowData = () => {
+      authFetch(`${API_BASE}/borrows?user_id=${globalUserData.user_id}`)
+        .then(async res => {
+          if (!res.ok) return [];
+          try {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              return data.filter(b => b.user_id == globalUserData.user_id);
+            }
+            return [];
+          } catch {
+            return [];
+          }
+        })
+        .then(data => {
+          console.log('Global: Fetched borrow data:', data);
+          setBorrowList(data);
+          
+          // เริ่มการติดตามตำแหน่งสำหรับรายการที่ active
+          const activeBorrows = data.filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status));
+          console.log('Global: Active borrows for location tracking:', activeBorrows);
+          
+          if (activeBorrows.length > 0) {
+            startGlobalLocationTracking(activeBorrows);
+          }
+        })
+        .catch(() => {
+          setBorrowList([]);
+        });
+    };
+
+    fetchBorrowData();
+    
+    // ฟัง event badgeCountsUpdated เพื่ออัปเดต borrow list แบบ real-time
+    const handleBadgeUpdate = () => {
+      fetchBorrowData();
+    };
+    
+    // ใช้ setTimeout เพื่อให้แน่ใจว่า useSocket hook พร้อมแล้ว
+    setTimeout(() => {
+      if (window.subscribeToBadgeCounts) {
+        const unsubscribe = window.subscribeToBadgeCounts(handleBadgeUpdate);
+        return () => {
+          unsubscribe();
+          locationTracker.stopTracking();
+        };
+      }
+    }, 1000);
+
+  }, [userRole, locationPermission]);
+
+  // เริ่มการติดตามตำแหน่งแบบ Global
+  const startGlobalLocationTracking = (activeBorrows) => {
+    console.log('Global: Starting location tracking...');
+    
+    const activeBorrowIds = activeBorrows.map(borrow => borrow.borrow_id);
+    
+    if (activeBorrowIds.length === 0) {
+      console.log('Global: No active borrows found');
+      return;
+    }
+
+    locationTracker.startTracking(
+      async (location) => {
+        console.log('Global: Location update received:', location);
+      },
+      (error) => {
+        console.error('Global: Location tracking error:', error);
+      },
+      activeBorrowIds
+    );
+  };
+
+  // Global Periodic Location Check
+  useEffect(() => {
+    if (!locationTracker.isTracking || !locationTracker.lastLocation || borrowList.length === 0) {
+      return;
+    }
+
+    console.log('Global: Setting up periodic location check...');
+
+    const checkAndUpdateLocation = () => {
+      const now = new Date();
+      const oneMinuteAgo = new Date(now.getTime() - 60000);
+
+      console.log('Global: Periodic location check...');
+
+      borrowList.forEach(borrow => {
+        if (['approved', 'carry', 'overdue'].includes(borrow.status)) {
+          if (borrow.last_location_update) {
+            const lastUpdate = new Date(borrow.last_location_update);
+            if (lastUpdate < oneMinuteAgo) {
+              console.log(`Global: Updating location for borrow_id: ${borrow.borrow_id}`);
+              locationTracker.sendLocationToServer(borrow.borrow_id, locationTracker.lastLocation)
+                .then(() => console.log(`Global: Location updated for borrow_id: ${borrow.borrow_id}`))
+                .catch(error => console.error(`Global: Failed to update location for borrow_id ${borrow.borrow_id}:`, error));
+            }
+          } else {
+            console.log(`Global: Sending initial location for borrow_id: ${borrow.borrow_id}`);
+            locationTracker.sendLocationToServer(borrow.borrow_id, locationTracker.lastLocation)
+              .then(() => console.log(`Global: Initial location sent for borrow_id: ${borrow.borrow_id}`))
+              .catch(error => console.error(`Global: Failed to send initial location for borrow_id ${borrow.borrow_id}:`, error));
+          }
+        }
+      });
+    };
+
+    const interval = setInterval(checkAndUpdateLocation, 60000);
+    return () => clearInterval(interval);
+  }, [borrowList, locationTracker.isTracking, locationTracker.lastLocation]);
 
   const renderSidebar = () => {
     switch (userRole) {
@@ -245,6 +400,15 @@ function AppInner() {
         return null;
     }
   };
+
+  // ถ้ายัง checking auth อยู่ ให้แสดง loading
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-indigo-950 to-blue-700">
+        <div className="text-white text-xl">กำลังตรวจสอบการเข้าสู่ระบบ...</div>
+      </div>
+    );
+  }
 
   // ถ้ายังไม่ได้ login หรือ path เป็น /login ให้แสดงหน้า AuthSystem อย่างเดียว (ไม่มี sidebar/menu)
   if (!userRole || location.pathname === '/login') {
@@ -380,6 +544,155 @@ function AppInner() {
 }
 
 function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [locationPermission, setLocationPermission] = useState(null);
+  const [borrowList, setBorrowList] = useState([]);
+
+  // เพิ่ม Global Location Tracking
+  useEffect(() => {
+    if (!user?.user_id) return;
+
+    // ตรวจสอบ location permission
+    const checkLocationPermission = async () => {
+      if (!navigator.geolocation) {
+        setLocationPermission('not_supported');
+        return;
+      }
+
+      try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+        if (permission.state === 'granted') {
+          setLocationPermission('granted');
+        } else if (permission.state === 'denied') {
+          setLocationPermission('denied');
+        } else {
+          setLocationPermission('prompt');
+        }
+      } catch (error) {
+        console.error('Error checking location permission:', error);
+        setLocationPermission('unknown');
+      }
+    };
+
+    checkLocationPermission();
+  }, [user]);
+
+  // ดึงข้อมูลรายการขอยืมสำหรับ location tracking
+  useEffect(() => {
+    if (!user?.user_id || locationPermission !== 'granted') return;
+
+    const fetchBorrowData = () => {
+      authFetch(`${API_BASE}/borrows?user_id=${user.user_id}`)
+        .then(async res => {
+          if (!res.ok) return [];
+          try {
+            const data = await res.json();
+            if (Array.isArray(data)) {
+              return data.filter(b => b.user_id == user.user_id);
+            }
+            return [];
+          } catch {
+            return [];
+          }
+        })
+        .then(data => {
+          console.log('Global: Fetched borrow data:', data);
+          setBorrowList(data);
+          
+          // เริ่มการติดตามตำแหน่งสำหรับรายการที่ active
+          const activeBorrows = data.filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status));
+          console.log('Global: Active borrows for location tracking:', activeBorrows);
+          
+          if (activeBorrows.length > 0) {
+            startGlobalLocationTracking(activeBorrows);
+          }
+        })
+        .catch(() => {
+          setBorrowList([]);
+        });
+    };
+
+    fetchBorrowData();
+    
+    // ฟัง event badgeCountsUpdated เพื่ออัปเดต borrow list แบบ real-time
+    const handleBadgeUpdate = () => {
+      fetchBorrowData();
+    };
+    
+    // ใช้ setTimeout เพื่อให้แน่ใจว่า useSocket hook พร้อมแล้ว
+    setTimeout(() => {
+      if (window.subscribeToBadgeCounts) {
+        const unsubscribe = window.subscribeToBadgeCounts(handleBadgeUpdate);
+        return () => {
+          unsubscribe();
+          locationTracker.stopTracking();
+        };
+      }
+    }, 1000);
+
+  }, [user, locationPermission]);
+
+  // เริ่มการติดตามตำแหน่งแบบ Global
+  const startGlobalLocationTracking = (activeBorrows) => {
+    console.log('Global: Starting location tracking...');
+    
+    const activeBorrowIds = activeBorrows.map(borrow => borrow.borrow_id);
+    
+    if (activeBorrowIds.length === 0) {
+      console.log('Global: No active borrows found');
+      return;
+    }
+
+    locationTracker.startTracking(
+      async (location) => {
+        console.log('Global: Location update received:', location);
+      },
+      (error) => {
+        console.error('Global: Location tracking error:', error);
+      },
+      activeBorrowIds
+    );
+  };
+
+  // Global Periodic Location Check
+  useEffect(() => {
+    if (!locationTracker.isTracking || !locationTracker.lastLocation || borrowList.length === 0) {
+      return;
+    }
+
+    console.log('Global: Setting up periodic location check...');
+
+    const checkAndUpdateLocation = () => {
+      const now = new Date();
+      const oneMinuteAgo = new Date(now.getTime() - 60000);
+
+      console.log('Global: Periodic location check...');
+
+      borrowList.forEach(borrow => {
+        if (['approved', 'carry', 'overdue'].includes(borrow.status)) {
+          if (borrow.last_location_update) {
+            const lastUpdate = new Date(borrow.last_location_update);
+            if (lastUpdate < oneMinuteAgo) {
+              console.log(`Global: Updating location for borrow_id: ${borrow.borrow_id}`);
+              locationTracker.sendLocationToServer(borrow.borrow_id, locationTracker.lastLocation)
+                .then(() => console.log(`Global: Location updated for borrow_id: ${borrow.borrow_id}`))
+                .catch(error => console.error(`Global: Failed to update location for borrow_id ${borrow.borrow_id}:`, error));
+            }
+          } else {
+            console.log(`Global: Sending initial location for borrow_id: ${borrow.borrow_id}`);
+            locationTracker.sendLocationToServer(borrow.borrow_id, locationTracker.lastLocation)
+              .then(() => console.log(`Global: Initial location sent for borrow_id: ${borrow.borrow_id}`))
+              .catch(error => console.error(`Global: Failed to send initial location for borrow_id ${borrow.borrow_id}:`, error));
+          }
+        }
+      });
+    };
+
+    const interval = setInterval(checkAndUpdateLocation, 60000);
+    return () => clearInterval(interval);
+  }, [borrowList, locationTracker.isTracking, locationTracker.lastLocation]);
+
   return <AppInner />;
 }
 
