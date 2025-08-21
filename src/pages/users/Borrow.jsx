@@ -13,6 +13,8 @@ const RequirementList = () => {
 
   const { subscribeToBadgeCounts } = useBadgeCounts();
 
+
+
   const fetchBorrowData = () => {
     // Get user info from localStorage
     const userStr = localStorage.getItem('user');
@@ -34,7 +36,7 @@ const RequirementList = () => {
         if (!res.ok) return [];
         try {
           const data = await res.json();
-          // filter เฉพาะของ user_id และ status === 'pending' ถ้า backend ไม่ filter ให้
+          // กรองเฉพาะข้อมูล pending
           if (Array.isArray(data)) {
             return data.filter(b => b.user_id == user_id && b.status === 'pending');
           }
@@ -44,6 +46,7 @@ const RequirementList = () => {
         }
       })
       .then(data => {
+        console.log('Fetched pending borrow data:', data);
         setBorrowList(data);
         setLoading(false);
       })
@@ -56,15 +59,18 @@ const RequirementList = () => {
   useEffect(() => {
     fetchBorrowData();
     
-    // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต borrow list แบบ real-time ===
+      // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต borrow list แบบ real-time ===
     const handleBadgeUpdate = () => {
       fetchBorrowData();
     };
     const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
-    return unsubscribe;
+    
+    // Cleanup function
+    return () => {
+      unsubscribe();
+    };
     // === จบ logic ===
   }, [subscribeToBadgeCounts]);
-
 
   const handleNext = (borrowId) => {
     setCurrentImageIndices(prev => {
@@ -97,8 +103,7 @@ const RequirementList = () => {
     </div>
   );
 
-  // กรองเฉพาะ pending
-  const pendingList = borrowList.filter(req => req.status === 'pending');
+
 
   return (
     <motion.div 
@@ -113,37 +118,47 @@ const RequirementList = () => {
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
       >
-        รายการรออนุมัติการยืมครุภัณฑ์
+        รายการขอยืมครุภัณฑ์ (รออนุมัติ)
       </motion.h1>
+
       <div className="space-y-6">
-        {pendingList.length === 0 && (
+        {borrowList.length === 0 && (
           <motion.div 
             className="flex flex-col items-center justify-center py-12"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
           >
             <div className="bg-yellow-100 rounded-full p-6 mb-4">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-yellow-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
               </svg>
             </div>
-            <h3 className="text-xl font-bold text-yellow-600 mb-2">ไม่พบรายการรออนุมัติ</h3>
-            <p className="text-gray-500 text-base">คุณไม่มีรายการรออนุมัติในขณะนี้</p>
+            <h3 className="text-xl font-bold text-yellow-600 mb-2">ไม่พบรายการขอยืม</h3>
+            <p className="text-gray-500 text-base">คุณไม่มีรายการขอยืมที่รออนุมัติในขณะนี้</p>
           </motion.div>
         )}
-        {pendingList.map((request, index) => {
+        
+        {/* แสดงรายการรออนุมัติ */}
+        {borrowList.map((request, index) => {
           const currentIndex = currentImageIndices[request.borrow_id] || 0;
           const items = request.equipment || [];
           const currentItem = items[currentIndex];
           const total = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+
+          
+          // ฟังก์ชันสำหรับแสดงสถานะ
+          const getStatusBadge = (status) => {
+            return <div className="badge badge-warning text-black md:text-base px-4 py-4 rounded-full text-sm font-medium">รออนุมัติ</div>;
+          };
+          
           return (
             <motion.div 
               key={request.borrow_id} 
               className="card bg-white shadow-xl overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 + 0.4 }}
+              transition={{ delay: index * 0.1 + 0.5 }}
               whileHover={{ y: -5, transition: { duration: 0.2 } }}
             >
               <div className="flex flex-col md:flex-row">
@@ -193,10 +208,9 @@ const RequirementList = () => {
                       <h2 className="card-title text-gray-800 text-lg md:text-xl">
                         {request.borrow_code}
                       </h2>
-                      <div className={`badge badge-warning text-black md:text-base px-4 py-4 rounded-full text-sm font-medium`}>
-                        รออนุมัติ
-                      </div>
+                      {getStatusBadge()}
                     </div>
+                    
                     <div className="my-4">
                       <h3 className="font-semibold text-gray-700 mb-1">เหตุผลการขอยืม</h3>
                       <p className="text-gray-600 text-sm md:text-base">{request.purpose || '-'}</p>
@@ -236,15 +250,12 @@ const RequirementList = () => {
                         </div>
                         <div className="flex gap-2 w-full md:w-auto">
                           <button
-                            className="btn btn-outline btn-sm md:btn-md flex-2 md:flex-none rounded-xl hover:bg-blue-600 hover:border-blue-500 border-gray-200 bg-gray-200 transition-colors"
+                            className="btn btn-outline btn-sm md:btn-md flex-2 md:flex-none rounded-xl transition-colors hover:bg-blue-600 hover:border-blue-500 border-gray-200 bg-gray-200"
                             onClick={(e) => {
                               e.stopPropagation();
                               openDialog(request);
                             }}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
                             ดูรายละเอียด
                           </button>
                         </div>

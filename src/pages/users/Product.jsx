@@ -1,7 +1,7 @@
 import { Button, Menu, MenuHandler, MenuItem, MenuList } from "@material-tailwind/react";
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { MdAdd, MdRemove, MdSearch, MdShoppingCart } from "react-icons/md";
+import { MdAdd, MdRemove, MdSearch, MdShoppingCart, MdLocationOn, MdPrivacyTip } from "react-icons/md";
 // import { globalUserData } from '../../components/Header';
 import Notification from '../../components/Notification';
 import { getCategories, getEquipment, updateEquipmentStatus, authFetch, API_BASE } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
@@ -9,6 +9,7 @@ import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
 import { useBadgeCounts } from '../../hooks/useSocket';
+import locationTracker from '../../utils/locationTracker';
 
 // ฟังก์ชันดึงวันพรุ่งนี้ของไทย (string YYYY-MM-DD)
 function getTomorrowTH() {
@@ -40,6 +41,13 @@ const Home = () => {
   const [categories, setCategories] = useState(['ทั้งหมด']); // default 'ทั้งหมด'
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState({ show: false, title: '', message: '', type: 'info' });
+  
+  // เพิ่ม state สำหรับ location permission
+  const [locationPermission, setLocationPermission] = useState(null);
+  const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
+  const [locationError, setLocationError] = useState(null);
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+  const [borrowList, setBorrowList] = useState([]);
 
   const { subscribeToBadgeCounts } = useBadgeCounts();
 
@@ -51,6 +59,275 @@ const Home = () => {
       globalUserData = JSON.parse(userStr);
     } catch (e) {}
   }
+
+  // ฟังก์ชันตรวจสอบ location permission
+  const checkLocationPermission = async () => {
+    if (!navigator.geolocation) {
+      setLocationPermission('not_supported');
+      return;
+    }
+
+    try {
+      const permission = await navigator.permissions.query({ name: 'geolocation' });
+      if (permission.state === 'granted') {
+        setLocationPermission('granted');
+      } else if (permission.state === 'denied') {
+        setLocationPermission('denied');
+      } else {
+        setLocationPermission('prompt');
+      }
+    } catch (error) {
+      console.error('Error checking location permission:', error);
+      setLocationPermission('unknown');
+    }
+  };
+
+  // ฟังก์ชันขอ location permission
+  const requestLocationPermission = () => {
+    setIsRequestingPermission(true);
+    setLocationError(null);
+
+    if (!navigator.geolocation) {
+      setLocationError('GPS ไม่รองรับในอุปกรณ์นี้');
+      setIsRequestingPermission(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        console.log('Location permission granted:', position);
+        setLocationPermission('granted');
+        setIsRequestingPermission(false);
+        
+        // เริ่มติดตามตำแหน่งอัตโนมัติ
+        startLocationTracking();
+        
+        setNotification({
+          show: true,
+          title: 'อนุญาตสำเร็จ',
+          message: 'ระบบจะติดตามตำแหน่งของคุณระหว่างการยืมครุภัณฑ์',
+          type: 'success'
+        });
+      },
+      (error) => {
+        console.error('Location permission denied:', error);
+        setLocationPermission('denied');
+        setLocationError(`ไม่สามารถเข้าถึงตำแหน่งได้: ${error.message}`);
+        setIsRequestingPermission(false);
+        
+        setNotification({
+          show: true,
+          title: 'ไม่สามารถเข้าถึงตำแหน่ง',
+          message: 'คุณต้องอนุญาตการเข้าถึงตำแหน่งเพื่อยืมครุภัณฑ์',
+          type: 'error'
+        });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  };
+
+  // เริ่มติดตามตำแหน่ง
+  const startLocationTracking = () => {
+    console.log('=== startLocationTracking Debug ===');
+    
+    // รวบรวม borrow_id ที่ active
+    const activeBorrowIds = borrowList
+      .filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status))
+      .map(borrow => borrow.borrow_id);
+    
+    console.log('Active borrow IDs:', activeBorrowIds);
+    console.log('Location permission:', locationPermission);
+    
+    if (activeBorrowIds.length === 0) {
+      console.log('No active borrows found, skipping location tracking');
+      return;
+    }
+    
+    if (locationPermission !== 'granted') {
+      console.log('Location permission not granted, skipping location tracking');
+      return;
+    }
+    
+    console.log('Starting location tracking with active borrow IDs:', activeBorrowIds);
+    
+    locationTracker.startTracking(
+      async (location) => {
+        try {
+          console.log('Location update received:', location);
+          console.log('Location tracking active');
+        } catch (error) {
+          console.error('Failed to start location tracking:', error);
+          setLocationError(`ไม่สามารถเริ่มการติดตามตำแหน่ง: ${error.message}`);
+        }
+      },
+      (error) => {
+        console.error('Location tracking error:', error);
+        setLocationError(`ข้อผิดพลาดการติดตามตำแหน่ง: ${error}`);
+      },
+      activeBorrowIds // ส่งรายการ borrow_id ที่ active
+    );
+  };
+
+  // ดึงข้อมูลรายการขอยืม
+  const fetchBorrowData = () => {
+    const user_id = globalUserData?.user_id;
+    if (!user_id) {
+      setBorrowList([]);
+      return;
+    }
+
+    authFetch(`${API_BASE}/borrows?user_id=${user_id}`)
+      .then(async res => {
+        if (!res.ok) return [];
+        try {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            return data.filter(b => b.user_id == user_id);
+          }
+          return [];
+        } catch {
+          return [];
+        }
+      })
+      .then(data => {
+        console.log('Fetched borrow data:', data);
+        setBorrowList(data);
+        
+        // เริ่มการติดตามตำแหน่งสำหรับรายการที่ active
+        const activeBorrows = data.filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status));
+        console.log('Active borrows for location tracking:', activeBorrows);
+        
+        if (activeBorrows.length > 0 && locationPermission === 'granted') {
+          startLocationTracking();
+        }
+        
+        // ส่งตำแหน่งปัจจุบันไปยังเซิร์ฟเวอร์สำหรับรายการยืมที่ active
+        if (locationTracker.isTracking && locationTracker.lastLocation) {
+          activeBorrows.forEach(borrow => {
+            locationTracker.sendLocationToServer(borrow.borrow_id, locationTracker.lastLocation)
+              .then(() => console.log(`Location sent for borrow_id: ${borrow.borrow_id}`))
+              .catch(error => console.error(`Failed to send location for borrow_id ${borrow.borrow_id}:`, error));
+          });
+        }
+      })
+      .catch(() => {
+        setBorrowList([]);
+      });
+  };
+
+  // ตรวจสอบ location permission เมื่อ component mount
+  useEffect(() => {
+    checkLocationPermission();
+  }, []);
+
+  // เพิ่ม useEffect สำหรับดึงข้อมูลรายการขอยืม
+  useEffect(() => {
+    fetchBorrowData();
+    
+    // ฟัง event badgeCountsUpdated เพื่ออัปเดต borrow list แบบ real-time
+    const handleBadgeUpdate = () => {
+      fetchBorrowData();
+    };
+    const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
+    
+    // Cleanup function
+    return () => {
+      unsubscribe();
+      locationTracker.stopTracking();
+    };
+  }, [subscribeToBadgeCounts]);
+
+  // เพิ่ม useEffect สำหรับส่งตำแหน่งเมื่อมีการเปลี่ยนแปลงสถานะ
+  useEffect(() => {
+    // ส่งตำแหน่งเมื่อ borrowList เปลี่ยนแปลงและมีการติดตามตำแหน่ง
+    if (locationTracker.isTracking && locationTracker.lastLocation && borrowList.length > 0) {
+      borrowList.forEach(borrow => {
+        // ส่งตำแหน่งสำหรับทุกรายการที่ active
+        if (['approved', 'carry', 'overdue'].includes(borrow.status)) {
+          locationTracker.sendLocationToServer(borrow.borrow_id, locationTracker.lastLocation)
+            .then(() => console.log(`Location sent for borrow_id: ${borrow.borrow_id}`))
+            .catch(error => console.error(`Failed to send location for borrow_id ${borrow.borrow_id}:`, error));
+        }
+      });
+    }
+  }, [borrowList]);
+
+  // เพิ่ม useEffect สำหรับตรวจสอบและอัพเดทตำแหน่งเมื่อผ่านไป 1 นาที
+  useEffect(() => {
+    console.log('=== Location Tracking Debug ===');
+    console.log('locationTracker.isTracking:', locationTracker.isTracking);
+    console.log('locationTracker.lastLocation:', locationTracker.lastLocation);
+    console.log('borrowList.length:', borrowList.length);
+    console.log('borrowList:', borrowList);
+    
+    if (!locationTracker.isTracking || !locationTracker.lastLocation || borrowList.length === 0) {
+      console.log('Location update check skipped - tracking:', locationTracker.isTracking, 'location:', !!locationTracker.lastLocation, 'borrowList:', borrowList.length);
+      return;
+    }
+
+    console.log('Starting location update check for approved borrows...');
+
+    const checkAndUpdateLocation = () => {
+      const now = new Date();
+      const oneMinuteAgo = new Date(now.getTime() - 60000); // 1 นาทีที่แล้ว
+
+      console.log('=== Periodic Location Check ===');
+      console.log('Current time:', now);
+      console.log('One minute ago:', oneMinuteAgo);
+      console.log('Checking location updates for active borrows...');
+      console.log('Current borrow list:', borrowList.length, 'items');
+
+      let activeBorrowsFound = 0;
+      let updatesSent = 0;
+
+      borrowList.forEach(borrow => {
+        // ตรวจสอบสถานะ active ทั้งหมด (approved, carry, overdue) สำหรับการอัพเดททุก 1 นาที
+        if (['approved', 'carry', 'overdue'].includes(borrow.status)) {
+          activeBorrowsFound++;
+          console.log(`Checking borrow_id: ${borrow.borrow_id}, status: ${borrow.status}`);
+          // ตรวจสอบว่า last_location_update ผ่านมา 1 นาทีแล้วหรือไม่
+          if (borrow.last_location_update) {
+            const lastUpdate = new Date(borrow.last_location_update);
+            console.log(`Last update for borrow_id ${borrow.borrow_id}:`, lastUpdate);
+            if (lastUpdate < oneMinuteAgo) {
+              console.log(`Location update needed for borrow_id: ${borrow.borrow_id} (last update: ${lastUpdate})`);
+              locationTracker.sendLocationToServer(borrow.borrow_id, locationTracker.lastLocation)
+                .then(() => {
+                  console.log(`Location updated for borrow_id: ${borrow.borrow_id} (1 minute check)`);
+                  updatesSent++;
+                })
+                .catch(error => console.error(`Failed to update location for borrow_id ${borrow.borrow_id}:`, error));
+            } else {
+              console.log(`No update needed for borrow_id: ${borrow.borrow_id} (last update: ${lastUpdate})`);
+            }
+          } else {
+            // ถ้าไม่มี last_location_update ให้ส่งตำแหน่งทันที
+            console.log(`No last_location_update for borrow_id: ${borrow.borrow_id}, sending location`);
+            locationTracker.sendLocationToServer(borrow.borrow_id, locationTracker.lastLocation)
+              .then(() => {
+                console.log(`Location sent for borrow_id ${borrow.borrow_id} (no previous update)`);
+                updatesSent++;
+              })
+              .catch(error => console.error(`Failed to send location for borrow_id ${borrow.borrow_id}:`, error));
+          }
+        }
+      });
+
+      console.log(`=== Periodic Check Summary ===`);
+      console.log(`Active borrows found: ${activeBorrowsFound}`);
+      console.log(`Updates sent: ${updatesSent}`);
+    };
+
+    // ตรวจสอบทุก 1 นาที
+    const interval = setInterval(checkAndUpdateLocation, 60000);
+
+    // Cleanup interval เมื่อ component unmount หรือ dependencies เปลี่ยน
+    return () => clearInterval(interval);
+  }, [borrowList, locationTracker.isTracking, locationTracker.lastLocation]);
 
   // โหลดข้อมูลจาก API
   useEffect(() => {
@@ -180,6 +457,27 @@ const Home = () => {
 
   // Handle confirm button click
   const handleConfirm = () => {
+    // ตรวจสอบการอนุญาตตำแหน่งก่อน
+    if (locationPermission !== 'granted') {
+      setNotification({
+        show: true,
+        title: 'ต้องอนุญาตตำแหน่งก่อน',
+        message: 'คุณต้องอนุญาตการติดตามตำแหน่งก่อนจึงจะยืมอุปกรณ์ได้ กรุณากดปุ่ม "อนุญาตตำแหน่ง"',
+        type: 'error',
+        duration: 5000
+      });
+      return; // หยุดการทำงาน
+    }
+
+    // แจ้งเตือนเมื่ออนุญาตแล้ว
+    setNotification({
+      show: true,
+      title: 'ข้อมูลตำแหน่ง',
+      message: 'ระบบจะติดตามตำแหน่งของคุณระหว่างการยืม ข้อมูลจะถูกลบเมื่อคืนอุปกรณ์แล้ว',
+      type: 'info',
+      duration: 3000
+    });
+
     setShowBorrowDialog(true);
     const tomorrow = getTomorrowTH();
     const returnDate = new Date(tomorrow);
@@ -276,6 +574,29 @@ const Home = () => {
     formData.append('items', JSON.stringify(items));
     formData.append('files_count', selectedFiles.length.toString());
 
+    // แจ้งเตือนเกี่ยวกับการติดตามตำแหน่ง
+    if (locationPermission === 'granted') {
+      setNotification({
+        show: true,
+        title: 'เริ่มติดตามตำแหน่ง',
+        message: 'ระบบจะเริ่มติดตามตำแหน่งของคุณระหว่างการยืม ข้อมูลจะถูกลบเมื่อคืนอุปกรณ์แล้ว',
+        type: 'info',
+        duration: 4000
+      });
+      
+      // เริ่มติดตามตำแหน่งทันทีเมื่อยืมอุปกรณ์
+      if (locationTracker && !locationTracker.isTracking) {
+        locationTracker.startTracking(
+          (location) => {
+            console.log('Location tracking started for new borrow:', location);
+          },
+          (error) => {
+            console.error('Location tracking error:', error);
+          }
+        );
+      }
+    }
+
 
 
     // Add files to FormData
@@ -299,17 +620,27 @@ const Home = () => {
         body: formData
       });
             const data = await response.json();
-      if (response.ok) {
-        setShowBorrowDialog(false);
-        setNotification({
-          show: true,
-          title: 'สำเร็จ',
-          message: 'ส่งคำขอยืมสำเร็จ รหัส ' + (data.borrow_code || 'ไม่พบรหัส'),
-          type: 'success',
-          duration: 5000 // แสดง 5 วินาที
-        });
-        setQuantities({});
-        setBorrowData({ reason: '', borrowDate: '', returnDate: '' });
+             if (response.ok) {
+         setShowBorrowDialog(false);
+         setNotification({
+           show: true,
+           title: 'สำเร็จ',
+           message: 'ส่งคำขอยืมสำเร็จ รหัส ' + (data.borrow_code || 'ไม่พบรหัส'),
+           type: 'success',
+           duration: 5000 // แสดง 5 วินาที
+         });
+         setQuantities({});
+         setBorrowData({ reason: '', borrowDate: '', returnDate: '' });
+
+         // ส่งตำแหน่งไปยังเซิร์ฟเวอร์เมื่อยืมสำเร็จ
+         if (locationPermission === 'granted' && locationTracker && locationTracker.lastLocation && data.borrow_id) {
+           try {
+             await locationTracker.sendLocationToServer(data.borrow_id, locationTracker.lastLocation);
+             console.log('Location sent for new borrow:', data.borrow_id);
+           } catch (error) {
+             console.error('Failed to send location for new borrow:', error);
+           }
+         }
 
         // อัปเดตสถานะอุปกรณ์แบบ async (ไม่ต้องรอ)
         setTimeout(() => {
@@ -365,6 +696,46 @@ const Home = () => {
 
   // เพิ่มตัวแปรตรวจสอบว่า borrowDate ถูกต้องหรือไม่
   const isBorrowDateValid = borrowData.borrowDate && borrowData.borrowDate >= getTomorrowTH();
+
+  // เพิ่ม useEffect สำหรับตรวจสอบและอัพเดทตำแหน่งเมื่อผ่านไป 1 นาที
+  useEffect(() => {
+    if (!locationTracker.isTracking || !locationTracker.lastLocation) {
+      console.log('Location tracking not active in Product page');
+      return;
+    }
+
+    console.log('Location tracking active in Product page');
+
+    const checkAndUpdateLocation = () => {
+      // ตรวจสอบว่ามีการยืมที่ active หรือไม่
+      // เนื่องจากในหน้า Product ยังไม่มีการยืม active จึงไม่ต้องตรวจสอบ
+      // แต่จะเก็บไว้สำหรับกรณีที่อาจมีการยืมในอนาคต
+      console.log('Location tracking active in Product page, last location:', locationTracker.lastLocation);
+    };
+
+    // ตรวจสอบทุก 1 นาที
+    const interval = setInterval(checkAndUpdateLocation, 60000);
+
+    // Cleanup interval เมื่อ component unmount หรือ dependencies เปลี่ยน
+    return () => clearInterval(interval);
+  }, [locationTracker.isTracking, locationTracker.lastLocation]);
+
+  // เพิ่ม useEffect สำหรับเริ่มการติดตามตำแหน่งเมื่ออนุญาตแล้ว
+  useEffect(() => {
+    console.log('=== Location Permission Effect ===');
+    console.log('Location permission:', locationPermission);
+    console.log('Borrow list length:', borrowList.length);
+    
+    if (locationPermission === 'granted' && borrowList.length > 0) {
+      const activeBorrows = borrowList.filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status));
+      console.log('Active borrows found:', activeBorrows.length);
+      
+      if (activeBorrows.length > 0) {
+        console.log('Starting location tracking due to permission granted and active borrows');
+        startLocationTracking();
+      }
+    }
+  }, [locationPermission, borrowList]);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -426,9 +797,130 @@ const Home = () => {
             <div className="flex flex-col items-center justify-center text-center">
               <h1 className="text-3xl font-bold text-gray-900">ระบบยืมคืนครุภัณฑ์</h1>
               <p className="mt-2 text-lg text-gray-600">คณะวิทยาการสารสนเทศ</p>
+              
+              {/* Location Status Badge */}
+              <div className="mt-4">
+                {locationPermission === 'granted' ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-full">
+                    <MdLocationOn className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">อนุญาตติดตามตำแหน่งแล้ว</span>
+                  </div>
+                                 ) : locationPermission === 'denied' ? (
+                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-full">
+                     <MdLocationOn className="h-5 w-5 text-red-600" />
+                     <span className="text-sm font-medium text-red-700">ต้องอนุญาตตำแหน่งก่อน</span>
+                   </div>
+                ) : locationPermission === 'not_supported' ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-full">
+                    <MdLocationOn className="h-5 w-5 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">ไม่รองรับการติดตามตำแหน่ง</span>
+                  </div>
+                                 ) : (
+                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-full">
+                     <MdLocationOn className="h-5 w-5 text-red-600" />
+                     <span className="text-sm font-medium text-red-700">ต้องอนุญาตตำแหน่งก่อน</span>
+                   </div>
+                 )}
+              </div>
             </div>
           </div>
         </motion.header>
+
+        {/* Location Permission & Privacy Notice Section */}
+        <motion.div
+          className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8"
+          initial={{ y: -10, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 shadow-sm">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              {/* Privacy Notice */}
+              <div className="flex items-center gap-3">
+                <MdPrivacyTip className="h-6 w-6 text-blue-600" />
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">ความเป็นส่วนตัว</h3>
+                  <p className="text-xs text-gray-600">
+                    ข้อมูลตำแหน่งจะถูกเก็บเป็นความลับ เฉพาะผู้ดูแลระบบที่สามารถดูได้ 
+                    ข้อมูลจะถูกลบเมื่อคืนอุปกรณ์แล้ว การอนุญาตตำแหน่งเป็นข้อบังคับ
+                  </p>
+                </div>
+              </div>
+
+              {/* Location Permission Status */}
+              <div className="flex items-center gap-3">
+                {locationPermission === 'granted' ? (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-full">
+                    <MdLocationOn className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">อนุญาตตำแหน่งแล้ว</span>
+                  </div>
+                ) : locationPermission === 'denied' ? (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-full">
+                    <MdLocationOn className="h-5 w-5 text-red-600" />
+                    <span className="text-sm font-medium text-red-700">ต้องอนุญาตตำแหน่งก่อน</span>
+                    <button
+                      onClick={requestLocationPermission}
+                      className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition-colors"
+                    >
+                      ลองใหม่
+                    </button>
+                  </div>
+                ) : locationPermission === 'not_supported' ? (
+                  <div className="flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-full">
+                    <MdLocationOn className="h-5 w-5 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">ไม่รองรับตำแหน่ง</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={requestLocationPermission}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-sm"
+                  >
+                    <MdLocationOn className="h-5 w-5" />
+                    <span className="text-sm font-medium">อนุญาตตำแหน่ง (จำเป็น)</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Location Tracking Status Section */}
+        {(() => {
+          const activeBorrows = borrowList.filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status));
+          const hasActiveTracking = activeBorrows.length > 0;
+          
+          if (hasActiveTracking) {
+            return (
+              <motion.div
+                className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8"
+                initial={{ y: -10, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.3 }}
+              >
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <MdLocationOn className="h-6 w-6 text-green-600" />
+                      <div>
+                        <h3 className="text-sm font-semibold text-green-900">การติดตามตำแหน่ง</h3>
+                        <p className="text-xs text-green-700">
+                          ระบบกำลังติดตามตำแหน่งของคุณสำหรับรายการที่กำลังยืมอยู่
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-green-700 font-medium">
+                        กำลังติดตาม {activeBorrows.length} รายการ
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          }
+          return null;
+        })()}
 
         {/* Main Content */}
         <main className="max-w-auto mx-auto px-4 py-6 sm:px-6 lg:px-8 bg-white">
@@ -686,35 +1178,51 @@ const Home = () => {
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: "spring", stiffness: 100 }}
           >
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 1, repeat: Infinity }}
-                >
-                  <MdShoppingCart className="h-6 w-6 text-blue-600" />
-                </motion.div>
-                <span className="font-medium">
-                  {totalSelectedItems} รายการที่เลือก
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <motion.button
-                  onClick={() => setQuantities({})}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-2xl"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  ยกเลิก
-                </motion.button>
-                <motion.button
-                  onClick={handleConfirm}
-                  className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-2xl"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  ยืนยันการยืม
-                </motion.button>
+            <div className="flex flex-col gap-3">
+                             {/* Location Permission Status */}
+               <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl">
+                 <MdLocationOn className={`h-4 w-4 ${locationPermission === 'granted' ? 'text-green-600' : 'text-red-600'}`} />
+                 <span className="text-xs font-medium">
+                   {locationPermission === 'granted' ? 'อนุญาตตำแหน่งแล้ว' : 'ต้องอนุญาตตำแหน่งก่อน'}
+                 </span>
+               </div>
+              
+              {/* Cart Items */}
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  >
+                    <MdShoppingCart className="h-6 w-6 text-blue-600" />
+                  </motion.div>
+                  <span className="font-medium">
+                    {totalSelectedItems} รายการที่เลือก
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <motion.button
+                    onClick={() => setQuantities({})}
+                    className="px-4 py-2 bg-gray-200 text-gray-700 hover:bg-gray-300 rounded-2xl"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    ยกเลิก
+                  </motion.button>
+                                     <motion.button
+                     onClick={handleConfirm}
+                     className={`px-4 py-2 rounded-2xl ${
+                       locationPermission === 'granted' 
+                         ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                         : 'bg-gray-400 text-white cursor-not-allowed'
+                     }`}
+                     whileHover={locationPermission === 'granted' ? { scale: 1.05 } : {}}
+                     whileTap={locationPermission === 'granted' ? { scale: 0.95 } : {}}
+                     disabled={locationPermission !== 'granted'}
+                   >
+                     {locationPermission === 'granted' ? 'ยืนยันการยืม' : 'ต้องอนุญาตตำแหน่งก่อน'}
+                   </motion.button>
+                </div>
               </div>
             </div>
           </motion.div>
@@ -734,6 +1242,7 @@ const Home = () => {
           calculateMaxReturnDate={calculateMaxReturnDate}
           showImageModal={showImageModal}
           isBorrowDateValid={isBorrowDateValid}
+          locationPermission={locationPermission}
         />
 
         <EquipmentDetailDialog

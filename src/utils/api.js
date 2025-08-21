@@ -216,3 +216,26 @@ export const deleteNewsApi = async (id) => {
   if (!res.ok) throw new Error('Delete news failed');
   return res.json();
 };
+
+// Location tracking
+export const updateBorrowerLocation = (borrow_id, locationData) => {
+  return authFetch(`${API_BASE}/borrows/${borrow_id}/location`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(locationData),
+  }).then(res => res.json());
+};
+
+// ตรวจสอบสถานะการติดตามตำแหน่ง
+export const checkLocationTrackingStatus = async (user_id) => {
+  try {
+    const response = await authFetch(`${API_BASE}/borrows/location-tracking-status/${user_id}`);
+    if (!response.ok) {
+      throw new Error('Failed to check location tracking status');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Error checking location tracking status:', error);
+    throw error;
+  }
+};

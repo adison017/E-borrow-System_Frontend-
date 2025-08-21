@@ -27,7 +27,7 @@ self.addEventListener('fetch', (event) => {
 			const cached = await cache.match(request);
 			if (cached) return cached;
 			const response = await fetch(request);
-			if (response.ok) {
+			if (response.ok && response.status !== 206) {
 				cache.put(request, response.clone());
 			}
 			return response;
