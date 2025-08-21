@@ -40,8 +40,7 @@ class LocationTracker {
         const location = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          timestamp: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })
+          accuracy: position.coords.accuracy
         };
         
         console.log('Location object created:', location);
@@ -65,12 +64,13 @@ class LocationTracker {
         // ส่งตำแหน่งไปยังเซิร์ฟเวอร์สำหรับรายการยืมที่ active
         if (activeBorrowIds.length > 0) {
           console.log('Sending location to server for active borrows...');
+          console.log('Active borrow IDs to update:', activeBorrowIds);
           for (const borrowId of activeBorrowIds) {
             try {
               await this.sendLocationToServer(borrowId, location);
-              console.log(`Location sent for borrow_id: ${borrowId} (real-time update)`);
+              console.log(`✅ Location sent for borrow_id: ${borrowId} (real-time update)`);
             } catch (error) {
-              console.error(`Failed to send location for borrow_id ${borrowId}:`, error);
+              console.error(`❌ Failed to send location for borrow_id ${borrowId}:`, error);
             }
           }
         } else {
@@ -225,9 +225,15 @@ class LocationTracker {
         address: location.address || null
       };
       
+      // console.log('=== Sending location to server ===');
+      // console.log('borrowId:', borrowId);
+      // console.log('locationData:', locationData);
+      
       // Dynamic import to avoid module loading issues
       const { updateBorrowerLocation } = await import('./api.js');
       const result = await updateBorrowerLocation(borrowId, locationData);
+      
+      // console.log('Location update result:', result);
       return result;
     } catch (error) {
       console.error('Location update failed:', error);
