@@ -68,6 +68,14 @@ export default function AddUserDialog({
   const [currentUser, setCurrentUser] = useState(null);
   const hasInitialized = useRef(false);
 
+              // Add validation state for real-time feedback
+            const [validation, setValidation] = useState({
+              email: null,
+              user_code: null,
+              phone: null,
+              username: null
+            });
+
   useEffect(() => {
     // Get current user from localStorage
     const userStr = localStorage.getItem('user');
@@ -123,12 +131,12 @@ export default function AddUserDialog({
 
   useEffect(() => {
     console.log('🔄 AddUser useEffect triggered:', { initialFormData, open, hasInitialized: hasInitialized.current });
-    
+
     // Only initialize form data once when dialog opens
     if (open && !hasInitialized.current) {
       hasInitialized.current = true;
       console.log('🎯 AddUser Initializing form data for the first time');
-      
+
       if (initialFormData) {
         console.log('📝 AddUser Setting form data from initialFormData');
         setFormData({
@@ -180,13 +188,40 @@ export default function AddUserDialog({
     } else if (open && hasInitialized.current) {
       console.log('⏭️ AddUser Dialog already initialized, skipping form reset');
     }
-    
+
     // Reset the flag when dialog closes
     if (!open) {
       console.log('🚪 AddUser Dialog closed, resetting initialization flag');
       hasInitialized.current = false;
     }
   }, [initialFormData, open]);
+
+  // Real-time validation function
+  const validateField = async (name, value) => {
+    if (!value) {
+      setValidation(prev => ({ ...prev, [name]: null }));
+      return;
+    }
+
+    try {
+      if (name === 'email' && value.includes('@')) {
+        const res = await axios.get(`${API_BASE}/users/email/${value}`);
+        setValidation(prev => ({ ...prev, email: res.data ? 'duplicate' : 'ok' }));
+      } else if (name === 'user_code' && value.length >= 5) {
+        const res = await axios.get(`${API_BASE}/users/username/${value}`);
+        setValidation(prev => ({ ...prev, user_code: res.data ? 'duplicate' : 'ok' }));
+      } else if (name === 'username' && value.length >= 3) {
+        const res = await axios.get(`${API_BASE}/users/username/${value}`);
+        setValidation(prev => ({ ...prev, username: res.data ? 'duplicate' : 'ok' }));
+      } else if (name === 'phone' && value.length >= 9) {
+        const res = await axios.get(`${API_BASE}/users/phone/${value}`);
+        setValidation(prev => ({ ...prev, phone: res.data ? 'duplicate' : 'ok' }));
+      }
+    } catch (error) {
+      // If error, assume field is available
+      setValidation(prev => ({ ...prev, [name]: 'ok' }));
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -232,6 +267,11 @@ export default function AddUserDialog({
         return newData;
       });
     }
+
+                  // Real-time validation for email, user_code, username, and phone
+              if (['email', 'user_code', 'username', 'phone'].includes(name)) {
+                validateField(name, value);
+              }
   };
 
   const handleImageChange = (e) => {
@@ -402,6 +442,55 @@ export default function AddUserDialog({
         toast.error('กรุณาเลือก ตำแหน่ง / สาขา / บทบาท ให้ครบถ้วน');
         setIsLoading(false);
         return;
+      }
+
+      // Pre-submission validation for duplicates
+      try {
+        // Check for duplicate email
+        const emailRes = await axios.get(`${API_BASE}/users/email/${formData.email}`);
+        if (emailRes.data) {
+          toast.error('อีเมลนี้ถูกใช้ไปแล้ว กรุณาใช้อีเมลอื่น');
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        // Continue if error
+      }
+
+      try {
+        // Check for duplicate user_code
+        const userCodeRes = await axios.get(`${API_BASE}/users/username/${formData.user_code}`);
+        if (userCodeRes.data) {
+          toast.error('รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว กรุณาใช้รหัสอื่น');
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        // Continue if error
+      }
+
+      try {
+        // Check for duplicate username
+        const usernameRes = await axios.get(`${API_BASE}/users/username/${formData.username}`);
+        if (usernameRes.data) {
+          toast.error('ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว กรุณาใช้ชื่ออื่น');
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        // Continue if error
+      }
+
+      try {
+        // Check for duplicate phone
+        const phoneRes = await axios.get(`${API_BASE}/users/phone/${formData.phone}`);
+        if (phoneRes.data) {
+          toast.error('เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว กรุณาใช้เบอร์อื่น');
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        // Continue if error
       }
 
       const token = localStorage.getItem('token');
@@ -598,11 +687,16 @@ export default function AddUserDialog({
                       <input
                         type="text"
                         name="user_code"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
+                        className={`w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white ${
+                          validation.user_code === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                          validation.user_code === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                        }`}
                         value={formData.user_code}
                         onChange={e => {
                           const value = e.target.value.replace(/\D/g, "");
                           setFormData(prev => ({ ...prev, user_code: value }));
+                          // Trigger validation
+                          validateField('user_code', value);
                         }}
                         onKeyPress={e => {
                           if (!/[0-9]/.test(e.key)) {
@@ -614,6 +708,9 @@ export default function AddUserDialog({
                         maxLength={11}
                         title="กรุณากรอกรหัสนิสิต 11 หลัก"
                       />
+                      {validation.user_code === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
 
                     <div>
@@ -683,12 +780,17 @@ export default function AddUserDialog({
                       <input
                         type="text"
                         name="username"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
+                        className={`w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white ${
+                          validation.username === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                          validation.username === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                        }`}
                         value={formData.username}
                         onChange={e => {
                           // อนุญาตเฉพาะ a-z, A-Z, 0-9, _ และ . เท่านั้น
                           const value = e.target.value.replace(/[^a-zA-Z0-9_.]/g, "");
                           setFormData(prev => ({ ...prev, username: value }));
+                          // Trigger validation
+                          validateField('username', value);
                         }}
                         onKeyPress={e => {
                           // ไม่อนุญาตให้พิมพ์ถ้าไม่ใช่ a-z, A-Z, 0-9, _ หรือ .
@@ -699,6 +801,9 @@ export default function AddUserDialog({
                         placeholder="ระบุชื่อผู้ใช้งาน"
                         required
                       />
+                      {validation.username === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
 
                     <div>
@@ -749,12 +854,18 @@ export default function AddUserDialog({
                       <input
                         type="email"
                         name="email"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
+                        className={`w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white ${
+                          validation.email === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                          validation.email === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                        }`}
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="example@domain.com"
                         required
                       />
+                      {validation.email === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">อีเมลนี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
 
                     <div>
@@ -768,12 +879,17 @@ export default function AddUserDialog({
                         <input
                           type="tel"
                           name="phone"
-                          className="w-full pl-4 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
+                          className={`w-full pl-4 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white ${
+                            validation.phone === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                            validation.phone === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                          }`}
                           value={formData.phone}
                           onChange={e => {
                             // อนุญาตเฉพาะตัวเลขเท่านั้น
                             const value = e.target.value.replace(/\D/g, "");
                             setFormData(prev => ({ ...prev, phone: value }));
+                            // Trigger validation
+                            validateField('phone', value);
                           }}
                           onKeyPress={e => {
                             // ไม่อนุญาตให้พิมพ์ถ้าไม่ใช่ตัวเลข
@@ -786,6 +902,9 @@ export default function AddUserDialog({
                           required
                         />
                       </div>
+                      {validation.phone === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
                   </div>
                 </div>
