@@ -41,7 +41,7 @@ const Home = () => {
   const [categories, setCategories] = useState(['ทั้งหมด']); // default 'ทั้งหมด'
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState({ show: false, title: '', message: '', type: 'info' });
-  
+
   // เพิ่ม state สำหรับ location permission
   const [locationPermission, setLocationPermission] = useState(null);
   const [showPrivacyNotice, setShowPrivacyNotice] = useState(false);
@@ -98,10 +98,10 @@ const Home = () => {
         console.log('Location permission granted:', position);
         setLocationPermission('granted');
         setIsRequestingPermission(false);
-        
+
         // เริ่มติดตามตำแหน่งอัตโนมัติ
         startLocationTracking();
-        
+
         setNotification({
           show: true,
           title: 'อนุญาตสำเร็จ',
@@ -114,7 +114,7 @@ const Home = () => {
         setLocationPermission('denied');
         setLocationError(`ไม่สามารถเข้าถึงตำแหน่งได้: ${error.message}`);
         setIsRequestingPermission(false);
-        
+
         setNotification({
           show: true,
           title: 'ไม่สามารถเข้าถึงตำแหน่ง',
@@ -135,7 +135,7 @@ const Home = () => {
     console.log('=== startLocationTracking Debug ===');
     console.log('borrowList:', borrowList);
     console.log('borrowList length:', borrowList.length);
-    
+
     // รวบรวม borrow_id ที่ active
     const activeBorrowIds = borrowList
       .filter(borrow => {
@@ -146,22 +146,22 @@ const Home = () => {
         console.log(`Active borrow found: ${borrow.borrow_id}`);
         return borrow.borrow_id;
       });
-    
+
     console.log('Active borrow IDs:', activeBorrowIds);
     console.log('Location permission:', locationPermission);
-    
+
     if (activeBorrowIds.length === 0) {
       console.log('No active borrows found, skipping location tracking');
       return;
     }
-    
+
     if (locationPermission !== 'granted') {
       console.log('Location permission not granted, skipping location tracking');
       return;
     }
-    
+
     console.log('Starting location tracking with active borrow IDs:', activeBorrowIds);
-    
+
     locationTracker.startTracking(
       async (location) => {
         try {
@@ -204,15 +204,15 @@ const Home = () => {
       .then(data => {
         console.log('Fetched borrow data:', data);
         setBorrowList(data);
-        
+
         // เริ่มการติดตามตำแหน่งสำหรับรายการที่ active
         const activeBorrows = data.filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status));
         console.log('Active borrows for location tracking:', activeBorrows);
-        
+
         if (activeBorrows.length > 0 && locationPermission === 'granted') {
           startLocationTracking();
         }
-        
+
         // ส่งตำแหน่งปัจจุบันไปยังเซิร์ฟเวอร์สำหรับรายการยืมที่ active
         if (locationTracker.isTracking && locationTracker.lastLocation) {
           activeBorrows.forEach(borrow => {
@@ -235,13 +235,13 @@ const Home = () => {
   // เพิ่ม useEffect สำหรับดึงข้อมูลรายการขอยืม
   useEffect(() => {
     fetchBorrowData();
-    
+
     // ฟัง event badgeCountsUpdated เพื่ออัปเดต borrow list แบบ real-time
     const handleBadgeUpdate = () => {
       fetchBorrowData();
     };
     const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
-    
+
     // Cleanup function
     return () => {
       unsubscribe();
@@ -271,7 +271,7 @@ const Home = () => {
     console.log('locationTracker.lastLocation:', locationTracker.lastLocation);
     console.log('borrowList.length:', borrowList.length);
     console.log('borrowList:', borrowList);
-    
+
     if (!locationTracker.isTracking || !locationTracker.lastLocation || borrowList.length === 0) {
       console.log('Location update check skipped - tracking:', locationTracker.isTracking, 'location:', !!locationTracker.lastLocation, 'borrowList:', borrowList.length);
       return;
@@ -558,7 +558,7 @@ const Home = () => {
   // Handle form submission
   const handleSubmitBorrow = async (e, selectedFiles = []) => {
     e.preventDefault();
-    
+
     console.log('=== handleSubmitBorrow Debug ===');
     console.log('Form submitted with data:', { borrowData, quantities, selectedFiles });
 
@@ -567,6 +567,8 @@ const Home = () => {
       setNotification({ show: true, title: 'กรุณาเข้าสู่ระบบ', message: 'กรุณาเข้าสู่ระบบก่อนทำรายการ', type: 'error' });
       return;
     }
+
+
 
     const items = Object.entries(quantities).map(([item_code, quantity]) => {
       const equipment = equipmentData.find(eq => String(eq.id) === String(item_code));
@@ -658,12 +660,12 @@ const Home = () => {
         // Don't set Content-Type header for FormData - let browser set it with boundary
         body: formData
       });
-      
+
       console.log('Response received:', { status: response.status, ok: response.ok });
-      
+
       const data = await response.json();
       console.log('Response data:', data);
-      
+
       if (response.ok) {
         console.log('✅ Borrow request successful');
         setShowBorrowDialog(false);
@@ -683,14 +685,14 @@ const Home = () => {
           const activeBorrowIds = borrowList
             .filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status))
             .map(borrow => borrow.borrow_id);
-          
+
           // เพิ่ม borrow_id ใหม่ที่เพิ่งสร้าง
           if (data.borrow_id) {
             activeBorrowIds.push(data.borrow_id);
           }
-          
+
           console.log('Starting location tracking for new borrow with IDs:', activeBorrowIds);
-          
+
           locationTracker.startTracking(
             (location) => {
               console.log('Location tracking started for new borrow:', location);
@@ -708,7 +710,7 @@ const Home = () => {
         console.log('locationTracker exists:', !!locationTracker);
         console.log('locationTracker.lastLocation exists:', !!locationTracker?.lastLocation);
         console.log('data.borrow_id:', data.borrow_id);
-        
+
         if (locationPermission === 'granted' && locationTracker && locationTracker.lastLocation && data.borrow_id) {
           try {
             console.log('Sending location for new borrow...');
@@ -806,11 +808,11 @@ const Home = () => {
     console.log('=== Location Permission Effect ===');
     console.log('Location permission:', locationPermission);
     console.log('Borrow list length:', borrowList.length);
-    
+
     if (locationPermission === 'granted' && borrowList.length > 0) {
       const activeBorrows = borrowList.filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status));
       console.log('Active borrows found:', activeBorrows.length);
-      
+
       if (activeBorrows.length > 0) {
         console.log('Starting location tracking due to permission granted and active borrows');
         startLocationTracking();
@@ -838,7 +840,7 @@ const Home = () => {
       }
     }
   };
-  
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
       <motion.div
@@ -878,7 +880,7 @@ const Home = () => {
             <div className="flex flex-col items-center justify-center text-center">
               <h1 className="text-3xl font-bold text-gray-900">ระบบยืมคืนครุภัณฑ์</h1>
               <p className="mt-2 text-lg text-gray-600">คณะวิทยาการสารสนเทศ</p>
-              
+
               {/* Location Status Badge */}
               <div className="mt-4">
                 {locationPermission === 'granted' ? (
@@ -922,7 +924,7 @@ const Home = () => {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">ความเป็นส่วนตัว</h3>
                   <p className="text-xs text-gray-600">
-                    ข้อมูลตำแหน่งจะถูกเก็บเป็นความลับ เฉพาะผู้ดูแลระบบที่สามารถดูได้ 
+                    ข้อมูลตำแหน่งจะถูกเก็บเป็นความลับ เฉพาะผู้ดูแลระบบที่สามารถดูได้
                     ข้อมูลจะถูกลบเมื่อคืนอุปกรณ์แล้ว การอนุญาตตำแหน่งเป็นข้อบังคับ
                   </p>
                 </div>
@@ -969,7 +971,7 @@ const Home = () => {
         {(() => {
           const activeBorrows = borrowList.filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status));
           const hasActiveTracking = activeBorrows.length > 0;
-          
+
           if (hasActiveTracking) {
             return (
               <motion.div
@@ -1176,12 +1178,12 @@ const Home = () => {
                                         dueDateType: typeof equipment.dueDate,
                                         dueDateValid: equipment.dueDate && equipment.dueDate !== '' && equipment.dueDate !== null && !isNaN(new Date(equipment.dueDate).getTime())
                                       });
-                                      
+
                                       // ตรวจสอบว่ามี dueDate ที่ถูกต้องก่อน (ไม่ว่าจะมาจาก borrow API หรือ equipment API)
                                       if (equipment.dueDate && equipment.dueDate !== '' && equipment.dueDate !== null && !isNaN(new Date(equipment.dueDate).getTime())) {
                                         return new Date(equipment.dueDate).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
                                       }
-                                      
+
                                                                              // ถ้าไม่มี dueDate ที่ถูกต้อง แต่มีสถานะการยืมที่ active ให้แสดงข้อความที่เหมาะสม
                                        if (equipment.borrowStatus === 'pending') {
                                          return 'รออนุมัติ';
@@ -1297,7 +1299,7 @@ const Home = () => {
                    {locationPermission === 'granted' ? 'อนุญาตตำแหน่งแล้ว' : 'ต้องอนุญาตตำแหน่งก่อน'}
                  </span>
                </div>
-              
+
               {/* Cart Items */}
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
@@ -1323,8 +1325,8 @@ const Home = () => {
                                      <motion.button
                      onClick={handleConfirm}
                      className={`px-4 py-2 rounded-2xl ${
-                       locationPermission === 'granted' 
-                         ? 'bg-blue-600 text-white hover:bg-blue-700' 
+                       locationPermission === 'granted'
+                         ? 'bg-blue-600 text-white hover:bg-blue-700'
                          : 'bg-gray-400 text-white cursor-not-allowed'
                      }`}
                      whileHover={locationPermission === 'granted' ? { scale: 1.05 } : {}}

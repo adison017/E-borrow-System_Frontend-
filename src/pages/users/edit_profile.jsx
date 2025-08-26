@@ -31,6 +31,14 @@ const PersonalInfoEdit = () => {
     password: ""
   });
 
+  // Add validation state for real-time feedback
+  const [validation, setValidation] = useState({
+    email: null,
+    user_code: null,
+    phone: null,
+    username: null
+  });
+
   const [positions, setPositions] = useState([]);
   const [branches, setBranches] = useState([]);
   const [roles, setRoles] = useState([]);
@@ -241,8 +249,47 @@ const PersonalInfoEdit = () => {
     }
   };
 
+    // Real-time validation function
+  const validateField = async (name, value) => {
+    if (!value) {
+      setValidation(prev => ({ ...prev, [name]: null }));
+      return;
+    }
+
+    try {
+      const currentUserId = formData.user_id;
+
+      if (name === 'email' && value.includes('@')) {
+        const res = await axios.get(`${API_BASE}/users/email/${value}`);
+        // Check if data exists and belongs to a different user
+        const isDuplicate = res.data && res.data.user_id !== currentUserId;
+        setValidation(prev => ({ ...prev, email: isDuplicate ? 'duplicate' : 'ok' }));
+      } else if (name === 'user_code' && value.length >= 5) {
+        const res = await axios.get(`${API_BASE}/users/username/${value}`);
+        // Check if data exists and belongs to a different user
+        const isDuplicate = res.data && res.data.user_id !== currentUserId;
+        setValidation(prev => ({ ...prev, user_code: isDuplicate ? 'duplicate' : 'ok' }));
+      } else if (name === 'username' && value.length >= 3) {
+        const res = await axios.get(`${API_BASE}/users/username/${value}`);
+        // Check if data exists and belongs to a different user
+        const isDuplicate = res.data && res.data.user_id !== currentUserId;
+        setValidation(prev => ({ ...prev, username: isDuplicate ? 'duplicate' : 'ok' }));
+      } else if (name === 'phone' && value.length >= 9) {
+        const res = await axios.get(`${API_BASE}/users/phone/${value}`);
+        // Check if data exists and belongs to a different user
+        const isDuplicate = res.data && res.data.user_id !== currentUserId;
+        setValidation(prev => ({ ...prev, phone: isDuplicate ? 'duplicate' : 'ok' }));
+      }
+    } catch (error) {
+      // If error, assume field is available
+      setValidation(prev => ({ ...prev, [name]: 'ok' }));
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Update form data
     if (name === 'position_id') {
       const pos = positions.find(p => String(p.position_id) === value);
       setFormData(prev => ({
@@ -266,6 +313,11 @@ const PersonalInfoEdit = () => {
       }));
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
+    }
+
+    // Real-time validation for email, user_code, username, and phone
+    if (['email', 'user_code', 'username', 'phone'].includes(name)) {
+      validateField(name, value);
     }
   };
 
@@ -300,7 +352,67 @@ const PersonalInfoEdit = () => {
       return;
     }
     setIsLoading(true);
+
     try {
+      // Pre-submission validation for duplicates
+      const currentUserId = formData.user_id;
+
+      // Check for duplicate email (excluding current user)
+      if (formData.email) {
+        try {
+          const emailRes = await axios.get(`${API_BASE}/users/email/${formData.email}`);
+          if (emailRes.data && emailRes.data.user_id !== currentUserId) {
+            showErrorDialog('อีเมลนี้ถูกใช้ไปแล้ว กรุณาใช้อีเมลอื่น');
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          // Continue if error
+        }
+      }
+
+      // Check for duplicate user_code (excluding current user)
+      if (formData.user_code) {
+        try {
+          const userCodeRes = await axios.get(`${API_BASE}/users/username/${formData.user_code}`);
+          if (userCodeRes.data && userCodeRes.data.user_id !== currentUserId) {
+            showErrorDialog('รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว กรุณาใช้รหัสอื่น');
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          // Continue if error
+        }
+      }
+
+      // Check for duplicate username (excluding current user)
+      if (formData.username) {
+        try {
+          const usernameRes = await axios.get(`${API_BASE}/users/username/${formData.username}`);
+          if (usernameRes.data && usernameRes.data.user_id !== currentUserId) {
+            showErrorDialog('ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว กรุณาใช้ชื่ออื่น');
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          // Continue if error
+        }
+      }
+
+      // Check for duplicate phone (excluding current user)
+      if (formData.phone) {
+        try {
+          const phoneRes = await axios.get(`${API_BASE}/users/phone/${formData.phone}`);
+          if (phoneRes.data && phoneRes.data.user_id !== currentUserId) {
+            showErrorDialog('เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว กรุณาใช้เบอร์อื่น');
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          // Continue if error
+        }
+      }
+
       // ถ้ามีการเปลี่ยนรหัสผ่าน ให้ขอ OTP ก่อน
       if (formData.password) {
         setPendingPassword(formData.password);
@@ -491,14 +603,14 @@ const PersonalInfoEdit = () => {
   }, []);
 
   return (
-    <motion.div 
-      data-theme="light" 
+    <motion.div
+      data-theme="light"
       className="container mx-auto max-w-8xl py-10 px-4 sm:px-6"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-      <motion.div 
+      <motion.div
         className="card bg-white rounded-2xl overflow-hidden"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -583,11 +695,17 @@ const PersonalInfoEdit = () => {
                       <input
                         type="text"
                         name="user_code"
-                        className="input input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
+                        className={`input input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0 ${
+                          validation.user_code === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                          validation.user_code === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                        }`}
                         value={formData.user_code}
                         onChange={handleChange}
                         required
                       />
+                      {validation.user_code === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
                     <div className="form-control">
                       <label className="label">
@@ -664,11 +782,17 @@ const PersonalInfoEdit = () => {
                       <input
                         type="text"
                         name="username"
-                        className="input input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
+                        className={`input input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0 ${
+                          validation.username === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                          validation.username === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                        }`}
                         value={formData.username}
                         onChange={handleChange}
                         required
                       />
+                      {validation.username === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
                     <div className="form-control">
                       <label className="label">
@@ -701,11 +825,17 @@ const PersonalInfoEdit = () => {
                       <input
                         type="email"
                         name="email"
-                        className="input input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
+                        className={`input input-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0 ${
+                          validation.email === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                          validation.email === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                        }`}
                         value={formData.email}
                         onChange={handleChange}
                         required
                       />
+                      {validation.email === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">อีเมลนี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
                     <div className="form-control">
                       <label className="label">
@@ -718,12 +848,18 @@ const PersonalInfoEdit = () => {
                         <input
                           type="tel"
                           name="phone"
-                          className="input input-bordered w-full pl-3 focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0 text-left"
+                          className={`input input-bordered w-full pl-3 focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0 text-left ${
+                            validation.phone === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                            validation.phone === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                          }`}
                           value={formData.phone}
                           onChange={handleChange}
                           required
                         />
                       </div>
+                      {validation.phone === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
                   </div>
                 </div>

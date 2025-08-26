@@ -95,7 +95,8 @@ const AuthSystem = (props) => {
   const [validation, setValidation] = useState({
     idNumber: null,
     username: null,
-    email: null
+    email: null,
+    phone: null
   });
   const [otpDialog, setOtpDialog] = useState({ show: false, email: '', phone: '', error: '' });
   const [otpVerified, setOtpVerified] = useState(false);
@@ -167,6 +168,10 @@ const AuthSystem = (props) => {
       }
       if (validation.email === 'duplicate') {
         setNotification({ show: true, type: 'warning', title: 'อีเมลซ้ำ', message: 'อีเมลนี้ถูกใช้ไปแล้ว', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return false;
+      }
+      if (validation.phone === 'duplicate') {
+        setNotification({ show: true, type: 'warning', title: 'เบอร์โทรศัพท์ซ้ำ', message: 'เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว', onClose: () => setNotification(n => ({ ...n, show: false })) });
         return false;
       }
     } else if (step === 3) {
@@ -303,13 +308,25 @@ const AuthSystem = (props) => {
       setRegisterData(prev => ({ ...prev, email: value }));
       if (value && value.includes('@')) {
         try {
-          const res = await axios.get(`${API_BASE}/users/username/${value}`);
+          const res = await axios.get(`${API_BASE}/users/email/${value}`);
           setValidation(v => ({ ...v, email: res.data ? 'duplicate' : 'ok' }));
         } catch {
           setValidation(v => ({ ...v, email: 'ok' }));
         }
       } else {
         setValidation(v => ({ ...v, email: null }));
+      }
+    } else if (name === 'phone') {
+      setRegisterData(prev => ({ ...prev, phone: value }));
+      if (value) {
+        try {
+          const res = await axios.get(`${API_BASE}/users/phone/${value}`);
+          setValidation(v => ({ ...v, phone: res.data ? 'duplicate' : 'ok' }));
+        } catch {
+          setValidation(v => ({ ...v, phone: 'ok' }));
+        }
+      } else {
+        setValidation(v => ({ ...v, phone: null }));
       }
     } else {
       setRegisterData(prev => ({ ...prev, [name]: value }));
@@ -340,7 +357,7 @@ const AuthSystem = (props) => {
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    
+
     // ตรวจสอบว่าถูกบล็อกหรือไม่
     if (loginAttempts.blockedUntil && Date.now() < loginAttempts.blockedUntil) {
       const remainingMinutes = Math.ceil((loginAttempts.blockedUntil - Date.now()) / 1000 / 60);
@@ -373,7 +390,7 @@ const AuthSystem = (props) => {
         password: loginData.password
       });
       setIsLoading(false);
-      
+
       if (response.data && response.data.token) {
 
         // รีเซ็ต login attempts เมื่อ login สำเร็จ
@@ -408,7 +425,7 @@ const AuthSystem = (props) => {
       }
     } catch (error) {
       setIsLoading(false);
-      
+
       // จัดการ error messages จาก backend
       let errorMessage = 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง';
       // จัดการ rate limit จากเซิร์ฟเวอร์ (429 Too Many Requests)
@@ -426,28 +443,28 @@ const AuthSystem = (props) => {
         handleLoginError(`พยายามเข้าสู่ระบบบ่อยเกินไป กรุณาลองใหม่ใน ${minutes} นาที`);
         return;
       }
-      
+
       if (error.response?.data?.message) {
         const backendMessage = error.response.data.message;
-        
+
         // ตรวจสอบข้อความจาก backend
         if (backendMessage.includes('บัญชีถูกบล็อกชั่วคราว')) {
           // แยกเวลาที่เหลือจากข้อความ
           const timeMatch = backendMessage.match(/(\d+)/);
           const remainingMinutes = timeMatch ? parseInt(timeMatch[1]) : 15;
-          
+
           setLoginAttempts({
             remaining: 0,
             blockedUntil: Date.now() + (remainingMinutes * 60 * 1000),
             lastAttempt: Date.now()
           });
-          
+
           errorMessage = `บัญชีถูกบล็อกชั่วคราว กรุณาลองใหม่ใน ${remainingMinutes} นาที`;
         } else {
           errorMessage = backendMessage;
         }
       }
-      
+
       handleLoginError(errorMessage);
     }
   };
@@ -456,7 +473,7 @@ const AuthSystem = (props) => {
   const handleLoginError = (message) => {
     const newRemaining = Math.max(0, loginAttempts.remaining - 1);
     const newBlockedUntil = newRemaining === 0 ? Date.now() + (15 * 60 * 1000) : null;
-    
+
     setLoginAttempts({
       remaining: newRemaining,
       blockedUntil: newBlockedUntil,
@@ -484,6 +501,43 @@ const AuthSystem = (props) => {
       setNotification({ show: true, type: 'warning', title: 'ข้อมูลไม่ครบ', message: 'กรุณากรอกอีเมล @msu.ac.th เพื่อรับรหัส OTP', onClose: () => setNotification(n => ({ ...n, show: false })) });
       return;
     }
+
+    // ตรวจสอบข้อมูลซ้ำก่อนส่ง OTP
+    try {
+      // ตรวจสอบ user_code ซ้ำ
+      const userCodeRes = await axios.get(`${API_BASE}/users/username/${registerData.idNumber}`);
+      if (userCodeRes.data) {
+        setNotification({ show: true, type: 'error', title: 'รหัสนิสิต/บุคลากรซ้ำ', message: 'รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return;
+      }
+
+      // ตรวจสอบ email ซ้ำ
+      const emailRes = await axios.get(`${API_BASE}/users/email/${registerData.email}`);
+      if (emailRes.data) {
+        setNotification({ show: true, type: 'error', title: 'อีเมลซ้ำ', message: 'อีเมลนี้ถูกใช้ไปแล้ว', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return;
+      }
+
+      // ตรวจสอบเบอร์โทรศัพท์ซ้ำ
+      const phoneRes = await axios.get(`${API_BASE}/users/phone/${registerData.phone}`);
+      if (phoneRes.data) {
+        setNotification({ show: true, type: 'error', title: 'เบอร์โทรศัพท์ซ้ำ', message: 'เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return;
+      }
+
+      // ตรวจสอบ username ซ้ำ
+      const usernameRes = await axios.get(`${API_BASE}/users/username/${registerData.username}`);
+      if (usernameRes.data) {
+        setNotification({ show: true, type: 'error', title: 'ชื่อผู้ใช้งานซ้ำ', message: 'ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว', onClose: () => setNotification(n => ({ ...n, show: false })) });
+        return;
+      }
+
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+      setNotification({ show: true, type: 'error', title: 'เกิดข้อผิดพลาด', message: 'เกิดข้อผิดพลาดในการตรวจสอบข้อมูล', onClose: () => setNotification(n => ({ ...n, show: false })) });
+      return;
+    }
+
     // เปิด OTP Dialog เฉพาะ email
     setOtpDialog({ show: true, email: registerData.email, error: '' });
   };
@@ -613,28 +667,28 @@ const AuthSystem = (props) => {
       <option key={pos.position_id} value={pos.position_id}>{pos.position_name}</option>
     ));
   }, [positions]);
-  
+
   const branchOptions = useMemo(() => {
     if (!Array.isArray(branches)) return [];
     return branches.map(branch => (
       <option key={branch.branch_id} value={branch.branch_id}>{branch.branch_name}</option>
     ));
   }, [branches]);
-  
+
   const provinceOptions = useMemo(() => {
     if (!Array.isArray(provinces)) return [];
     return provinces.map(province => (
       <option key={province.id} value={province.id}>{province.name_th}</option>
     ));
   }, [provinces]);
-  
+
   const amphureOptions = useMemo(() => {
     if (!Array.isArray(amphures)) return [];
     return amphures.map(amphure => (
       <option key={amphure.id} value={amphure.id}>{amphure.name_th}</option>
     ));
   }, [amphures]);
-  
+
   const tambonOptions = useMemo(() => {
     if (!Array.isArray(tambons)) return [];
     return tambons.map(tambon => (
@@ -1050,13 +1104,13 @@ const AuthSystem = (props) => {
                   <div className="text-center mb-8">
                     <h2 className="text-2xl font-bold text-gray-800 mb-2">ยินดีต้อนรับกลับมา</h2>
                     <p className="text-gray-600">เข้าสู่ระบบเพื่อจัดการครุภัณฑ์ของคุณ</p>
-                    
+
                     {/* แสดงจำนวนครั้งที่เหลือ */}
                     {loginAttempts.remaining < 5 && (
                       <div className={`mt-4 p-3 rounded-lg border-2 ${
-                        loginAttempts.remaining <= 1 
-                          ? 'bg-red-50 border-red-200 text-red-700' 
-                          : loginAttempts.remaining <= 2 
+                        loginAttempts.remaining <= 1
+                          ? 'bg-red-50 border-red-200 text-red-700'
+                          : loginAttempts.remaining <= 2
                             ? 'bg-yellow-50 border-yellow-200 text-yellow-700'
                             : 'bg-blue-50 border-blue-200 text-blue-700'
                       }`}>
@@ -1075,7 +1129,7 @@ const AuthSystem = (props) => {
                         )}
                       </div>
                     )}
-                    
+
                     {/* แสดงสถานะการบล็อก */}
                     {loginAttempts.blockedUntil && Date.now() < loginAttempts.blockedUntil && (
                       <div className="mt-4 p-3 bg-red-50 border-2 border-red-200 text-red-700 rounded-lg">
@@ -1519,11 +1573,18 @@ const AuthSystem = (props) => {
                                 name="phone"
                                 value={registerData.phone}
                                 onChange={handleRegisterChange}
-                                className="w-full h-12 pl-12 pr-4 bg-gray-50 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:bg-white focus:outline-none transition-all duration-300 text-gray-800 group-hover:border-blue-300"
+                                className={`w-full h-12 pl-12 pr-4 bg-gray-50 border-2 rounded-full focus:outline-none transition-all duration-300 text-gray-800 ${
+                                  validation.phone === 'duplicate'
+                                    ? 'border-red-400 focus:border-red-500 bg-red-50'
+                                    : 'border-gray-200 focus:border-blue-500 focus:bg-white group-hover:border-blue-300'
+                                }`}
                                 placeholder="กรอกเบอร์โทรศัพท์"
                                 required
                               />
                               <FaPhone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
+                              {validation.phone === 'duplicate' && (
+                                <div className="text-red-500 text-xs mt-1 animate-shake">เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว</div>
+                              )}
                             </div>
                           </div>
                         </div>
