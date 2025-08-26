@@ -1,15 +1,18 @@
 import {
-  AssignmentReturn as AssignmentReturnIcon,
-  AssignmentTurnedIn as AssignmentTurnedInIcon,
-  Category as CategoryIcon,
-  CheckCircle as DoneIcon,
-  Inventory as InventoryIcon,
-  ListAlt as ListAltIcon,
-  People as PeopleIcon,
-  PieChartOutline as PieChartOutlineIcon,
-  TrendingUp as TrendingUpIcon,
-  Warning as WarningIcon
-} from '@mui/icons-material';
+  FiAlertTriangle as WarningIcon,
+  FiCreditCard as PaymentIcon,
+  FiUser as PeopleIcon,
+  FiPackage as InventoryIcon,
+  FiList as ListAltIcon,
+  FiCheckCircle as DoneIcon,
+  FiTrendingUp as TrendingUpIcon,
+  FiClipboard as AssignmentTurnedInIcon,
+  FiRotateCcw as AssignmentReturnIcon,
+  FiMapPin as LocationIcon,
+  FiClock as ClockIcon,
+  FiAlertCircle as AlertIcon,
+  FiDollarSign as MoneyIcon
+} from 'react-icons/fi';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
@@ -51,6 +54,8 @@ const DashboardAdmin = () => {
   const [branchBorrowSummary, setBranchBorrowSummary] = useState([]);
   const [frequentDamageUsers, setFrequentDamageUsers] = useState([]);
   const [topRiskUsers, setTopRiskUsers] = useState([]);
+  const [overdueNearDueItems, setOverdueNearDueItems] = useState([]);
+  const [pendingPaymentItems, setPendingPaymentItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
 
@@ -85,6 +90,14 @@ const DashboardAdmin = () => {
         const res = await axios.get(`${API_BASE}/dashboard/branch-borrow-summary`);
         setBranchBorrowSummary(res.data);
       } catch (e) { setBranchBorrowSummary([]); }
+      try {
+        const res = await axios.get(`${API_BASE}/dashboard/overdue-near-due-items`);
+        setOverdueNearDueItems(res.data);
+      } catch (e) { setOverdueNearDueItems([]); }
+      try {
+        const res = await axios.get(`${API_BASE}/dashboard/pending-payment-items`);
+        setPendingPaymentItems(res.data);
+      } catch (e) { setPendingPaymentItems([]); }
       setLoading(false);
     };
     fetchDashboard();
@@ -204,6 +217,241 @@ const DashboardAdmin = () => {
           </h1>
           <p className="text-slate-600 text-sm sm:text-base">ภาพรวมการจัดการระบบและทางลัด</p>
         </motion.div>
+
+        {/* Combined Overdue/Near Due and Pending Payment Items Section */}
+        {(overdueNearDueItems.length > 0 || pendingPaymentItems.length > 0) && (
+          <motion.div className="mb-3" variants={itemVariants}>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Overdue and Near Due Items */}
+              {overdueNearDueItems.length > 0 && (
+                <div className="bg-red-50 rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                  <div className="bg-gradient-to-r from-orange-400 to-red-600 p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/40 rounded-xl flex items-center justify-center">
+                          <WarningIcon className="text-white text-xl sm:text-2xl" />
+                        </div>
+                        <div>
+                          <h2 className="text-lg sm:text-xl font-bold text-white">รายการเกินกำหนดและกำลังจะเกินกำหนด</h2>
+                          <p className="text-white/90 text-sm mt-1">คลิกที่รายการเพื่อดูรายละเอียด</p>
+                          <span className="text-white/90 text-sm font-medium">{overdueNearDueItems.length} รายการ</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 sm:p-6">
+                    <div className="grid gap-3 sm:gap-4">
+                      {overdueNearDueItems.map((item) => (
+                        <motion.div 
+                          key={item.borrow_id}
+                          className={`p-3 rounded-2xl border-2 transition-all duration-300 hover:shadow-lg cursor-pointer ${
+                            item.urgency_status === 'overdue' 
+                              ? 'border-red-200 bg-red-100 hover:border-red-300 hover:shadow-red-100' 
+                              : 'border-orange-200 bg-orange-100 hover:border-orange-300 hover:shadow-orange-100'
+                          }`}
+                          whileHover={{ scale: 1.01 }}
+                          onClick={() => navigate('/return-list')}
+                        >
+                          <div className="flex flex-col lg:flex-row lg:items-start gap-3">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className="flex-shrink-0">
+                                {item.borrower.avatar ? (
+                                  <img 
+                                    src={item.borrower.avatar} 
+                                    alt={item.borrower.name}
+                                    className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center shadow-md">
+                                    <PeopleIcon className="text-slate-600 text-sm" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 mb-1">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold shadow-sm ${
+                                    item.urgency_status === 'overdue'
+                                      ? 'bg-red-200 text-red-800 border border-red-200'
+                                      : 'bg-orange-200 text-orange-800 border border-orange-200'
+                                  }`}>
+                                    {item.urgency_status === 'overdue' ? (
+                                      <><AlertIcon className="w-3 h-3" /> เกินกำหนด</>
+                                    ) : (
+                                      <><WarningIcon className="w-3 h-3" /> กำลังจะเกิน</>
+                                    )}
+                                  </span>
+                                  <h3 className="font-bold text-slate-800 text-sm truncate mb-0 sm:mb-1">{item.borrower.name}</h3>
+                                </div>
+                                <p className="text-xs text-slate-600 truncate mb-1">
+                                  {item.borrower.position} • {item.borrower.department}
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-slate-500">รหัส:</span>
+                                    <span className="font-semibold text-slate-700">{item.borrow_code}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-slate-500">กำหนดคืน:</span>
+                                    <span className="font-semibold text-red-600">{item.due_date}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className={`font-bold text-xs px-1.5 py-0.5 rounded flex items-center gap-1 ${
+                                      item.urgency_status === 'overdue' 
+                                        ? 'bg-red-100 text-red-700' 
+                                        : 'bg-orange-100 text-orange-700'
+                                    }`}>
+                                      <ClockIcon className="w-3 h-3" />
+                                      {item.urgency_status === 'overdue' 
+                                        ? `เกิน ${Math.abs(item.days_until_due)} วัน`
+                                        : `เหลือ ${item.days_until_due} วัน`
+                                      }
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex sm:justify-end justify-center">
+                              <div className="text-center">
+                                <div className="text-xs text-slate-500 mb-1">อุปกรณ์</div>
+                                <div className="text-sm font-bold text-slate-700 bg-white rounded-full px-2 py-1 border border-slate-300">
+                                  {item.equipment.length}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className={`mt-2 p-2 rounded-2xl border-2 transition-all duration-300 hover:shadow-sm cursor-pointer ${
+                            item.urgency_status === 'overdue' 
+                              ? 'border-red-500 bg-red-600 hover:border-red-500 hover:shadow-red-500' 
+                              : 'border-orange-500 bg-orange-600 hover:border-orange-500 hover:shadow-orange-500'
+                          }`}>
+                            <div className="flex flex-wrap gap-1">
+                              {item.equipment.slice(0, 3).map((eq, idx) => (
+                                <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-full text-xs text-slate-700 border border-slate-200 shadow-sm">
+                                  <span className="font-medium">{eq.name}</span>
+                                  <span className="text-white bg-black px-1 py-0.5 rounded-full text-xs">×{eq.quantity}</span>
+                                </span>
+                              ))}
+                              {item.equipment.length > 3 && (
+                                <span className="inline-flex items-center px-2 py-1 bg-slate-100 rounded-full text-xs text-slate-600 border border-slate-200">
+                                  +{item.equipment.length - 3} อื่นๆ
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Pending Payment Items */}
+              {pendingPaymentItems.length > 0 && (
+                <div className="bg-yellow-50 rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+                  <div className="bg-yellow-400 p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/50 rounded-xl flex items-center justify-center">
+                          <PaymentIcon className="text-black text-xl sm:text-2xl" />
+                        </div>
+                        <div>
+                          <h2 className="text-lg sm:text-xl font-bold text-black">รายการค้างชำระ</h2>
+                          <p className="text-black/90 text-sm mt-1">ค่าปรับที่ยังไม่ได้ชำระเงิน</p>
+                          <span className="text-black/90 text-sm font-medium">{pendingPaymentItems.length} รายการ</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="font-bold text-black bg-white/50 px-3 py-1.5 rounded-full flex items-center gap-1"> รวม {pendingPaymentItems.reduce((sum, item) => sum + Number(item.fine_amount), 0).toLocaleString()} บาท
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="p-4 sm:p-6">
+                    <div className="grid gap-3 sm:gap-4">
+                      {pendingPaymentItems.map((item) => (
+                        <motion.div 
+                          key={item.borrow_id}
+                          className="p-3 rounded-2xl border-2 border-yellow-200 bg-yellow-100 hover:border-yellow-300 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-100 cursor-pointer"
+                          whileHover={{ scale: 1.01 }}
+                          onClick={() => navigate('/return-list')}
+                        >
+                          <div className="flex flex-col lg:flex-row lg:items-start gap-3">
+                            <div className="flex items-start gap-3 flex-1">
+                              <div className="flex-shrink-0">
+                                {item.borrower.avatar ? (
+                                  <img 
+                                    src={item.borrower.avatar} 
+                                    alt={item.borrower.name}
+                                    className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md"
+                                  />
+                                ) : (
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 flex items-center justify-center shadow-md">
+                                    <PeopleIcon className="text-slate-600 text-sm" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 mb-1">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-yellow-200 text-yellow-800 border border-yellow-200 shadow-sm">
+                                    <PaymentIcon className="w-3 h-3" /> รอชำระเงิน
+                                  </span>
+                                  <h3 className="font-bold text-slate-800 text-sm truncate mb-0 sm:mb-1">{item.borrower.name}</h3>
+                                </div>
+                                <p className="text-xs text-slate-600 truncate mb-1">
+                                  {item.borrower.position} • {item.borrower.department}
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 text-xs">
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-slate-500">รหัส:</span>
+                                    <span className="font-semibold">{item.borrow_code}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-slate-500">คืนเมื่อ:</span>
+                                    <span className="font-semibold text-slate-700">{item.actual_return_date}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-slate-500">ค่าปรับ:</span>
+                                    <span className="font-medium text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-200 flex items-center gap-1">
+                                      <MoneyIcon className="w-3 h-3" /> {Number(item.fine_amount).toLocaleString()} บาท
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="flex sm:justify-end justify-center">
+                              <div className="text-center">
+                                <div className="text-xs text-slate-500 mb-1">อุปกรณ์</div>
+                                <div className="text-sm font-bold text-slate-700 bg-white rounded-full px-2 py-1 border border-slate-300">
+                                  {item.equipment.length}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-2 p-2 rounded-2xl border-2 transition-all duration-300 hover:shadow-sm cursor-pointer border-yellow-300 bg-yellow-400 hover:border-yellow-300 hover:shadow-yellow-400">
+                            <div className="flex flex-wrap gap-1">
+                              {item.equipment.slice(0, 3).map((eq, idx) => (
+                                <span key={idx} className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-full text-xs text-slate-700 border border-slate-200 shadow-sm">
+                                  <span className="font-medium">{eq.name}</span>
+                                  <span className="text-white bg-black px-1 py-0.5 rounded-full text-xs">×{eq.quantity}</span>
+                                </span>
+                              ))}
+                              {item.equipment.length > 3 && (
+                                <span className="inline-flex items-center px-2 py-1 bg-slate-100 rounded-full text-xs text-slate-600 border border-slate-200">
+                                  +{item.equipment.length - 3} อื่นๆ
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+
 
         {/* Quick Actions Grid */}
         <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7 gap-4 sm:gap-6 mb-8" variants={containerVariants}>
