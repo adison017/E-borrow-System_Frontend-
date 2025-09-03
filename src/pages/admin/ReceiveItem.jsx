@@ -94,12 +94,14 @@ const ReceiveItem = () => {
   useEffect(() => {
     // Fetch borrows from backend
     getAllBorrows().then(data => {
-      // DEBUG: getAllBorrows response
+      console.log('Initial borrows data:', data);
       setBorrows(Array.isArray(data) ? data : []);
     });
     // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต receive list แบบ real-time ===
     const handleBadgeUpdate = () => {
+      console.log('Badge update triggered, refreshing borrows...');
       getAllBorrows().then(data => {
+        console.log('Updated borrows data:', data);
         setBorrows(Array.isArray(data) ? data : []);
       });
     };
@@ -153,6 +155,8 @@ const ReceiveItem = () => {
         return { message: "ส่งมอบครุภัณฑ์เรียบร้อยแล้ว", type: "success" };
       case "cancelled":
         return { message: "ยกเลิกการยืมเรียบร้อยแล้ว", type: "success" };
+      case "error":
+        return { message: extra || "เกิดข้อผิดพลาด", type: "error" };
       default:
         return { message: extra || "ดำเนินการสำเร็จ", type: "info" };
     }
@@ -205,34 +209,49 @@ const ReceiveItem = () => {
   };
 
   const handleDeliveryConfirm = async (deliveryData) => {
-    // handleDeliveryConfirm Debug
+    try {
+      // ต้องเป็น base64 เท่านั้น (กรณีเซ็นใหม่) ถ้าไม่ใช่ให้แจ้งเตือน
+      if (!deliveryData.signature_image || !deliveryData.signature_image.startsWith('data:image/')) {
+        // Invalid signature_image
+        notifyReceiveAction("no_signature");
+        return;
+      }
 
-    // ต้องเป็น base64 เท่านั้น (กรณีเซ็นใหม่) ถ้าไม่ใช่ให้แจ้งเตือน
-    if (!deliveryData.signature_image || !deliveryData.signature_image.startsWith('data:image/')) {
-      // Invalid signature_image
-      notifyReceiveAction("no_signature");
-      return;
+      // ตรวจสอบ handover_photo
+      if (!deliveryData.handover_photo || !deliveryData.handover_photo.startsWith('data:image/')) {
+        // Invalid handover_photo
+        notifyReceiveAction("no_handover_photo");
+        return;
+      }
+
+      // Both images are valid, calling updateBorrowStatus
+      const response = await updateBorrowStatus(
+        deliveryData.borrow_id,
+        'approved', // ส่ง status ที่ถูกต้อง
+        null, // ไม่มี rejection_reason
+        deliveryData.signature_image,
+        deliveryData.handover_photo
+      );
+
+      console.log('Update response:', response);
+
+      // ตรวจสอบ response
+      if (response && response.success) {
+        console.log('Update successful, refreshing borrows...');
+        // Refresh borrows
+        const refreshedData = await getAllBorrows();
+        console.log('Refreshed borrows data:', refreshedData);
+        setBorrows(Array.isArray(refreshedData) ? refreshedData : []);
+        setIsDeliveryDialogOpen(false);
+        notifyReceiveAction("approved");
+      } else {
+        console.error('Update failed:', response);
+        notifyReceiveAction("error", response?.message || 'เกิดข้อผิดพลาดในการอัปเดต');
+      }
+    } catch (error) {
+      console.error('Error in handleDeliveryConfirm:', error);
+      notifyReceiveAction("error", 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
     }
-
-    // ตรวจสอบ handover_photo
-    if (!deliveryData.handover_photo || !deliveryData.handover_photo.startsWith('data:image/')) {
-      // Invalid handover_photo
-      notifyReceiveAction("no_handover_photo");
-      return;
-    }
-
-    // Both images are valid, calling updateBorrowStatus
-    await updateBorrowStatus(
-      deliveryData.borrow_id,
-      'approved', // ส่ง status ที่ถูกต้อง
-      null, // ไม่มี rejection_reason
-      deliveryData.signature_image,
-      deliveryData.handover_photo
-    );
-    // Refresh borrows
-    getAllBorrows().then(data => setBorrows(Array.isArray(data) ? data : []));
-    setIsDeliveryDialogOpen(false);
-    notifyReceiveAction("approved");
   };
 
   const handleCancelBorrow = async (borrowId) => {
@@ -241,10 +260,24 @@ const ReceiveItem = () => {
   };
 
   const confirmCancel = async () => {
-    await updateBorrowStatus(selectedBorrowId, "cancelled");
-    getAllBorrows().then(data => setBorrows(Array.isArray(data) ? data : []));
-    setIsConfirmDialogOpen(false);
-    notifyReceiveAction("cancelled");
+    try {
+      const response = await updateBorrowStatus(selectedBorrowId, "cancelled");
+
+      if (response && response.success) {
+        console.log('Cancel successful, refreshing borrows...');
+        const refreshedData = await getAllBorrows();
+        console.log('Refreshed borrows data after cancel:', refreshedData);
+        setBorrows(Array.isArray(refreshedData) ? refreshedData : []);
+        setIsConfirmDialogOpen(false);
+        notifyReceiveAction("cancelled");
+      } else {
+        console.error('Cancel failed:', response);
+        notifyReceiveAction("error", response?.message || 'เกิดข้อผิดพลาดในการยกเลิก');
+      }
+    } catch (error) {
+      console.error('Error in confirmCancel:', error);
+      notifyReceiveAction("error", 'เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    }
   };
 
 

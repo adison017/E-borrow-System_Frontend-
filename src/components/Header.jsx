@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { MdAssignment, MdBuild, MdCheckCircle, MdChevronRight, MdErrorOutline, MdFactCheck, MdLocalShipping, MdNotifications, MdPayment, MdSchedule, MdSettings, MdUndo, MdWarningAmber, MdClose } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useBadgeCounts } from '../hooks/useSocket';
@@ -11,7 +11,7 @@ function Header({ userRole, changeRole }) {
   const [username, setUsername] = useState("");
   const [avatar, setAvatar] = useState('/logo_it.png');
   const [remainingTime, setRemainingTime] = useState(60 * 60); // 60 นาทีในวินาที
-  
+
   // Countdown timer effect
   useEffect(() => {
     const countdownInterval = setInterval(() => {
@@ -75,10 +75,10 @@ function Header({ userRole, changeRole }) {
   const [firstSeenMap, setFirstSeenMap] = useState({}); // id -> timestamp
   const [lastUnreadCount, setLastUnreadCount] = useState(0);
   const [isBlinking, setIsBlinking] = useState(false);
-  const originalTitleRef = React.useRef('');
-  const titleBlinkIntervalRef = React.useRef(null);
-  const prevItemIdsRef = React.useRef(new Set());
-  const audioRef = React.useRef(null);
+  const originalTitleRef = useRef('');
+  const titleBlinkIntervalRef = useRef(null);
+  const prevItemIdsRef = useRef(new Set());
+  const audioRef = useRef(null);
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('notifSound') === '1');
   const [headerAlert, setHeaderAlert] = useState(null);
   const { subscribeToBadgeCounts } = useBadgeCounts();
@@ -100,7 +100,7 @@ function Header({ userRole, changeRole }) {
 
   const handleShowHeaderAlert = (event) => {
     const { type, message, equipmentName, requesterName } = event.detail;
-    
+
     // Add rejection notification to the notification list (only for admin)
     if (userRole === 'admin') {
       const rejectionId = `rejection:${Date.now()}:${Math.random()}`;
@@ -110,13 +110,13 @@ function Header({ userRole, changeRole }) {
         text: `คำขอซ่อมครุภัณฑ์ "${equipmentName}" จาก ${requesterName} ถูกปฏิเสธแล้ว`,
         href: '/ManageEquipment'
       };
-      
+
       setNotifItems(prev => [rejectionItem, ...prev]);
-      
+
       // Play notification sound and show browser notification
       playNotificationSound();
       showBrowserNotification(rejectionItem.text);
-      
+
       // Auto remove after 24 hours
       setTimeout(() => {
         setNotifItems(prev => prev.filter(item => item.id !== rejectionId));
@@ -410,14 +410,14 @@ function Header({ userRole, changeRole }) {
           items.push({ id: `${idBase}:return`, type: 'admin_return', text: `มีรายการคืนครุภัณฑ์ ${code ? '('+code+')' : ''} รอดำเนินการ`, href: '/return-list' });
         }
       });
-      
+
       // เพิ่มการแจ้งเตือนการปฏิเสธคำขอซ่อมสำหรับ admin
       (Array.isArray(repairs) ? repairs : []).filter(r => r.status === 'rejected').forEach((r, idx) => {
         const rid = r.repair_id || r.id || r.request_id || idx;
         const rcode = r.repair_code || r.code || '';
         items.push({ id: `repair:${rid}:rejection`, type: 'repair_rejection', text: `คำขอซ่อม ${rcode ? '('+rcode+')' : ''} ถูกปฏิเสธแล้ว`, href: '/ManageEquipment' });
       });
-      
+
       return items;
     };
 
@@ -455,11 +455,11 @@ function Header({ userRole, changeRole }) {
       try {
         const data = await getAllBorrows();
         if (!Array.isArray(data)) return;
-        
+
         // ดึงข้อมูล repair requests สำหรับ admin
         const repairRes = await authFetch(`${API_BASE}/repair-requests`);
         const repairData = await repairRes.json();
-        
+
         const pending = data.filter(b => b.status === 'pending' || b.status === 'pending_approval').length;
         const carry = data.filter(b => b.status === 'carry').length;
         const returns = data.filter(b => ['approved', 'overdue', 'waiting_payment'].includes(b.status)).length;
@@ -574,7 +574,7 @@ function Header({ userRole, changeRole }) {
   }, [notifItems, unreadCount]);
 
   // Helper to handle item selection (click/tap) and dedupe touch+click
-  const lastHandledRef = React.useRef({ id: null, ts: 0 });
+  const lastHandledRef = useRef({ id: null, ts: 0 });
   const handleItemSelect = (item) => {
     try {
       const now = Date.now();

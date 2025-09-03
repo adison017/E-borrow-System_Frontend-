@@ -1323,7 +1323,7 @@ const AuthSystem = (props) => {
                                     ? 'border-red-400 focus:border-red-500 bg-red-50'
                                     : 'border-gray-200 focus:border-blue-500 focus:bg-white group-hover:border-blue-300'
                                 }`}
-                                placeholder="เช่น 65011211033"
+                                placeholder="เช่น 65011211XXX"
                                 required
                               />
                               <FaIdCard className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500" />
