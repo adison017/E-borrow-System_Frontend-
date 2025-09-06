@@ -307,7 +307,7 @@ export default function BorrowDetailsDialog({
                           <div className="relative">
                             <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-200 shadow-lg bg-gradient-to-br from-blue-100 to-indigo-100">
                               <img
-                                src={borrower.avatar ? (borrower.avatar.startsWith('http') ? borrower.avatar : `${UPLOAD_BASE}/user/${borrower.avatar}`) : "/profile.png"}
+                                src={borrower.avatar ? (typeof borrower.avatar === 'string' && borrower.avatar.startsWith('http') ? borrower.avatar : `${UPLOAD_BASE}/uploads/user/${borrower.avatar}`) : "/profile.png"}
                                 alt={borrower.name}
                                 className="w-full h-full object-cover"
                                 onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
@@ -446,7 +446,7 @@ export default function BorrowDetailsDialog({
                                 <td className="px-4 py-4 text-center">
                                   <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center mx-auto border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm">
                                     <img
-                                      src={item.pic?.startsWith('http') ? item.pic : `${UPLOAD_BASE}/equipment/${item.item_code || item.code}.jpg`}
+                                      src={item.pic ? (typeof item.pic === 'string' && item.pic.startsWith('http') ? item.pic : `${UPLOAD_BASE}/uploads/equipment/${item.item_code || item.code}.jpg`) : "/lo.png"}
                                       alt={item.name}
                                       className="max-w-full max-h-full object-contain p-2"
                                       onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
