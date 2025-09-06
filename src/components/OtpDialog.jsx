@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AiOutlineKey } from "react-icons/ai";
 
@@ -158,7 +158,7 @@ const OtpDialog = ({
             ))}
           </div>
           {error && <div className="text-red-500 text-sm text-center mt-1">{error}</div>}
-          <div className="w-full flex flex-row gap-4 justify-center items-center mt-6">  
+          <div className="w-full flex flex-row gap-4 justify-center items-center mt-6">
             <button
               type="button"
               className="flex-1 max-w-[140px] px-6 py-3 text-lg font-semibold rounded-full shadow-xl border-2 bg-gray-200 text-gray-700 border-gray-300 hover:bg-gray-300 focus:ring-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-200"

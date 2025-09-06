@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MdChevronLeft, MdChevronRight, MdClose } from 'react-icons/md';
 import { getNews } from '../utils/api';
 
@@ -110,13 +110,13 @@ export default function FirstVisitNewsModal({ userId }) {
           } catch {
             urls = [current.image_url];
           }
-          
+
           if (!urls.length) return null;
-          
+
           const total = urls.length;
           const prevImg = () => setImageIndex((i) => (i - 1 + total) % total);
           const nextImg = () => setImageIndex((i) => (i + 1) % total);
-          
+
           return (
             <div className="w-full h-full flex flex-col items-center justify-center p-2 sm:p-4">
               <img
@@ -124,7 +124,7 @@ export default function FirstVisitNewsModal({ userId }) {
                 alt="Image"
                 className="max-w-full max-h-full object-contain transition-opacity duration-300"
               />
-              
+
               {total > 1 && (
                 <>
                   {/* Image navigation */}
@@ -145,12 +145,13 @@ export default function FirstVisitNewsModal({ userId }) {
                       <MdChevronRight size={16} className="sm:w-5 sm:h-5" />
                     </button>
                   </div>
-                
+
                 </>
               )}
             </div>
           );
         })()}
+
         {/* News-level dots: show number of news items and allow switching news item */}
         {newsItems.length > 1 && (
           <div className="absolute bottom-0 sm:bottom-2 left-1/2 -translate-x-1/2 flex gap-1 sm:gap-2 p-2 z-10">
@@ -168,6 +169,7 @@ export default function FirstVisitNewsModal({ userId }) {
             ))}
           </div>
         )}
+
           </div>
     </div>
   );

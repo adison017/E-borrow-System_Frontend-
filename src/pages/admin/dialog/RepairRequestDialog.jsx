@@ -1,3 +1,4 @@
+import React, { useEffect, useRef, useState } from 'react';
 import {
   CalendarIcon,
   CubeIcon,
@@ -7,7 +8,6 @@ import {
   UserIcon
 } from "@heroicons/react/24/outline";
 import axios from 'axios';
-import { useEffect, useRef, useState } from 'react';
 import { MdClose } from "react-icons/md";
 import { FaImage, FaTimes, FaTools } from 'react-icons/fa';
 import { toast } from 'react-toastify';
@@ -188,7 +188,7 @@ export default function RepairRequestDialog({
         }
       );
 
-      
+
       return response.data.images;
     } catch (error) {
       console.error('Error uploading images:', error);
@@ -297,10 +297,10 @@ export default function RepairRequestDialog({
 
         // ปิด dialog ก่อน
         onClose();
-        
+
         // แสดง toast notification
         toast.success('ส่งคำขอแจ้งซ่อมสำเร็จ');
-        
+
 
       } catch (error) {
         if (error.response && error.response.status === 409) {
@@ -611,8 +611,8 @@ export default function RepairRequestDialog({
             {/* Footer actions */}
             <div className="sticky bottom-0 bg-white/90 backdrop-blur-sm border-t border-gray-200 p-4 rounded-3xl">
               <div className="flex justify-end gap-4">
-                <button 
-                  onClick={onClose} 
+                <button
+                  onClick={onClose}
                   className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-full transition-colors"
                 >
                   ยกเลิก

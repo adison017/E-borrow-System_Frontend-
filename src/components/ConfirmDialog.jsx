@@ -1,3 +1,4 @@
+import React from 'react';
 import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
 const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
@@ -14,9 +15,9 @@ const ConfirmDialog = ({ isOpen, onClose, onConfirm, title, message }) => {
               </div>
               <h3 className="text-lg font-bold text-gray-900">{title}</h3>
             </div>
-            
+
             <p className="mt-4 text-gray-600">{message}</p>
-            
+
             <div className="mt-8 flex justify-end gap-4">
               <button
                 className="btn btn-outline rounded-full border-2 border-gray-300 hover:border-none"

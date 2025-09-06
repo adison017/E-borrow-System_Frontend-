@@ -13,7 +13,7 @@ const LocationTracking = () => {
 
   useEffect(() => {
     fetchActiveBorrowers();
-    
+
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => {
       fetchActiveBorrowers();
@@ -27,12 +27,12 @@ const LocationTracking = () => {
     try {
       const data = await getAllBorrows();
       console.log('Fetched borrows data:', data);
-      
+
       // กรองเฉพาะรายการที่ active
-      const activeBorrowers = data.filter(borrow => 
+      const activeBorrowers = data.filter(borrow =>
         ['approved', 'carry', 'overdue'].includes(borrow.status)
       );
-      
+
       console.log('Active borrowers:', activeBorrowers);
       setBorrowers(activeBorrowers);
     } catch (error) {
@@ -56,6 +56,10 @@ const LocationTracking = () => {
     }
   };
 
+
+
+
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -65,8 +69,9 @@ const LocationTracking = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
+    <div className="h-full flex flex-col">
+      {/* Header Section - Fixed */}
+      <div className="flex-shrink-0 p-6 pb-4">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
@@ -89,6 +94,9 @@ const LocationTracking = () => {
           </div>
         </div>
       </div>
+
+      {/* Content Section - Scrollable */}
+      <div className="flex-1 overflow-y-auto px-6 pb-6">
 
       {borrowers.length === 0 ? (
         <div className="text-center py-12">
@@ -166,7 +174,7 @@ const LocationTracking = () => {
                           const diffMs = Math.max(0, now - lastUpdate);
                           const diffMins = Math.floor(diffMs / 60000);
                           const diffSecs = Math.floor((diffMs % 60000) / 1000);
-                          
+
                           if (diffMs < 1000) {
                             return `🟢 เพิ่งอัพเดท`;
                           } else if (diffMins < 1) {
@@ -190,19 +198,24 @@ const LocationTracking = () => {
                   </div>
                 )}
 
-                {/* Action Button */}
-                <button
-                  onClick={() => handleViewLocation(borrower)}
-                  disabled={!borrower.borrower_location}
-                  className={`w-full py-2 px-4 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center gap-2 ${
-                    borrower.borrower_location
-                      ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                      : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
-                >
-                  <MapPinIcon className="w-4 h-4" />
-                  {borrower.borrower_location ? 'ดูบนแผนที่' : 'ไม่มีตำแหน่ง'}
-                </button>
+                                                                {/* Action Button */}
+                {borrower.borrower_location ? (
+                  <button
+                    onClick={() => handleViewLocation(borrower)}
+                    className="w-full py-2 px-4 rounded-lg font-medium transition-colors duration-200 bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
+                  >
+                    <MapPinIcon className="w-4 h-4" />
+                    ดูบนแผนที่
+                  </button>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full py-2 px-4 rounded-lg font-medium transition-colors duration-200 bg-gray-100 text-gray-400 cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <MapPinIcon className="w-4 h-4" />
+                    ไม่มีตำแหน่ง
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -216,6 +229,7 @@ const LocationTracking = () => {
         location={selectedLocation}
         borrowerName={selectedBorrower}
       />
+      </div>
     </div>
   );
 };
