@@ -163,12 +163,22 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                 alert('ไม่พบรหัสการยืม (borrow_id)');
                 return;
             }
-            await onConfirm({
+            const deliveryData = {
                 borrow_id: id,
                 signature_image: signature, // ต้องเป็น base64 เท่านั้น
                 handover_photo: deliveryPhoto // รูปถ่ายส่งมอบครุภัณฑ์
                 // ไม่ต้องส่ง status เพราะ backend จะเปลี่ยนเป็น 'approved' อัตโนมัติ
+            };
+
+            console.log('Sending delivery data:', {
+                borrow_id: deliveryData.borrow_id,
+                has_signature: !!deliveryData.signature_image,
+                has_handover_photo: !!deliveryData.handover_photo,
+                signature_type: typeof deliveryData.signature_image,
+                handover_type: typeof deliveryData.handover_photo
             });
+
+            await onConfirm(deliveryData);
             onClose();
         } finally {
             setIsSubmitting(false);
@@ -366,7 +376,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                     title="รายการครุภัณฑ์ที่ส่งมอบ"
                                     icon={<CubeIcon className="h-5 w-5 text-white" />}
                                 />
-                                
+
                                 {/* Equipment Summary Card */}
                                 <div className="bg-black rounded-4xl p-6 text-white shadow-lg">
                                     <div className="flex items-center justify-between">
@@ -452,10 +462,10 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                                         <span>ได้รับการยืนยันแล้ว</span>
                                                     </div>
                                                     {(borrow.signature || signature) && (
-                                                        <img 
-                                                            src={borrow.signature || signature} 
-                                                            alt="บัตรนักศึกษา" 
-                                                            className="h-40 border-2 border-blue-200 rounded-xl bg-white shadow-lg" 
+                                                        <img
+                                                            src={borrow.signature || signature}
+                                                            alt="บัตรนักศึกษา"
+                                                            className="h-40 border-2 border-blue-200 rounded-xl bg-white shadow-lg"
                                                         />
                                                     )}
                                                 </div>
@@ -463,13 +473,13 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                                 <>
                                                     {signature ? (
                                                         <div className="flex flex-col items-center">
-                                                            <img 
-                                                                src={signature} 
-                                                                alt="บัตรนักศึกษา" 
-                                                                className="h-40 border-2 border-blue-200 rounded-xl bg-white shadow-lg mb-4" 
+                                                            <img
+                                                                src={signature}
+                                                                alt="บัตรนักศึกษา"
+                                                                className="h-40 border-2 border-blue-200 rounded-xl bg-white shadow-lg mb-4"
                                                             />
-                                                            <button 
-                                                                onClick={() => setSignature(null)} 
+                                                            <button
+                                                                onClick={() => setSignature(null)}
                                                                 className="text-red-600 text-sm font-medium hover:text-red-800 flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
                                                             >
                                                                 <XCircleIcon className="w-4 h-4" />
@@ -527,13 +537,13 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                                 <>
                                                     {deliveryPhoto ? (
                                                         <div className="flex flex-col items-center">
-                                                            <img 
-                                                                src={deliveryPhoto} 
-                                                                alt="รูปถ่ายส่งมอบครุภัณฑ์" 
-                                                                className="h-40 w-60 object-cover border-2 border-blue-200 rounded-xl bg-white shadow-lg mb-4" 
+                                                            <img
+                                                                src={deliveryPhoto}
+                                                                alt="รูปถ่ายส่งมอบครุภัณฑ์"
+                                                                className="h-40 w-60 object-cover border-2 border-blue-200 rounded-xl bg-white shadow-lg mb-4"
                                                             />
-                                                            <button 
-                                                                onClick={() => setDeliveryPhoto(null)} 
+                                                            <button
+                                                                onClick={() => setDeliveryPhoto(null)}
                                                                 className="text-red-600 text-sm font-medium hover:text-red-800 flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-red-50 transition-colors"
                                                             >
                                                                 <XCircleIcon className="w-4 h-4" />
@@ -579,34 +589,34 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* Action buttons on right */}
                             <div className="flex justify-end gap-3">
                                 {borrow.status === "approved" ? (
-                                    <button 
-                                        type="button" 
-                                        onClick={onClose} 
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
                                         className="btn bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-300 hover:border-gray-400 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200"
                                     >
                                         ปิด
                                     </button>
                                 ) : (
                                     <>
-                                        <button 
-                                            type="button" 
-                                            onClick={onClose} 
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
                                             className="btn bg-white hover:bg-gray-50 text-gray-700 border-2 border-gray-300 hover:border-gray-400 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200"
                                         >
                                             ยกเลิก
                                         </button>
-                                        <button 
-                                            type="button" 
-                                            onClick={handleDelivery} 
+                                        <button
+                                            type="button"
+                                            onClick={handleDelivery}
                                             className={`btn text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 border-transparent ${
-                                                isDeliveryButtonDisabled 
-                                                    ? 'bg-gray-400 cursor-not-allowed' 
+                                                isDeliveryButtonDisabled
+                                                    ? 'bg-gray-400 cursor-not-allowed'
                                                     : 'bg-green-600 hover:bg-green-700'
-                                            }`} 
+                                            }`}
                                             disabled={isDeliveryButtonDisabled}
                                         >
                                             {isSubmitting ? (

@@ -58,6 +58,14 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   const [pinError, setPinError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
 
+              // Add validation state for real-time feedback
+            const [validation, setValidation] = useState({
+              email: null,
+              user_code: null,
+              phone: null,
+              username: null
+            });
+
   useEffect(() => {
     // Get current user from localStorage
     const userStr = localStorage.getItem('user');
@@ -250,6 +258,43 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     }
   }, [userData, provinces]);
 
+    // Real-time validation function
+  const validateField = async (name, value) => {
+    if (!value) {
+      setValidation(prev => ({ ...prev, [name]: null }));
+      return;
+    }
+
+    try {
+      const currentUserId = formData.user_id;
+
+      if (name === 'email' && value.includes('@')) {
+        const res = await axios.get(`${API_BASE}/users/email/${value}`);
+        // Check if data exists and belongs to a different user
+        const isDuplicate = res.data && res.data.user_id !== currentUserId;
+        setValidation(prev => ({ ...prev, email: isDuplicate ? 'duplicate' : 'ok' }));
+      } else if (name === 'user_code' && value.length >= 5) {
+        const res = await axios.get(`${API_BASE}/users/username/${value}`);
+        // Check if data exists and belongs to a different user
+        const isDuplicate = res.data && res.data.user_id !== currentUserId;
+        setValidation(prev => ({ ...prev, user_code: isDuplicate ? 'duplicate' : 'ok' }));
+      } else if (name === 'username' && value.length >= 3) {
+        const res = await axios.get(`${API_BASE}/users/username/${value}`);
+        // Check if data exists and belongs to a different user
+        const isDuplicate = res.data && res.data.user_id !== currentUserId;
+        setValidation(prev => ({ ...prev, username: isDuplicate ? 'duplicate' : 'ok' }));
+      } else if (name === 'phone' && value.length >= 9) {
+        const res = await axios.get(`${API_BASE}/users/phone/${value}`);
+        // Check if data exists and belongs to a different user
+        const isDuplicate = res.data && res.data.user_id !== currentUserId;
+        setValidation(prev => ({ ...prev, phone: isDuplicate ? 'duplicate' : 'ok' }));
+      }
+    } catch (error) {
+      // If error, assume field is available
+      setValidation(prev => ({ ...prev, [name]: 'ok' }));
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
             // Handling change
@@ -281,6 +326,11 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     } else {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
+
+                // Real-time validation for email, user_code, username, and phone
+            if (['email', 'user_code', 'username', 'phone'].includes(name)) {
+              validateField(name, value);
+            }
   };
 
   const handleImageChange = (e) => {
@@ -394,6 +444,65 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     }
 
     try {
+      // Pre-submission validation for duplicates
+      const currentUserId = formData.user_id;
+
+      // Check for duplicate email (excluding current user)
+      if (formData.email) {
+        try {
+          const emailRes = await axios.get(`${API_BASE}/users/email/${formData.email}`);
+          if (emailRes.data && emailRes.data.user_id !== currentUserId) {
+            setError('อีเมลนี้ถูกใช้ไปแล้ว กรุณาใช้อีเมลอื่น');
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          // Continue if error
+        }
+      }
+
+      // Check for duplicate user_code (excluding current user)
+      if (formData.user_code) {
+        try {
+          const userCodeRes = await axios.get(`${API_BASE}/users/username/${formData.user_code}`);
+          if (userCodeRes.data && userCodeRes.data.user_id !== currentUserId) {
+            setError('รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว กรุณาใช้รหัสอื่น');
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          // Continue if error
+        }
+      }
+
+      // Check for duplicate username (excluding current user)
+      if (formData.username) {
+        try {
+          const usernameRes = await axios.get(`${API_BASE}/users/username/${formData.username}`);
+          if (usernameRes.data && usernameRes.data.user_id !== currentUserId) {
+            setError('ชื่อผู้ใช้งานนี้ถูกใช้ไปแล้ว กรุณาใช้ชื่ออื่น');
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          // Continue if error
+        }
+      }
+
+      // Check for duplicate phone (excluding current user)
+      if (formData.phone) {
+        try {
+          const phoneRes = await axios.get(`${API_BASE}/users/phone/${formData.phone}`);
+          if (phoneRes.data && phoneRes.data.user_id !== currentUserId) {
+            setError('เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว กรุณาใช้เบอร์อื่น');
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          // Continue if error
+        }
+            }
+
       // ตรวจสอบรูปภาพ - ถ้าเป็น Cloudinary URL ใช้เลย ถ้าเป็น File ให้อัปโหลดก่อน
       let avatarUrl = formData.pic;
               // formData.pic type and value
@@ -585,7 +694,10 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                       <input
                         type="text"
                         name="user_code"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
+                        className={`w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100 ${
+                          validation.user_code === 'duplicate' ? 'border-red-500' :
+                          validation.user_code === 'ok' ? 'border-green-500' : ''
+                        }`}
                         value={formData.user_code}
                         onChange={handleChange}
                         placeholder="เช่น 64010123"
@@ -593,6 +705,9 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                         readOnly
                         disabled
                       />
+                      {validation.user_code === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
 
                     <div>
@@ -696,12 +811,18 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                       <input
                         type="email"
                         name="email"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
+                        className={`w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white ${
+                          validation.email === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                          validation.email === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                        }`}
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="example@domain.com"
                         required
                       />
+                      {validation.email === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">อีเมลนี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
 
                     <div>
@@ -715,13 +836,19 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                         <input
                           type="tel"
                           name="phone"
-                          className="w-full pl-4 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
+                          className={`w-full pl-4 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white ${
+                            validation.phone === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                            validation.phone === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                          }`}
                           value={formData.phone}
                           onChange={handleChange}
                           placeholder="0812345678"
                           required
                         />
                       </div>
+                      {validation.phone === 'duplicate' && (
+                        <span className="text-red-500 text-xs mt-1">เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว</span>
+                      )}
                     </div>
                   </div>
                 </div>

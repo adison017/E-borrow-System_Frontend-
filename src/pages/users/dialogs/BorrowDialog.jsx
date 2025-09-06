@@ -112,7 +112,7 @@ const BorrowDialog = ({
     }
   }, [showBorrowDialog]);
 
-  // File handling functions
+    // File handling functions
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files);
     const validFiles = files.filter(file => {
@@ -149,7 +149,7 @@ const BorrowDialog = ({
     }
   };
 
-  const handleDrop = (e) => {
+    const handleDrop = (e) => {
     e.preventDefault();
     e.stopPropagation();
     setDragActive(false);
@@ -196,7 +196,7 @@ const BorrowDialog = ({
   return (
     <AnimatePresence>
     {showBorrowDialog && (
-      <motion.div 
+      <motion.div
         className="modal modal-open"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -204,7 +204,7 @@ const BorrowDialog = ({
         transition={{ duration: 0.3 }}
       >
         <div className="fixed inset-0 flex items-center justify-center z-50 p-2 transition-opacity duration-300">
-          <motion.div 
+          <motion.div
             className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col relative"
             initial={{ scale: 0.9, y: 50 }}
             animate={{ scale: 1, y: 0 }}

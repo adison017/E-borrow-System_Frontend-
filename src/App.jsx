@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { MdMenu } from 'react-icons/md';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import AuthSystem from './components/AuthSystem'; // เพิ่มบรรทัดนี้
+import ErrorBoundary from './components/ErrorBoundary';
 import Footer from './components/Footer';
 import FirstVisitNewsModal from './components/FirstVisitNewsModal';
 import Header from './components/Header';
@@ -279,11 +280,11 @@ function AppInner() {
         .then(data => {
           console.log('Global: Fetched borrow data:', data);
           setBorrowList(data);
-          
+
           // เริ่มการติดตามตำแหน่งสำหรับรายการที่ active
           const activeBorrows = data.filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status));
           console.log('Global: Active borrows for location tracking:', activeBorrows);
-          
+
           if (activeBorrows.length > 0) {
             startGlobalLocationTracking(activeBorrows);
           }
@@ -294,12 +295,12 @@ function AppInner() {
     };
 
     fetchBorrowData();
-    
+
     // ฟัง event badgeCountsUpdated เพื่ออัปเดต borrow list แบบ real-time
     const handleBadgeUpdate = () => {
       fetchBorrowData();
     };
-    
+
     // ใช้ setTimeout เพื่อให้แน่ใจว่า useSocket hook พร้อมแล้ว
     setTimeout(() => {
       if (window.subscribeToBadgeCounts) {
@@ -316,9 +317,9 @@ function AppInner() {
   // เริ่มการติดตามตำแหน่งแบบ Global
   const startGlobalLocationTracking = (activeBorrows) => {
     console.log('Global: Starting location tracking...');
-    
+
     const activeBorrowIds = activeBorrows.map(borrow => borrow.borrow_id);
-    
+
     if (activeBorrowIds.length === 0) {
       console.log('Global: No active borrows found');
       return;
@@ -599,11 +600,11 @@ function App() {
         .then(data => {
           console.log('Global: Fetched borrow data:', data);
           setBorrowList(data);
-          
+
           // เริ่มการติดตามตำแหน่งสำหรับรายการที่ active
           const activeBorrows = data.filter(borrow => ['approved', 'carry', 'overdue'].includes(borrow.status));
           console.log('Global: Active borrows for location tracking:', activeBorrows);
-          
+
           if (activeBorrows.length > 0) {
             startGlobalLocationTracking(activeBorrows);
           }
@@ -614,12 +615,12 @@ function App() {
     };
 
     fetchBorrowData();
-    
+
     // ฟัง event badgeCountsUpdated เพื่ออัปเดต borrow list แบบ real-time
     const handleBadgeUpdate = () => {
       fetchBorrowData();
     };
-    
+
     // ใช้ setTimeout เพื่อให้แน่ใจว่า useSocket hook พร้อมแล้ว
     setTimeout(() => {
       if (window.subscribeToBadgeCounts) {
@@ -636,9 +637,9 @@ function App() {
   // เริ่มการติดตามตำแหน่งแบบ Global
   const startGlobalLocationTracking = (activeBorrows) => {
     console.log('Global: Starting location tracking...');
-    
+
     const activeBorrowIds = activeBorrows.map(borrow => borrow.borrow_id);
-    
+
     if (activeBorrowIds.length === 0) {
       console.log('Global: No active borrows found');
       return;
@@ -693,7 +694,11 @@ function App() {
     return () => clearInterval(interval);
   }, [borrowList, locationTracker.isTracking, locationTracker.lastLocation]);
 
-  return <AppInner />;
+  return (
+    <ErrorBoundary>
+      <AppInner />
+    </ErrorBoundary>
+  );
 }
 
 export default App;

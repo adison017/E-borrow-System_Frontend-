@@ -6,11 +6,6 @@ import { checkCameraSupport, requestCameraPermission, troubleshootCamera } from 
 import PermissionRequest from "./PermissionRequest";
 
 const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
-  console.log('=== ScannerDialog Props ===');
-  console.log('isOpen:', isOpen);
-  console.log('onClose:', onClose);
-  console.log('onScanComplete:', onScanComplete);
-  console.log('onManualInput:', onManualInput);
   const scannerRef = useRef(null); // This ref seems to be for the div, might not be strictly needed with new video setup
   const [manualCode, setManualCode] = useState("");
   const [scanning, setScanning] = useState(false); // Keep for logic if needed
