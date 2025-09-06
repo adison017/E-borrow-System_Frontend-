@@ -578,7 +578,7 @@ const ReturnList = () => {
                 />
               </div>
             </div>
-            <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
+            <div className="flex flex-col sm:flex-row flex-shrink-0 gap-2 sm:gap-x-3 w-full md:w-auto justify-start md:justify-end">
               <Menu>
                 <MenuHandler>
                   <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-full flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case">
