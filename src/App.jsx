@@ -17,6 +17,7 @@ import { API_BASE, authFetch } from './utils/api';
 import locationTracker from './utils/locationTracker';
 
 // Admin Pages
+import ActivityLogs from './pages/admin/ActivityLogs';
 import BorrowList from './pages/admin/BorrowList';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
 import ManageEquipment from './pages/admin/ManageEquipment';
@@ -479,6 +480,7 @@ function AppInner() {
             {userRole === 'admin' && (
               <>
                 <Route path="/DashboardAd" element={<DashboardAdmin />} />
+                <Route path="/activity-logs" element={<ActivityLogs />} />
                 <Route path="/borrow-list" element={<BorrowList />} />
                 <Route path="/equipment" element={<ManageEquipment />} />
                 <Route path="/rooms" element={<ManageRoom />} />
