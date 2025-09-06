@@ -1,3 +1,4 @@
+import React, { useEffect, useRef, useState } from "react";
 import {
     ArrowPathIcon,
     CalendarIcon,
@@ -15,8 +16,6 @@ import {
     UserIcon,
     XCircleIcon
 } from "@heroicons/react/24/outline";
-import { useEffect, useRef, useState } from "react";
-import { MdClose } from "react-icons/md";
 import WebcamSignatureDialog from "./WebcamSignatureDialog";
 import DocumentViewer from '../../../components/DocumentViewer';
 import { UPLOAD_BASE, API_BASE } from '../../../utils/api';

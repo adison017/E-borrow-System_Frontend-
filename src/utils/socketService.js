@@ -35,7 +35,7 @@ class SocketService {
 
     // Create socket instance. Avoid connecting without token to prevent server-side "Token required" errors
 try {
-    const base = (import.meta?.env?.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+    const base = (import.meta?.env?.VITE_API_URL || 'http://localhost:65033').replace(/\/$/, '');
       const hasToken = Boolean(this.authToken);
       this.socket = io(base, {
         transports: ['websocket', 'polling'],

@@ -162,40 +162,51 @@ export const useBadgeCounts = () => {
 
     const eventListenersRef = useRef(new Map());
 
-  const subscribeToBadgeCounts = useCallback((callback) => {
-    socketService.on('badgeCountsUpdated', callback);
+    const subscribeToBadgeCounts = useCallback((callback) => {
+      try {
+        socketService.on('badgeCountsUpdated', callback);
 
-    // เก็บ reference สำหรับ cleanup
-    if (!eventListenersRef.current.has('badgeCountsUpdated')) {
-      eventListenersRef.current.set('badgeCountsUpdated', new Set());
-    }
-    eventListenersRef.current.get('badgeCountsUpdated').add(callback);
-
-    return () => {
-      socketService.off('badgeCountsUpdated', callback);
-
-      const listeners = eventListenersRef.current.get('badgeCountsUpdated');
-      if (listeners) {
-        listeners.delete(callback);
-        if (listeners.size === 0) {
-          eventListenersRef.current.delete('badgeCountsUpdated');
+        // เก็บ reference สำหรับ cleanup
+        if (!eventListenersRef.current.has('badgeCountsUpdated')) {
+          eventListenersRef.current.set('badgeCountsUpdated', new Set());
         }
-      }
-    };
-  }, []);
+        eventListenersRef.current.get('badgeCountsUpdated').add(callback);
 
-  // Cleanup เมื่อ component unmount
-  useEffect(() => {
-    return () => {
-      // ลบ event listeners ทั้งหมดที่ component นี้เพิ่ม
-      eventListenersRef.current.forEach((listeners, event) => {
-        listeners.forEach(callback => {
-          socketService.off(event, callback);
-        });
-      });
-      eventListenersRef.current.clear();
-    };
-  }, []);
+        return () => {
+          socketService.off('badgeCountsUpdated', callback);
+
+          const listeners = eventListenersRef.current.get('badgeCountsUpdated');
+          if (listeners) {
+            listeners.delete(callback);
+            if (listeners.size === 0) {
+              eventListenersRef.current.delete('badgeCountsUpdated');
+            }
+          }
+        };
+      } catch (error) {
+        console.error('Error in subscribeToBadgeCounts:', error);
+        return () => {};
+      }
+    }, []);
+
+    // Cleanup เมื่อ component unmount
+    useEffect(() => {
+      return () => {
+        try {
+          // ลบ event listeners ทั้งหมดที่ component นี้เพิ่ม
+          if (eventListenersRef.current) {
+            eventListenersRef.current.forEach((listeners, event) => {
+              listeners.forEach(callback => {
+                socketService.off(event, callback);
+              });
+            });
+            eventListenersRef.current.clear();
+          }
+        } catch (error) {
+          console.error('Error in useBadgeCounts cleanup:', error);
+        }
+      };
+    }, []);
 
     return { subscribeToBadgeCounts };
   } catch (error) {

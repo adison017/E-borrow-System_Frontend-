@@ -1,5 +1,5 @@
+import React, { useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
-import { useEffect, useRef, useState } from "react";
 import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import { getCategories, uploadImage, getRooms, UPLOAD_BASE } from "../../../utils/api";

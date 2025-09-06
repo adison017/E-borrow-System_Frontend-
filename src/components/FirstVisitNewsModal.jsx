@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MdChevronLeft, MdChevronRight, MdClose } from 'react-icons/md';
 import { getNews } from '../utils/api';
 
@@ -110,13 +110,13 @@ export default function FirstVisitNewsModal({ userId }) {
           } catch {
             urls = [current.image_url];
           }
-          
+
           if (!urls.length) return null;
-          
+
           const total = urls.length;
           const prevImg = () => setImageIndex((i) => (i - 1 + total) % total);
           const nextImg = () => setImageIndex((i) => (i + 1) % total);
-          
+
           return (
             <div className="w-full h-full flex flex-col items-center justify-center p-2 sm:p-4">
               <img
@@ -124,7 +124,7 @@ export default function FirstVisitNewsModal({ userId }) {
                 alt="Image"
                 className="max-w-full max-h-full object-contain transition-opacity duration-300"
               />
-              
+
               {total > 1 && (
                 <>
                   {/* Image navigation */}
@@ -145,7 +145,7 @@ export default function FirstVisitNewsModal({ userId }) {
                       <MdChevronRight size={16} className="sm:w-5 sm:h-5" />
                     </button>
                   </div>
-                
+
                 </>
               )}
             </div>
@@ -160,8 +160,8 @@ export default function FirstVisitNewsModal({ userId }) {
                               onClick={() => setCurrentIndex(ni)}
                               aria-label={n.title || `ข่าว ${ni + 1}`}
                               className={`transition-all duration-300 ease-in-out transform hover:scale-110 touch-manipulation ${
-                                ni === currentIndex 
-                                  ? 'w-8 h-3 sm:w-10 sm:h-3 bg-blue-800 rounded-full shadow-lg shadow-blue-500/50 animate-pulse' 
+                                ni === currentIndex
+                                  ? 'w-8 h-3 sm:w-10 sm:h-3 bg-blue-800 rounded-full shadow-lg shadow-blue-500/50 animate-pulse'
                                   : 'w-3 h-3 sm:w-3 sm:h-3 bg-white/70 hover:bg-white/90 rounded-full hover:shadow-md'
                               }`}
                             />

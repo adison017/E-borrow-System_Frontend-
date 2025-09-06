@@ -8,7 +8,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   // Get API URL from environment variable or default to localhost
-  const apiUrl = env.VITE_API_URL || 'http://localhost:5000';
+  const apiUrl = env.VITE_API_URL || 'http://localhost:65033';
 
   return {
     plugins: [react(), tailwindcss()],
@@ -37,6 +37,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
+      port: 5033,
+      host: true,
       allowedHosts: [
         'localhost',
         '9661019a77ca.ngrok-free.app',
