@@ -3,15 +3,22 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   MagnifyingGlassIcon,
-  XCircleIcon
+  XCircleIcon,
+  ArrowPathIcon
 } from "@heroicons/react/24/outline";
+import {
+  BanknotesIcon,
+  CheckCircleIcon as CheckCircleSolidIcon,
+  ClockIcon,
+  ExclamationTriangleIcon
+} from "@heroicons/react/24/solid";
 import { BsFillFilterCircleFill } from "react-icons/bs";
 
 import { useEffect, useState } from "react";
 import { BiSearchAlt2 } from "react-icons/bi";
 import { UPLOAD_BASE } from '../../utils/api';
 import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
-import { useBadgeCounts } from '../../hooks/useSocket';
+import { useBadgeCounts, useSocket } from '../../hooks/useSocket';
 
 export default function HistoryBorrow() {
   const [borrowRequests, setBorrowRequests] = useState([]);
@@ -20,7 +27,7 @@ export default function HistoryBorrow() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   // Default: show all statuses
-  const [statusFilter, setStatusFilter] = useState(["approved", "rejected", "completed", "waiting_payment"]);
+  const [statusFilter, setStatusFilter] = useState(["approved", "carry", "rejected", "completed", "waiting_payment", "overdue"]);
   const [notification, setNotification] = useState({
     show: false,
     message: "",
@@ -30,9 +37,14 @@ export default function HistoryBorrow() {
   // Pagination state
   const [page, setPage] = useState(1);
   const rowsPerPage = 5;
+  // Real-time update states
+  const [isRealTimeConnected, setIsRealTimeConnected] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
   // ...existing code...
 
   const { subscribeToBadgeCounts } = useBadgeCounts();
+  const { on, off, isConnected, isAuthenticated } = useSocket();
 
   // นับจำนวนแต่ละสถานะจากข้อมูลจริง (ป้องกัน borrowRequests ไม่ใช่ array)
   const statusCounts = Array.isArray(borrowRequests)
@@ -43,52 +55,166 @@ export default function HistoryBorrow() {
       }, {})
     : {};
 
-  // สถานะของคำขอยืม (พร้อม count จริง)
+  // สถานะของคำขอยืม (พร้อม count จริง) - ไม่รวม pending และ pending_approval
   const statusOptions = [
-    { value: "approved", label: "อนุมัติแล้ว", count: statusCounts.approved || 0 },
-    { value: "rejected", label: "ปฏิเสธ", count: statusCounts.rejected || 0 },
+    { value: "carry", label: "รอส่งมอบ", count: statusCounts.carry || 0 },
+    { value: "approved", label: "ส่งมอบแล้ว", count: statusCounts.approved || 0 },
+    { value: "rejected", label: "ไม่อนุมัติ", count: statusCounts.rejected || 0 },
     { value: "completed", label: "เสร็จสิ้น", count: statusCounts.completed || 0 },
-    { value: "waiting_payment", label: "ค้างชำระ", count: statusCounts.waiting_payment || 0 }
+    { value: "waiting_payment", label: "รอชำระเงิน", count: statusCounts.waiting_payment || 0 },
+    { value: "overdue", label: "เกินกำหนด", count: statusCounts.overdue || 0 }
   ];
 
   const statusBadgeStyle = {
+    carry: "bg-yellow-50 text-yellow-800 border-yellow-200",
     approved: "bg-green-50 text-green-800 border-green-200",
     rejected: "bg-red-50 text-red-800 border-red-200",
     completed: "bg-purple-50 text-purple-800 border-purple-200",
-    waiting_payment: "bg-yellow-50 text-yellow-800 border-yellow-200"
+    waiting_payment: "bg-blue-50 text-blue-800 border-blue-200",
+    overdue: "bg-orange-50 text-orange-800 border-orange-200"
   };
 
   const statusTranslation = {
-    approved: "อนุมัติแล้ว",
-    rejected: "ปฏิเสธ",
+    carry: "รอส่งมอบ",
+    approved: "ส่งมอบแล้ว",
+    rejected: "ไม่อนุมัติ",
     completed: "เสร็จสิ้น",
-    waiting_payment: "ค้างชำระ"
+    waiting_payment: "รอชำระเงิน",
+    overdue: "เกินกำหนด"
+  };
+
+  // ฟังก์ชันสร้าง status badge ที่ตรงกับ ReturnList.jsx
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "completed":
+        return (
+          <span className="px-3 py-1 inline-flex items-center gap-1 text-xs flex-center justify-center leading-5 font-semibold rounded-full border bg-green-50 text-green-800 border-green-200">
+            <CheckCircleSolidIcon className="w-3 h-3" /> เสร็จสิ้น
+          </span>
+        );
+      case "overdue":
+        return (
+          <span className="px-3 py-1 inline-flex items-center gap-1 text-xs flex-center justify-center leading-5 font-semibold rounded-full border bg-red-50 text-red-800 border-red-200">
+            <ExclamationTriangleIcon className="w-3 h-3" /> เกินกำหนด
+          </span>
+        );
+      case "approved":
+        return (
+          <span className="px-3 py-1 inline-flex items-center gap-1 text-xs flex-center justify-center leading-5 font-semibold rounded-full border bg-green-50 text-green-800 border-green-200">
+            <CheckCircleSolidIcon className="w-3 h-3" /> ส่งมอบแล้ว
+          </span>
+        );
+      case "carry":
+        return (
+          <span className="px-3 py-1 inline-flex items-center gap-1 text-xs flex-center justify-center leading-5 font-semibold rounded-full border bg-yellow-50 text-yellow-800 border-yellow-200">
+            <ClockIcon className="w-3 h-3" /> รอส่งมอบ
+          </span>
+        );
+      case "rejected":
+        return (
+          <span className="px-3 py-1 inline-flex items-center gap-1 text-xs flex-center justify-center leading-5 font-semibold rounded-full border bg-red-50 text-red-800 border-red-200">
+            <XCircleIcon className="w-3 h-3" /> ไม่อนุมัติ
+          </span>
+        );
+      case "waiting_payment":
+        return (
+          <span className="px-3 py-1 inline-flex items-center gap-1 text-xs flex-center justify-center leading-5 font-semibold rounded-full border bg-blue-50 text-blue-800 border-blue-200 animate-pulse">
+            <BanknotesIcon className="w-3 h-3" /> รอชำระเงิน
+          </span>
+        );
+      default:
+        return (
+          <span className="px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border bg-gray-50 text-gray-800 border-gray-200">
+            {statusTranslation[status] || status}
+          </span>
+        );
+    }
   };
 
   const fetchHistoryData = () => {
     setLoading(true);
-    // ดึง token จาก localStorage (หรือ session/cookie ตามที่ระบบใช้)
     const token = localStorage.getItem('token');
-    fetch(`${UPLOAD_BASE}/api/returns/success-borrows`, {
+    
+    // ดึงข้อมูลจากทั้งสาม endpoints เพื่อรวมทุกสถานะ
+    const fetchBorrows = fetch(`${UPLOAD_BASE}/api/borrows`, {
       headers: {
         'Authorization': token ? `Bearer ${token}` : '',
         'Content-Type': 'application/json'
       }
-    })
-      .then(async res => {
-        if (!res.ok) throw new Error('Unauthorized');
-        const data = await res.json();
-        // กรองเฉพาะสถานะที่ต้องการ
-        const allowedStatus = ["approved", "rejected", "completed", "waiting_payment"];
-        const filtered = Array.isArray(data)
-          ? data.filter(item => allowedStatus.includes(item.status))
-          : [];
-        setBorrowRequests(filtered);
+    });
+    
+    const fetchReturns = fetch(`${UPLOAD_BASE}/api/returns`, {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const fetchSuccessBorrows = fetch(`${UPLOAD_BASE}/api/returns/success-borrows`, {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : '',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    Promise.all([fetchBorrows, fetchReturns, fetchSuccessBorrows])
+      .then(async ([borrowsRes, returnsRes, successRes]) => {
+        const borrowsData = borrowsRes.ok ? await borrowsRes.json() : [];
+        const returnsData = returnsRes.ok ? await returnsRes.json() : [];
+        const successData = successRes.ok ? await successRes.json() : [];
+        
+        // ใช้ Map เพื่อไม่ให้ข้อมูลซ้ำ
+        const dataMap = new Map();
+        
+        // เพิ่มข้อมูลจาก borrows endpoint (carry, approved) - สำหรับสถานะ carry
+        if (Array.isArray(borrowsData)) {
+          borrowsData.forEach(item => {
+            // กรองเฉพาะสถานะ carry และ approved จาก borrows
+            if (['carry', 'approved'].includes(item.status)) {
+              // คำนวณสถานะ overdue
+              let finalStatus = item.status;
+              if ((item.status === 'approved' || item.status === 'carry') && item.due_date) {
+                const currentDate = new Date();
+                const dueDate = new Date(item.due_date);
+                if (currentDate > dueDate) {
+                  finalStatus = 'overdue';
+                }
+              }
+              dataMap.set(item.borrow_id, { ...item, status: finalStatus, original_status: item.status });
+            }
+          });
+        }
+        
+        // เพิ่มข้อมูลจาก returns endpoint (waiting_payment และอื่นๆ)
+        if (Array.isArray(returnsData)) {
+          returnsData.forEach(item => {
+            // เพิ่มสถานะ waiting_payment จาก returns
+            if (['waiting_payment'].includes(item.status)) {
+              dataMap.set(item.borrow_id, item);
+            }
+          });
+        }
+        
+        // เพิ่มข้อมูลจาก success-borrows endpoint (completed, rejected)
+        if (Array.isArray(successData)) {
+          successData.forEach(item => {
+            // เพิ่มทั้ง completed และ rejected จาก success-borrows
+            if (['completed', 'rejected'].includes(item.status)) {
+              dataMap.set(item.borrow_id, item);
+            }
+          });
+        }
+        
+        // แปลง Map กลับเป็น Array
+        const allData = Array.from(dataMap.values());
+        
+        setBorrowRequests(allData);
         setLoading(false);
       })
       .catch(err => {
+        console.error('Error fetching data:', err);
         setBorrowRequests([]);
-        setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล (401 Unauthorized)", type: "error" });
+        setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", type: "error" });
         setLoading(false);
       });
   };
@@ -96,14 +222,78 @@ export default function HistoryBorrow() {
   useEffect(() => {
     fetchHistoryData();
     
-    // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต history list แบบ real-time ===
+    // === Enhanced real-time updates ===
     const handleBadgeUpdate = () => {
+      console.log('Badge counts updated, refreshing history data...');
       fetchHistoryData();
+      setLastUpdated(new Date());
     };
-    const unsubscribe = subscribeToBadgeCounts(handleBadgeUpdate);
-    return unsubscribe;
-    // === จบ logic ===
-  }, [subscribeToBadgeCounts]);
+    
+    // Subscribe to multiple socket events for comprehensive real-time updates
+    const handleBorrowUpdate = (data) => {
+      console.log('Borrow status updated:', data);
+      fetchHistoryData();
+      setLastUpdated(new Date());
+      showNotification(`รายการยืมได้รับการอัปเดต: ${data.borrow_code}`, "info");
+    };
+    
+    const handleReturnUpdate = (data) => {
+      console.log('Return status updated:', data);
+      fetchHistoryData();
+      setLastUpdated(new Date());
+      showNotification(`รายการคืนได้รับการอัปเดต: ${data.borrow_code}`, "info");
+    };
+    
+    const handleStatusChange = (data) => {
+      console.log('Status changed:', data);
+      fetchHistoryData();
+      setLastUpdated(new Date());
+    };
+    
+    // Monitor connection status
+    const checkConnectionStatus = () => {
+      const connected = isConnected() && isAuthenticated();
+      setIsRealTimeConnected(connected);
+      if (!connected) {
+        console.log('Real-time connection lost, attempting to reconnect...');
+      }
+    };
+    
+    // Set up event listeners
+    const unsubscribeBadge = subscribeToBadgeCounts(handleBadgeUpdate);
+    on('borrowStatusUpdated', handleBorrowUpdate);
+    on('returnStatusUpdated', handleReturnUpdate);
+    on('statusChanged', handleStatusChange);
+    
+    // Check connection status initially and periodically
+    checkConnectionStatus();
+    const connectionInterval = setInterval(checkConnectionStatus, 10000); // Check every 10 seconds
+    
+    // Auto-refresh fallback when real-time is not connected
+    let autoRefreshInterval;
+    if (autoRefreshEnabled) {
+      autoRefreshInterval = setInterval(() => {
+        if (!isRealTimeConnected) {
+          console.log('Auto-refreshing data (fallback for real-time)...');
+          fetchHistoryData();
+          setLastUpdated(new Date());
+        }
+      }, 30000); // Auto-refresh every 30 seconds when not connected
+    }
+    
+    // Cleanup function
+    return () => {
+      unsubscribeBadge();
+      off('borrowStatusUpdated', handleBorrowUpdate);
+      off('returnStatusUpdated', handleReturnUpdate);
+      off('statusChanged', handleStatusChange);
+      clearInterval(connectionInterval);
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+      }
+    };
+    // === จบ enhanced real-time logic ===
+  }, [subscribeToBadgeCounts, on, off, isConnected, isAuthenticated]);
 
   const handleOpenDialog = (request) => {
     setSelectedRequest(request);
@@ -202,8 +392,12 @@ export default function HistoryBorrow() {
     <div className="container mx-auto max-w-8xl p-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอยืมอุปกรณ์</h1>
-          <p className="text-gray-500 text-sm">จัดการคำขอยืมอุปกรณ์ทั้งหมดขององค์กร</p>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-800">อนุมัติคำขอยืมอุปกรณ์</h1>
+          </div>
+          <div className="flex items-center gap-4">
+            <p className="text-gray-500 text-sm">จัดการคำขอยืมอุปกรณ์ทั้งหมดขององค์กร</p>
+          </div>
         </div>
       </div>
 
@@ -245,9 +439,11 @@ export default function HistoryBorrow() {
                       const active = statusFilter.includes(option.value);
                       const colorMap = {
                         approved: 'green',
+                        carry: 'indigo',
                         rejected: 'red',
                         completed: 'purple',
                         waiting_payment: 'yellow',
+                        overdue: 'orange',
                       };
                       const color = colorMap[option.value] || 'gray';
                       return (
@@ -330,11 +526,12 @@ export default function HistoryBorrow() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-13 w-13">
+                        <div className="flex-shrink-0 h-12 w-12 overflow-hidden rounded-full bg-gray-100">
                           <img
-                            className="h-full w-full rounded-full"
-                            src={request.borrower?.avatar ? (request.borrower.avatar.startsWith('http') ? request.borrower.avatar : `${UPLOAD_BASE}/uploads/user/${request.borrower.avatar}`) : "/placeholder-user.png"}
+                            className="h-full w-full object-cover"
+                            src={request.borrower?.avatar ? (typeof request.borrower.avatar === 'string' && request.borrower.avatar.startsWith('http') ? request.borrower.avatar : `${UPLOAD_BASE}/uploads/user/${request.borrower.avatar}`) : "/profile.png"}
                             alt={request.borrower?.name}
+                            onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
                           />
                         </div>
                         <div className="ml-3">
@@ -376,9 +573,7 @@ export default function HistoryBorrow() {
                       <div className="text-base text-gray-900">{formatDate(request.return_date)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status]}`}>
-                        {statusTranslation[request.status]}
-                      </span>
+                      {getStatusBadge(request.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
                       <button

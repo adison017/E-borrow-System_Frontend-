@@ -83,6 +83,7 @@ export default function HistoryRepair() {
         inspection_notes: request.inspection_notes,
         equipment_code: request.equipment_code || (request.equipment && request.equipment.code),
         images: Array.isArray(request.repair_pic) ? request.repair_pic : [],
+        avatar: request.avatar,
         equipment: {
           id: request.item_id,
           name: request.equipment_name || (request.equipment && request.equipment.name) || "ไม่ระบุ",
@@ -95,7 +96,8 @@ export default function HistoryRepair() {
           id: request.user_id,
           name: request.requester_name || (request.user && request.user.name) || "ไม่ระบุ",
           email: request.requester_email || (request.user && request.user.email) || "ไม่ระบุ",
-          phone: request.requester_phone || (request.user && request.user.phone) || "ไม่ระบุ"
+          phone: request.requester_phone || (request.user && request.user.phone) || "ไม่ระบุ",
+          avatar: request.avatar
         }
       }));
       setRepairRequests(formattedData);
@@ -344,9 +346,9 @@ export default function HistoryRepair() {
                         <div className="flex-shrink-0 h-15 w-15">
                           <img
                             className="h-full w-full object-contain rounded-lg"
-                            src={request.equipment?.image || (request.equipment_pic_filename ? `${UPLOAD_BASE}/uploads/${request.equipment_pic_filename}` : "/placeholder-equipment.png")}
+                            src={request.equipment?.image ? (typeof request.equipment.image === 'string' && request.equipment.image.startsWith('http') ? request.equipment.image : `${UPLOAD_BASE}/uploads/equipment/${request.equipment.image}`) : (request.equipment_pic_filename ? `${UPLOAD_BASE}/uploads/equipment/${request.equipment_pic_filename}` : "/lo.png")}
                             alt={request.equipment?.name || request.equipment_name}
-                            onError={e => { e.target.src = "/placeholder-equipment.png"; }}
+                            onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
                           />
                         </div>
                         <div className="ml-4">
@@ -357,12 +359,12 @@ export default function HistoryRepair() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-12 w-12">
+                        <div className="flex-shrink-0 h-12 w-12 overflow-hidden rounded-full bg-gray-100">
                           <img
-                            className="h-full w-full rounded-full object-cover"
-                            src={request.requester?.avatar ? (typeof request.requester.avatar === 'string' && request.requester.avatar.startsWith('http') ? request.requester.avatar : `${UPLOAD_BASE}/uploads/user/${request.requester.avatar}`) : "/placeholder-user.png"}
+                            className="h-full w-full object-cover"
+                            src={request.requester?.avatar ? (typeof request.requester.avatar === 'string' && request.requester.avatar.startsWith('http') ? request.requester.avatar : `${UPLOAD_BASE}/uploads/user/${request.requester.avatar}`) : "/profile.png"}
                             alt={request.requester?.name || request.requester_name}
-                            onError={e => { e.target.src = "/placeholder-user.png"; }}
+                            onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
                           />
                         </div>
                         <div className="ml-3">

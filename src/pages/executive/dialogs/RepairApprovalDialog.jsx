@@ -11,6 +11,7 @@ import {
   UserIcon,
   XCircleIcon
 } from "@heroicons/react/24/outline";
+import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { MdClose } from "react-icons/md";
@@ -51,6 +52,7 @@ export default function RepairApprovalDialog({
     equipment_category: typeof repairRequest?.equipment_category === 'string'
       ? repairRequest.equipment_category
       : repairRequest?.equipment?.category || '',
+    avatar: repairRequest?.avatar || repairRequest?.requester?.avatar || null
   };
 
   const [notes, setNotes] = useState('')
@@ -550,7 +552,7 @@ export default function RepairApprovalDialog({
                       <div className="relative">
                         <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-200 shadow-lg bg-gradient-to-br from-blue-100 to-indigo-100">
                           <img
-                            src={repairRequest.avatar ? (typeof repairRequest.avatar === 'string' && repairRequest.avatar.startsWith('http') ? repairRequest.avatar : `${UPLOAD_BASE}/uploads/user/${repairRequest.avatar}`) : "/profile.png"}
+                            src={normalizedRepairRequest.avatar ? (typeof normalizedRepairRequest.avatar === 'string' && normalizedRepairRequest.avatar.startsWith('http') ? normalizedRepairRequest.avatar : `${UPLOAD_BASE}/uploads/user/${normalizedRepairRequest.avatar}`) : "/profile.png"}
                             alt={normalizedRepairRequest.requester_name}
                             className="w-full h-full object-cover"
                             onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
@@ -581,7 +583,7 @@ export default function RepairApprovalDialog({
                         <div className="flex flex-col items-center gap-4">
                           <div className="w-30 h-30 rounded-xl overflow-hidden flex items-center justify-center border-2 border-blue-200 shadow-sm">
                             <img
-                              src={repairRequest.equipment_pic || (repairRequest.equipment_pic_filename ? `${UPLOAD_BASE}/uploads/${repairRequest.equipment_pic_filename}` : "/lo.png")}
+                              src={repairRequest.equipment?.image ? (typeof repairRequest.equipment.image === 'string' && repairRequest.equipment.image.startsWith('http') ? repairRequest.equipment.image : `${UPLOAD_BASE}/uploads/equipment/${repairRequest.equipment.image}`) : (repairRequest.equipment_pic_filename ? `${UPLOAD_BASE}/uploads/equipment/${repairRequest.equipment_pic_filename}` : "/lo.png")}
                               alt={normalizedRepairRequest.equipment_name}
                               className="max-w-full max-h-full object-contain p-2"
                               onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
