@@ -43,6 +43,7 @@ import { addEquipment, deleteEquipment, getEquipment, getRepairRequestsByItemId,
 import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
 import DeleteEquipmentDialog from "./dialog/DeleteEquipmentDialog";
 import EditEquipmentDialog from "./dialog/EditEquipmentDialog";
+import EquipmentDetailDialog from "./dialog/EquipmentDetailDialog";
 import InspectRepairedEquipmentDialog from './dialog/InspectRepairedEquipmentDialog';
 import RepairRequestDialog from "./dialog/RepairRequestDialog";
 import ManageCategoryDialog from "./dialog/ManageCategoryDialog";
@@ -1199,10 +1200,13 @@ function ManageEquipment() {
     });
   };
 
+  // Add equipment detail dialog state
+  const [equipmentDetailDialogOpen, setEquipmentDetailDialogOpen] = useState(false);
+
   // ฟังก์ชันหลักสำหรับสร้าง PDF ที่มี QR Code จริง
   const handleQRScannerResult = (equipment) => {
     setSelectedEquipment(equipment);
-    setEditDialogOpen(true);
+    setEquipmentDetailDialogOpen(true); // Show detail dialog instead of edit dialog
     notifyEquipmentAction("success", `พบครุภัณฑ์: ${equipment.name}`);
   };
 
@@ -2821,6 +2825,13 @@ function ManageEquipment() {
           onClose={() => setShowInspectDialog(false)}
           equipment={selectedEquipment}
           onSubmit={handleInspectSubmit}
+        />
+        
+        {/* Equipment Detail Dialog (for QR Scanner) */}
+        <EquipmentDetailDialog
+          open={equipmentDetailDialogOpen}
+          onClose={() => setEquipmentDetailDialogOpen(false)}
+          equipment={selectedEquipment}
         />
         <ManageCategoryDialog
           open={manageCategoryOpen}
