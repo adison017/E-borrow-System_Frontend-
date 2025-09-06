@@ -1,3 +1,4 @@
+import React from 'react';
 
 export const LoginSuccessDialog = () => (
   <dialog id="login-success-alert" className="modal">

@@ -1,7 +1,7 @@
 import th from 'date-fns/locale/th';
 import dayjs from 'dayjs';
 import 'dayjs/locale/th';
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { FaCalendarAlt } from "react-icons/fa";
@@ -51,14 +51,14 @@ export default function AddEquipmentDialog({
 
   useEffect(() => {
     console.log('🔄 AddEquipment useEffect triggered:', { equipmentData, initialFormData, open, hasInitialized: hasInitialized.current });
-    
+
     if (open && !hasInitialized.current) {
       hasInitialized.current = true;
       console.log('🎯 AddEquipment Initializing form data for the first time');
-      
+
       getCategories().then(data => setCategories(data));
       getRooms().then(data => setRooms(data));
-      
+
       // สำหรับ AddEquipmentDialog ต้องให้ item_code เป็นค่าว่างเสมอ
       const baseData = equipmentData || initialFormData || {};
       console.log('📝 AddEquipment Setting form data from baseData:', baseData);
@@ -92,7 +92,7 @@ export default function AddEquipmentDialog({
     } else if (open && hasInitialized.current) {
       console.log('⏭️ AddEquipment Dialog already initialized, skipping form reset');
     }
-    
+
     // Reset the flag when dialog closes
     if (!open) {
       console.log('🚪 AddEquipment Dialog closed, resetting initialization flag');
@@ -104,7 +104,7 @@ export default function AddEquipmentDialog({
   const handleChange = (e) => {
     const { name, value } = e.target;
     console.log('🔵 AddEquipment handleChange called:', { name, value, currentFormData: formData });
-    
+
     if (name === 'category') {
       // Find the selected category and set both category name and category_id
       const selectedCategory = categories.find(cat => cat.name === value);

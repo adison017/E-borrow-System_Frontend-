@@ -580,7 +580,7 @@ const ReturnFormDialog = ({
                 </div>
 
                 <div className="space-y-3">
-                  {/* ลายเซ็นการยืม */}
+                  {/*   รูปถ่ายภาพบัตรนักศึกษา */}
                   {borrowedItem?.signature_image && (
                     <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3">
                       <div className="flex items-center gap-3">
@@ -589,10 +589,10 @@ const ReturnFormDialog = ({
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                           </svg>
                         </div>
-                        <h4 className="font-semibold text-gray-800 text-sm">ลายเซ็นการยืม</h4>
+                        <h4 className="font-semibold text-gray-800 text-sm">  รูปถ่ายภาพบัตรนักศึกษา</h4>
                       </div>
                       <button
-                        onClick={() => handleViewImage(borrowedItem.signature_image, 'ลายเซ็นการยืม')}
+                        onClick={() => handleViewImage(borrowedItem.signature_image, '  รูปถ่ายภาพบัตรนักศึกษา')}
                         className="bg-blue-500  text-white px-3 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
                         title="ดูภาพ"
                       >

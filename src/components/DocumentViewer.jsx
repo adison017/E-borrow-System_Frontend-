@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   DocumentIcon,
   PhotoIcon,
@@ -30,7 +30,7 @@ const DocumentViewer = ({ documents = [], title = "เอกสารแนบ" 
       // ป้องกันการ scroll ของ body
       document.body.style.overflow = 'hidden';
       document.addEventListener('keydown', handleKeyDown);
-      
+
       return () => {
         document.body.style.overflow = 'unset';
         document.removeEventListener('keydown', handleKeyDown);
@@ -92,7 +92,7 @@ const DocumentViewer = ({ documents = [], title = "เอกสารแนบ" 
     // ตั้งค่า loading state สำหรับไฟล์ที่เลือก
     setLoadingStates(prev => ({ ...prev, [doc.original_name]: true }));
     setErrorStates(prev => ({ ...prev, [doc.original_name]: false }));
-    
+
     // สำหรับ PDF และรูปภาพ ให้ตั้งค่า loading state ทันที
     if (isPdfFile(doc) || isImageFile(doc)) {
       setLoadingStates(prev => ({ ...prev, [doc.original_name]: true }));
@@ -147,7 +147,7 @@ const DocumentViewer = ({ documents = [], title = "เอกสารแนบ" 
 
   const isImageFile = (doc) => {
     const extension = doc.original_name.split('.').pop()?.toLowerCase();
-    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension) || 
+    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(extension) ||
            doc.mime_type?.startsWith('image/');
   };
 
@@ -157,7 +157,7 @@ const DocumentViewer = ({ documents = [], title = "เอกสารแนบ" 
 
   const renderFilePreview = (doc) => {
     const fileUrl = getFileUrl(doc);
-    
+
     if (!fileUrl) {
       return (
         <div className="flex flex-col items-center justify-center py-12">
@@ -363,7 +363,7 @@ const DocumentViewer = ({ documents = [], title = "เอกสารแนบ" 
 
       {/* Document Viewer Modal */}
       {showViewer && selectedDocument && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/5 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={() => {
             setShowViewer(false);
@@ -372,7 +372,7 @@ const DocumentViewer = ({ documents = [], title = "เอกสารแนบ" 
             }
           }}
         >
-          <div 
+          <div
             className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-hidden shadow-2xl flex flex-col mx-auto"
             onClick={(e) => e.stopPropagation()}
           >

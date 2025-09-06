@@ -15,9 +15,9 @@
     <script>
       // Prefer environment-based API URL; fallback to localhost in dev
       window.__API_BASE__ = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-        ? 'http://localhost:5000'
+        ? 'http://localhost:65033'
         : (window.__API_BASE__ || 'https://e-borrow-system-backend.onrender.com');
-      
+
       // Register service worker for PWA
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

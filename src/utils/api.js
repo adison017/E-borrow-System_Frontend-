@@ -5,7 +5,7 @@ const getApiBaseUrl = () => {
   if (useProxy) return '/api';
 
   // Use VITE_API_URL as the single source of truth
-  const base = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:65033';
   return `${base.replace(/\/$/, '')}/api`;
 };
 
@@ -14,7 +14,7 @@ const getUploadBaseUrl = () => {
   if (useProxy) return '/uploads';
 
   // Use VITE_API_URL as the single source of truth
-  const base = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const base = import.meta.env.VITE_API_URL || 'http://localhost:65033';
   return base.replace(/\/$/, '');
 };
 

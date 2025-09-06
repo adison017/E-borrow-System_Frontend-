@@ -102,7 +102,7 @@ const PersonalInfoEdit = () => {
     if (!path) return '/logo_it.png';
     if (isCloudinaryUrl(path)) return getOptimizedCloudinaryUrl(path, 'thumbnail');
     if (path.startsWith('http://') || path.startsWith('https://')) return path;
-    const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000').replace(/\/$/, '');
+    const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:65033').replace(/\/$/, '');
     if (path.startsWith('/uploads/')) return `${BASE}${path}`;
     if (path.startsWith('uploads/')) return `${BASE}/${path}`;
     return `${BASE}/uploads/user/${path}`;

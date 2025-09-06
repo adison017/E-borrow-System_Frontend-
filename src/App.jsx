@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { MdMenu } from 'react-icons/md';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import AuthSystem from './components/AuthSystem'; // เพิ่มบรรทัดนี้
@@ -469,7 +469,8 @@ function AppInner() {
       <main className={`flex-1 flex flex-col transition-all duration-300 w-full bg-gradient-to-r from-indigo-950 md:from-2% sm:from-1% to-blue-700 ${isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-72'}`}>
         {/* First-visit news modal for all roles */}
         <FirstVisitNewsModal userId={JSON.parse(localStorage.getItem('user') || '{}')?.id} />
-        <Header userRole={userRole} changeRole={changeRole} />
+        {/* Only render Header when user is authenticated */}
+        {userRole && <Header userRole={userRole} changeRole={changeRole} />}
         {/* Content */}
         <div className="bg-white p-4 m-4 rounded-xl flex-1 min-h-0">
           <Routes>

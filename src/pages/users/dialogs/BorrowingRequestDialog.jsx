@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { BsBoxSeamFill, BsCalendarDateFill } from "react-icons/bs";
 import {
   FaCheck,
@@ -244,7 +244,7 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
     try {
       // ส่งตำแหน่งไปยังเซิร์ฟเวอร์ก่อน
       await sendLocationOnReceipt();
-      
+
       // เรียกใช้ฟังก์ชัน onConfirmReceipt ที่ส่งมาจาก parent component
       if (onConfirmReceipt) {
         await onConfirmReceipt(request);

@@ -8,7 +8,7 @@
 
 ```bash
 # สำหรับ localhost
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=http://localhost:65033
 
 # สำหรับ render.com backend
 VITE_API_URL=https://e-borrow-system-backend.onrender.com
@@ -31,7 +31,7 @@ VITE_API_URL=https://e-borrow-system-backend.onrender.com
 
 ```bash
 # ใช้ localhost
-echo "VITE_API_URL=http://localhost:5000" > .env
+echo "VITE_API_URL=http://localhost:65033" > .env
 
 # ใช้ render.com backend
 echo "VITE_API_URL=https://e-borrow-system-backend.onrender.com" > .env
@@ -49,4 +49,4 @@ npm run dev
 
 - **Backend API**: `https://e-borrow-system-backend.onrender.com`
 - **Frontend**: `https://e-borrow-system.vercel.app`
-- **Local Development**: `http://localhost:5000` (backend) + `http://localhost:5173` (frontend)
+- **Local Development**: `http://localhost:65033` (backend) + `http://localhost:5173` (frontend)

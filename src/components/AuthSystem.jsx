@@ -1,5 +1,5 @@
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useEffect, useState } from 'react';
 import { FaBuilding, FaChartBar, FaCog, FaEnvelope, FaEye, FaEyeSlash, FaGraduationCap, FaIdCard, FaLaptop, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt } from 'react-icons/fa';
 import { GiHandTruck } from "react-icons/gi";
 import { useNavigate } from 'react-router-dom';
@@ -78,7 +78,7 @@ const AuthSystem = (props) => {
       // รีเซ็ต login attempts เมื่อเปลี่ยน tab
       if (tab !== 'login') {
         setLoginAttempts({
-          remaining: 5,
+          remaining: 3,
           blockedUntil: null,
           lastAttempt: null
         });
@@ -109,7 +109,7 @@ const AuthSystem = (props) => {
 
   // เพิ่ม state สำหรับ login attempts
   const [loginAttempts, setLoginAttempts] = useState({
-    remaining: 5,
+    remaining: 3,
     blockedUntil: null,
     lastAttempt: null
   });
@@ -377,7 +377,7 @@ const AuthSystem = (props) => {
         show: true,
         type: 'error',
         title: 'เกินจำนวนครั้งที่กำหนด',
-        message: 'คุณได้ลองเข้าสู่ระบบครบ 5 ครั้งแล้ว กรุณารอ 15 นาทีแล้วลองใหม่',
+        message: 'คุณได้ลองเข้าสู่ระบบครบ 3 ครั้งแล้ว กรุณารอ 2 นาทีแล้วลองใหม่',
         onClose: () => setNotification(n => ({ ...n, show: false }))
       });
       return;
@@ -395,7 +395,7 @@ const AuthSystem = (props) => {
 
         // รีเซ็ต login attempts เมื่อ login สำเร็จ
         setLoginAttempts({
-          remaining: 5,
+          remaining: 3,
           blockedUntil: null,
           lastAttempt: null
         });
@@ -432,7 +432,7 @@ const AuthSystem = (props) => {
       if (error.response?.status === 429) {
         const retryAfterHeader = error.response?.headers?.['retry-after'] || error.response?.headers?.['Retry-After'];
         const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : NaN;
-        const fallbackMinutes = 15;
+        const fallbackMinutes = 2;
         const waitMs = Number.isFinite(retryAfterSec) ? retryAfterSec * 1000 : fallbackMinutes * 60 * 1000;
         setLoginAttempts({
           remaining: 0,
@@ -472,7 +472,7 @@ const AuthSystem = (props) => {
   // ฟังก์ชันจัดการ login error
   const handleLoginError = (message) => {
     const newRemaining = Math.max(0, loginAttempts.remaining - 1);
-    const newBlockedUntil = newRemaining === 0 ? Date.now() + (15 * 60 * 1000) : null;
+    const newBlockedUntil = newRemaining === 0 ? Date.now() + (2 * 60 * 1000) : null;
 
     setLoginAttempts({
       remaining: newRemaining,
@@ -1106,7 +1106,7 @@ const AuthSystem = (props) => {
                     <p className="text-gray-600">เข้าสู่ระบบเพื่อจัดการครุภัณฑ์ของคุณ</p>
 
                     {/* แสดงจำนวนครั้งที่เหลือ */}
-                    {loginAttempts.remaining < 5 && (
+                    {loginAttempts.remaining < 3 && (
                       <div className={`mt-4 p-3 rounded-lg border-2 ${
                         loginAttempts.remaining <= 1
                           ? 'bg-red-50 border-red-200 text-red-700'
@@ -1119,12 +1119,12 @@ const AuthSystem = (props) => {
                             <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                           </svg>
                           <span className="font-semibold">
-                            จำนวนครั้งที่เหลือ: {loginAttempts.remaining}/5
+                            จำนวนครั้งที่เหลือ: {loginAttempts.remaining}/3
                           </span>
                         </div>
                         {loginAttempts.remaining <= 2 && (
                           <p className="text-sm mt-1">
-                            หากผิดอีก {loginAttempts.remaining} ครั้ง บัญชีจะถูกบล็อก 15 นาที
+                            หากผิดอีก {loginAttempts.remaining} ครั้ง บัญชีจะถูกบล็อก 2 นาที
                           </p>
                         )}
                       </div>
@@ -1205,7 +1205,7 @@ const AuthSystem = (props) => {
                           <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                           </svg>
-                          เพื่อความปลอดภัย ระบบจะบล็อกบัญชีหลังผิด 5 ครั้ง
+                          เพื่อความปลอดภัย ระบบจะบล็อกบัญชีหลังผิด 3 ครั้ง
                         </div>
                         <button
                           type="button"
