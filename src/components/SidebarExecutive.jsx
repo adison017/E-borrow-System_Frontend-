@@ -4,6 +4,7 @@ import { BsGraphUp } from "react-icons/bs";
 import { FaShoppingCart, FaSignOutAlt } from "react-icons/fa";
 import { GiAutoRepair } from "react-icons/gi";
 import { MdAnnouncement, MdClose, MdMenu } from "react-icons/md";
+import { CubeIcon } from "@heroicons/react/24/outline";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Notification from './Notification';
 import { getAllBorrows } from '../utils/api';
@@ -13,6 +14,7 @@ import { API_BASE } from '../utils/api';
 
 const menuItems = [
   { to: '/DashboardEx', icon: <BsGraphUp size={22} />, label: 'รายงาน', key: 'dashboardEx' },
+  { to: '/EquipmentList', icon: <CubeIcon className="w-5 h-5" />, label: 'รายการครุภัณฑ์', key: 'equipmentList' },
   { to: '/BorrowApprovalList', icon: <FaShoppingCart size={22} />, label: 'รายการขอยืมครุภัณฑ์', key: 'borrowApproval' },
   { to: '/Repair', icon: <MdAnnouncement size={22} />, label: 'อนุมัติการซ่อมครุภัณฑ์', key: 'repairApproval' },
   { to: '/History', icon: <AiOutlineHistory size={22} />, label: 'ประวัติอนุมัติการยืม', key: 'history' },

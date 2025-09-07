@@ -35,6 +35,7 @@ import LocationTracking from './pages/admin/LocationTracking';
 // Executive Pages
 import BorrowApprovalList from './pages/executive/BorrowApprovalList';
 import DashboardExeutive from './pages/executive/DashboardExeutive';
+import EquipmentList from './pages/executive/EquipmentList';
 import Historybt from './pages/executive/Historyborrow';
 import HistoryRe from './pages/executive/HistoryRepair';
 import RepairApprovalList from './pages/executive/RepairApprovalList';
@@ -503,6 +504,7 @@ function AppInner() {
             {userRole === 'executive' && (
               <>
                 <Route path="/DashboardEx" element={<DashboardExeutive />} />
+                <Route path="/EquipmentList" element={<EquipmentList />} />
                 <Route path="/BorrowApprovalList" element={<BorrowApprovalList />} />
                 <Route path="/Repair" element={<RepairApprovalList />} />
                 <Route path="/History" element={<Historybt />} />
