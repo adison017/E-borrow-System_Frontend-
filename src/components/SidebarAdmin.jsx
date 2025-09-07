@@ -10,7 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { BiPackage } from "react-icons/bi";
 import { BsGraphUp } from "react-icons/bs";
 import { FaHandshake, FaSignOutAlt, FaBuilding } from "react-icons/fa";
-import { MdAnnouncement, MdClose, MdManageAccounts, MdMenu, MdOutlineEditNote, MdViewList, MdCalendarMonth } from "react-icons/md";
+import { MdAnnouncement, MdClose, MdManageAccounts, MdMenu, MdOutlineEditNote, MdViewList, MdCalendarMonth, MdHistory } from "react-icons/md";
 import { RiArrowGoBackLine } from "react-icons/ri";
 import { QrCodeIcon, MapPinIcon } from "@heroicons/react/24/outline";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -30,6 +30,7 @@ const menuItems = [
   { to: '/success', icon: <BsClipboardCheckFill size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
   { to: '/location-tracking', icon: <SiOpenstreetmap size={22} />, label: 'ติดตามตำแหน่ง', key: 'locationTracking' },
   { to: '/borrow-calendar', icon: <MdCalendarMonth size={22} />, label: 'ปฏิทินการยืม', key: 'borrowCalendar' },
+  { to: '/activity-logs', icon: <MdHistory size={22} />, label: 'รายงานกิจกรรมระบบ', key: 'activityLogs' },
 ];
 
 function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }) {
