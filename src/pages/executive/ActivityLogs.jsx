@@ -79,12 +79,6 @@ const ActivityLogs = () => {
   ]);
   const [showFilters, setShowFilters] = useState(false);
 
-  // Get auth headers
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  };
-
   // Fetch logs with pagination and filters
   const fetchLogs = async () => {
     setLoading(true);
@@ -100,9 +94,7 @@ const ActivityLogs = () => {
         }
       });
 
-      const response = await axios.get(`${API_BASE}/audit-logs/logs?${params}`, {
-        headers: getAuthHeaders()
-      });
+      const response = await axios.get(`${API_BASE}/audit-logs/logs?${params}`);
 
       if (response.data.success) {
         setLogs(response.data.data);
@@ -127,9 +119,7 @@ const ActivityLogs = () => {
       // Add a small delay to prevent rate limiting issues
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      const response = await axios.get(`${API_BASE}/audit-logs/summary?period=${period}`, {
-        headers: getAuthHeaders()
-      });
+      const response = await axios.get(`${API_BASE}/audit-logs/summary?period=${period}`);
 
       if (response.data.success) {
         setSummary(response.data.data);
@@ -149,9 +139,7 @@ const ActivityLogs = () => {
       // Add a small delay to prevent rate limiting issues
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      const response = await axios.get(`${API_BASE}/audit-logs/action-types`, {
-        headers: getAuthHeaders()
-      });
+      const response = await axios.get(`${API_BASE}/audit-logs/action-types`);
 
       if (response.data.success) {
         setActionTypes(response.data.data);
@@ -176,8 +164,7 @@ const ActivityLogs = () => {
       });
 
       const response = await axios.get(`${API_BASE}/audit-logs/export?${params}`, {
-        responseType: 'blob',
-        headers: getAuthHeaders()
+        responseType: 'blob'
       });
 
       // Create download link
