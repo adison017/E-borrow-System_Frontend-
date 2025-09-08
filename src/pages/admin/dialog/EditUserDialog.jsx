@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { GiOfficeChair } from "react-icons/gi";
 // EditUserDialog.jsx
-import axios from 'axios';
+import axios from '../../../utils/axios.js';
 import {
   FaBook,
   FaBuilding,

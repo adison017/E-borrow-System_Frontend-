@@ -1,6 +1,6 @@
+import React, { useEffect, useRef, useState } from "react";
 import { XCircleIcon as ErrorIcon, MagnifyingGlassIcon, ExclamationTriangleIcon } from "@heroicons/react/24/solid"; // Updated and added icons
 import { BrowserMultiFormatReader, ChecksumException, FormatException, NotFoundException } from "@zxing/library";
-import React, { useEffect, useRef, useState } from "react";
 import { MdClose, MdRefresh } from "react-icons/md";
 import { checkCameraSupport, requestCameraPermission, troubleshootCamera } from "../utils/cameraUtils";
 import PermissionRequest from "./PermissionRequest";

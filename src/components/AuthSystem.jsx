@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState, useMemo } from 'react';
+import axios from '../utils/axios';
 import { FaBuilding, FaChartBar, FaCog, FaEnvelope, FaEye, FaEyeSlash, FaGraduationCap, FaIdCard, FaLaptop, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt } from 'react-icons/fa';
 import { GiHandTruck } from "react-icons/gi";
 import { useNavigate } from 'react-router-dom';
@@ -35,8 +35,6 @@ function getRegisterErrorMessage(error) {
   }
   return errorMsg;
 }
-
-import { useMemo } from 'react';
 
 const AuthSystem = (props) => {
   const [activeTab, setActiveTab] = useState('login');

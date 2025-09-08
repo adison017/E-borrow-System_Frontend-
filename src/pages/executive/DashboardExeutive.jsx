@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '../../utils/axios.js';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { FaChartBar, FaChartLine, FaExclamationTriangle, FaTools } from 'react-icons/fa';
@@ -32,31 +32,39 @@ const DashboardExeutive = () => {
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Fetch dashboard data from all endpoints
+  // Fetch dashboard data from all endpoints with delays to prevent rate limiting
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
       const newData = {};
-      await Promise.all(
-        widgetConfigs.map(async (cfg) => {
-          try {
-            const res = await axios.get(API(cfg.endpoint));
-            console.log(`[API] ${cfg.endpoint} response:`, res.data);
-            newData[cfg.key] = res.data;
-          } catch (err) {
-            console.error(`Dashboard API error: ${cfg.endpoint}`, err);
-            if (["table","bar","line","pie","area","donut"].includes(cfg.type)) {
-              newData[cfg.key] = [];
-            } else {
-              newData[cfg.key] = {};
-            }
+      
+      // Process requests sequentially with delays to prevent rate limiting
+      for (let i = 0; i < widgetConfigs.length; i++) {
+        const cfg = widgetConfigs[i];
+        try {
+          // Add delay between requests (except for the first one)
+          if (i > 0) {
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
-        })
-      );
+          
+          const res = await axios.get(API(cfg.endpoint));
+          console.log(`[API] ${cfg.endpoint} response:`, res.data);
+          newData[cfg.key] = res.data;
+        } catch (err) {
+          console.error(`Dashboard API error: ${cfg.endpoint}`, err);
+          if (["table","bar","line","pie","area","donut"].includes(cfg.type)) {
+            newData[cfg.key] = [];
+          } else {
+            newData[cfg.key] = {};
+          }
+        }
+      }
+      
       console.log('[DashboardExeutive] setData:', newData);
       setData(newData);
       setLoading(false);
     };
+    
     fetchAllData();
   }, []);
 

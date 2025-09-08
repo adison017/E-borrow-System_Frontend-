@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { MdClose } from "react-icons/md";
-import axios from 'axios';
+import axios from '../../../utils/axios.js';
 import PinDialog from "../../../components/dialog/PinDialog";
 import { UPLOAD_BASE, API_BASE } from '../../../utils/api';
 

@@ -1,9 +1,9 @@
+import React, { useEffect, useRef, useState } from "react";
 import {
   MagnifyingGlassIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
-import axios from "axios";
-import React, { useEffect, useRef, useState } from "react";
+import axios from '../../utils/axios';
 import { ImMail4 } from "react-icons/im";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';

@@ -7,8 +7,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { BsFillFilterCircleFill } from "react-icons/bs";
 
-import axios from "axios";
-import { useEffect, useState } from "react";
+import axios from '../../utils/axios.js';
+import React, { useEffect, useState } from "react";
 import { BiSearchAlt2 } from "react-icons/bi";
 import RepairApprovalDialog from "./dialogs/RepairApprovalDialog";
 import { API_BASE, UPLOAD_BASE } from '../../utils/api';
