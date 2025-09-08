@@ -106,8 +106,14 @@ const ActivityLogs = () => {
     } catch (error) {
       console.error('Error fetching logs:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Error fetching logs';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      // Handle timeout specifically
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        setError('Request timeout - please try again or reduce the filter scope');
+        toast.error('Request timeout - please try again or reduce the filter scope');
+      } else {
+        setError(errorMessage);
+        toast.error(errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -129,7 +135,12 @@ const ActivityLogs = () => {
     } catch (error) {
       console.error('Error fetching summary:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Error fetching summary';
-      toast.error(errorMessage);
+      // Handle timeout specifically
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        toast.error('Summary request timeout - please try again');
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -149,7 +160,12 @@ const ActivityLogs = () => {
     } catch (error) {
       console.error('Error fetching action types:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Error fetching action types';
-      toast.error(errorMessage);
+      // Handle timeout specifically
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        toast.error('Action types request timeout - please try again');
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 
@@ -163,8 +179,10 @@ const ActivityLogs = () => {
         }
       });
 
+      // For export, we might want a longer timeout
       const response = await axios.get(`${API_BASE}/audit-logs/export?${params}`, {
-        responseType: 'blob'
+        responseType: 'blob',
+        timeout: 60000 // 60 seconds for export
       });
 
       // Create download link
@@ -181,7 +199,12 @@ const ActivityLogs = () => {
     } catch (error) {
       console.error('Error exporting logs:', error);
       const errorMessage = error.response?.data?.message || error.message || 'เกิดข้อผิดพลาดในการส่งออกข้อมูล';
-      toast.error(errorMessage);
+      // Handle timeout specifically
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        toast.error('Export timeout - please try again with fewer records');
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 

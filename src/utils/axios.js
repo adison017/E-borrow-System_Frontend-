@@ -4,7 +4,7 @@ import { API_BASE } from './api';
 // Create axios instance with default configuration
 const axiosInstance = axios.create({
   baseURL: API_BASE,
-  timeout: 10000,
+  timeout: 30000, // Increased from 10s to 30s to handle slower responses
   headers: {
     'Content-Type': 'application/json',
   },
