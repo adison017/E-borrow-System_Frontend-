@@ -100,7 +100,9 @@ const ActivityLogs = () => {
         }
       });
 
-      const response = await axios.get(`${API_BASE}/audit-logs/logs?${params}`);
+      const response = await axios.get(`${API_BASE}/audit-logs/logs?${params}`, {
+        headers: getAuthHeaders()
+      });
 
       if (response.data.success) {
         setLogs(response.data.data);
@@ -125,7 +127,9 @@ const ActivityLogs = () => {
       // Add a small delay to prevent rate limiting issues
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      const response = await axios.get(`${API_BASE}/audit-logs/summary?period=${period}`);
+      const response = await axios.get(`${API_BASE}/audit-logs/summary?period=${period}`, {
+        headers: getAuthHeaders()
+      });
 
       if (response.data.success) {
         setSummary(response.data.data);
@@ -145,7 +149,9 @@ const ActivityLogs = () => {
       // Add a small delay to prevent rate limiting issues
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      const response = await axios.get(`${API_BASE}/audit-logs/action-types`);
+      const response = await axios.get(`${API_BASE}/audit-logs/action-types`, {
+        headers: getAuthHeaders()
+      });
 
       if (response.data.success) {
         setActionTypes(response.data.data);
@@ -170,7 +176,8 @@ const ActivityLogs = () => {
       });
 
       const response = await axios.get(`${API_BASE}/audit-logs/export?${params}`, {
-        responseType: 'blob'
+        responseType: 'blob',
+        headers: getAuthHeaders()
       });
 
       // Create download link
