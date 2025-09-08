@@ -6,7 +6,7 @@ import {
   TagIcon,
   UserIcon
 } from "@heroicons/react/24/outline";
-import axios from 'axios';
+import axios from '../../../utils/axios.js';
 import { useState } from 'react';
 import { MdClose } from "react-icons/md";
 import { FaCheckCircle, FaTimesCircle, FaTools } from 'react-icons/fa';

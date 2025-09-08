@@ -41,7 +41,6 @@ export default function HistoryBorrow() {
   const [isRealTimeConnected, setIsRealTimeConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-  // ...existing code...
 
   const { subscribeToBadgeCounts } = useBadgeCounts();
   const { on, off, isConnected, isAuthenticated } = useSocket();
@@ -131,92 +130,104 @@ export default function HistoryBorrow() {
     }
   };
 
-  const fetchHistoryData = () => {
+  const fetchHistoryData = async () => {
     setLoading(true);
-    const token = localStorage.getItem('token');
-    
-    // ดึงข้อมูลจากทั้งสาม endpoints เพื่อรวมทุกสถานะ
-    const fetchBorrows = fetch(`${UPLOAD_BASE}/api/borrows`, {
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    const fetchReturns = fetch(`${UPLOAD_BASE}/api/returns`, {
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    const fetchSuccessBorrows = fetch(`${UPLOAD_BASE}/api/returns/success-borrows`, {
-      headers: {
-        'Authorization': token ? `Bearer ${token}` : '',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    Promise.all([fetchBorrows, fetchReturns, fetchSuccessBorrows])
-      .then(async ([borrowsRes, returnsRes, successRes]) => {
-        const borrowsData = borrowsRes.ok ? await borrowsRes.json() : [];
-        const returnsData = returnsRes.ok ? await returnsRes.json() : [];
-        const successData = successRes.ok ? await successRes.json() : [];
-        
-        // ใช้ Map เพื่อไม่ให้ข้อมูลซ้ำ
-        const dataMap = new Map();
-        
-        // เพิ่มข้อมูลจาก borrows endpoint (carry, approved) - สำหรับสถานะ carry
-        if (Array.isArray(borrowsData)) {
-          borrowsData.forEach(item => {
-            // กรองเฉพาะสถานะ carry และ approved จาก borrows
-            if (['carry', 'approved'].includes(item.status)) {
-              // คำนวณสถานะ overdue
-              let finalStatus = item.status;
-              if ((item.status === 'approved' || item.status === 'carry') && item.due_date) {
-                const currentDate = new Date();
-                const dueDate = new Date(item.due_date);
-                if (currentDate > dueDate) {
-                  finalStatus = 'overdue';
-                }
-              }
-              dataMap.set(item.borrow_id, { ...item, status: finalStatus, original_status: item.status });
-            }
-          });
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Add a small delay to prevent concurrent requests from overwhelming the rate limiter
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const fetchBorrows = fetch(`${UPLOAD_BASE}/api/borrows?status=carry,approved`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json'
         }
-        
-        // เพิ่มข้อมูลจาก returns endpoint (waiting_payment และอื่นๆ)
-        if (Array.isArray(returnsData)) {
-          returnsData.forEach(item => {
-            // เพิ่มสถานะ waiting_payment จาก returns
-            if (['waiting_payment'].includes(item.status)) {
-              dataMap.set(item.borrow_id, item);
-            }
-          });
-        }
-        
-        // เพิ่มข้อมูลจาก success-borrows endpoint (completed, rejected)
-        if (Array.isArray(successData)) {
-          successData.forEach(item => {
-            // เพิ่มทั้ง completed และ rejected จาก success-borrows
-            if (['completed', 'rejected'].includes(item.status)) {
-              dataMap.set(item.borrow_id, item);
-            }
-          });
-        }
-        
-        // แปลง Map กลับเป็น Array
-        const allData = Array.from(dataMap.values());
-        
-        setBorrowRequests(allData);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error fetching data:', err);
-        setBorrowRequests([]);
-        setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", type: "error" });
-        setLoading(false);
       });
+      
+      // Add delay between requests
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      const fetchReturns = fetch(`${UPLOAD_BASE}/api/returns`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Add delay between requests
+      await new Promise(resolve => setTimeout(resolve, 50));
+      
+      const fetchSuccessBorrows = fetch(`${UPLOAD_BASE}/api/returns/success-borrows`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const [borrowsRes, returnsRes, successRes] = await Promise.all([
+        fetchBorrows,
+        fetchReturns,
+        fetchSuccessBorrows
+      ]);
+      
+      const borrowsData = borrowsRes.ok ? await borrowsRes.json() : [];
+      const returnsData = returnsRes.ok ? await returnsRes.json() : [];
+      const successData = successRes.ok ? await successRes.json() : [];
+      
+      // ใช้ Map เพื่อไม่ให้ข้อมูลซ้ำ
+      const dataMap = new Map();
+      
+      // เพิ่มข้อมูลจาก borrows endpoint (carry, approved) - สำหรับสถานะ carry
+      if (Array.isArray(borrowsData)) {
+        borrowsData.forEach(item => {
+          // กรองเฉพาะสถานะ carry และ approved จาก borrows
+          if (['carry', 'approved'].includes(item.status)) {
+            // คำนวณสถานะ overdue
+            let finalStatus = item.status;
+            if ((item.status === 'approved' || item.status === 'carry') && item.due_date) {
+              const currentDate = new Date();
+              const dueDate = new Date(item.due_date);
+              if (currentDate > dueDate) {
+                finalStatus = 'overdue';
+              }
+            }
+            dataMap.set(item.borrow_id, { ...item, status: finalStatus, original_status: item.status });
+          }
+        });
+      }
+      
+      // เพิ่มข้อมูลจาก returns endpoint (waiting_payment และอื่นๆ)
+      if (Array.isArray(returnsData)) {
+        returnsData.forEach(item => {
+          // เพิ่มสถานะ waiting_payment จาก returns
+          if (['waiting_payment'].includes(item.status)) {
+            dataMap.set(item.borrow_id, item);
+          }
+        });
+      }
+      
+      // เพิ่มข้อมูลจาก success-borrows endpoint (completed, rejected)
+      if (Array.isArray(successData)) {
+        successData.forEach(item => {
+          // เพิ่มทั้ง completed และ rejected จาก success-borrows
+          if (['completed', 'rejected'].includes(item.status)) {
+            dataMap.set(item.borrow_id, item);
+          }
+        });
+      }
+      
+      // แปลง Map กลับเป็น Array
+      const allData = Array.from(dataMap.values());
+      
+      setBorrowRequests(allData);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+      setBorrowRequests([]);
+      setNotification({ show: true, message: "เกิดข้อผิดพลาดในการโหลดข้อมูล", type: "error" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -520,7 +531,6 @@ export default function HistoryBorrow() {
               <tbody className="bg-white divide-y divide-gray-200 ">
                 {paginatedRequests.map((request) => (
                   <tr key={request.borrow_id || request.borrowId || request.borrow_code} className="hover:bg-gray-50">
-                    {/* ...existing table row code... */}
                     <td className="px-6 py-4 whitespace-nowrap ">
                       <div className="text-gray-900 font-bold">{request.borrow_code || request.borrowId}</div>
                     </td>

@@ -1,12 +1,12 @@
-import { SiOpenstreetmap } from "react-icons/si"; 
-import { BiMapAlt } from "react-icons/bi"; 
+import React, { useEffect, useState } from 'react';
+import { SiOpenstreetmap } from "react-icons/si";
+import { BiMapAlt } from "react-icons/bi";
 import { TbPackages } from "react-icons/tb";
 import { GiBackForth } from "react-icons/gi";
 import { FaNewspaper } from "react-icons/fa";
 import { BsFillClipboardPlusFill } from "react-icons/bs";
 import { BsClipboardCheckFill } from "react-icons/bs";
 import { GiHandTruck } from "react-icons/gi";
-import React, { useEffect, useState } from 'react';
 import { BiPackage } from "react-icons/bi";
 import { BsGraphUp } from "react-icons/bs";
 import { FaHandshake, FaSignOutAlt, FaBuilding } from "react-icons/fa";
@@ -30,7 +30,6 @@ const menuItems = [
   { to: '/success', icon: <BsClipboardCheckFill size={22} />, label: 'รายการการเสร็จสิ้น', key: 'success' },
   { to: '/location-tracking', icon: <SiOpenstreetmap size={22} />, label: 'ติดตามตำแหน่ง', key: 'locationTracking' },
   { to: '/borrow-calendar', icon: <MdCalendarMonth size={22} />, label: 'ปฏิทินการยืม', key: 'borrowCalendar' },
-  { to: '/activity-logs', icon: <MdHistory size={22} />, label: 'รายงานกิจกรรมระบบ', key: 'activityLogs' },
 ];
 
 function SidebarAdmin({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }) {

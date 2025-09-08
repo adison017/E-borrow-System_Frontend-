@@ -1,5 +1,5 @@
-import axios from 'axios';
 import React, { useEffect, useRef, useState } from "react";
+import axios from '../../../utils/axios.js';
 import {
   FaBook,
   FaBuilding,

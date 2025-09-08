@@ -17,7 +17,7 @@ import { API_BASE, authFetch } from './utils/api';
 import locationTracker from './utils/locationTracker';
 
 // Admin Pages
-import ActivityLogs from './pages/admin/ActivityLogs';
+// ActivityLogs was moved from admin to executive
 import BorrowList from './pages/admin/BorrowList';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
 import ManageEquipment from './pages/admin/ManageEquipment';
@@ -33,6 +33,7 @@ import BorrowCalendar from './pages/admin/BorrowCalendar';
 import LocationTracking from './pages/admin/LocationTracking';
 
 // Executive Pages
+import ActivityLogs from './pages/executive/ActivityLogs';
 import BorrowApprovalList from './pages/executive/BorrowApprovalList';
 import DashboardExeutive from './pages/executive/DashboardExeutive';
 import EquipmentList from './pages/executive/EquipmentList';
@@ -481,7 +482,6 @@ function AppInner() {
             {userRole === 'admin' && (
               <>
                 <Route path="/DashboardAd" element={<DashboardAdmin />} />
-                <Route path="/activity-logs" element={<ActivityLogs />} />
                 <Route path="/borrow-list" element={<BorrowList />} />
                 <Route path="/equipment" element={<ManageEquipment />} />
                 <Route path="/rooms" element={<ManageRoom />} />
@@ -509,6 +509,7 @@ function AppInner() {
                 <Route path="/Repair" element={<RepairApprovalList />} />
                 <Route path="/History" element={<Historybt />} />
                 <Route path="/History_repair" element={<HistoryRe />} />
+                <Route path="/activity-logs" element={<ActivityLogs />} />
                 <Route path="/edit_profile" element={<Edit_pro />} />
                 <Route path="*" element={<Navigate to="/DashboardEx" replace />} />
               </>

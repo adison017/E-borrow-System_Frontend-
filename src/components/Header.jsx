@@ -1,4 +1,9 @@
 import React, { useEffect, useState, useRef } from "react";
+
+// Ensure React is available
+if (!React) {
+  console.error('React is not properly imported in Header.jsx');
+}
 import { MdAssignment, MdBuild, MdCheckCircle, MdChevronRight, MdErrorOutline, MdFactCheck, MdLocalShipping, MdNotifications, MdPayment, MdSchedule, MdSettings, MdUndo, MdWarningAmber, MdClose } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { useBadgeCounts } from '../hooks/useSocket';
@@ -81,7 +86,10 @@ function Header({ userRole, changeRole }) {
   const audioRef = useRef(null);
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('notifSound') === '1');
   const [headerAlert, setHeaderAlert] = useState(null);
+  
+  // Call useBadgeCounts hook at the top level
   const { subscribeToBadgeCounts } = useBadgeCounts();
+  
   const navigate = useNavigate();
 
   const handleLogout = () => {

@@ -1,5 +1,5 @@
-import { BiGlobe } from "react-icons/bi"; 
 import React, { useState, useEffect } from "react";
+import { BiGlobe } from "react-icons/bi";
 import { FaFacebookF, FaInstagram, FaLine } from "react-icons/fa";
 import { RiMailLine } from "react-icons/ri";
 import { API_BASE } from '../utils/api';
@@ -25,13 +25,13 @@ function Footer() {
   const fetchFooterData = async () => {
     try {
       const response = await fetch(`${API_BASE}/footer-settings`);
-      
+
       // Check if response is ok (status 200-299)
       if (!response.ok) {
         console.warn(`Footer settings API returned ${response.status}, using default values`);
         return; // Use default footer data
       }
-      
+
       const data = await response.json();
       if (data.success && data.data) {
         setFooterData(data.data);

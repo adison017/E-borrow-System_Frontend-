@@ -25,7 +25,7 @@ import {
   ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import axios from '../../utils/axios';
 import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { ToastContainer } from 'react-toastify';

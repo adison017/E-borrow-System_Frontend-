@@ -13,7 +13,7 @@ import {
   FiAlertCircle as AlertIcon,
   FiDollarSign as MoneyIcon
 } from 'react-icons/fi';
-import axios from 'axios';
+import axios from '../../utils/axios';
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';

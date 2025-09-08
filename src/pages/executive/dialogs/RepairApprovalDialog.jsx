@@ -11,9 +11,9 @@ import {
   UserIcon,
   XCircleIcon
 } from "@heroicons/react/24/outline";
+import React, { useEffect, useState } from 'react';
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
-import axios from 'axios';
-import { useEffect, useState } from 'react';
+import axios from '../../../utils/axios.js';
 import { MdClose } from "react-icons/md";
 import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
 import DocumentViewer from '../../../components/DocumentViewer';

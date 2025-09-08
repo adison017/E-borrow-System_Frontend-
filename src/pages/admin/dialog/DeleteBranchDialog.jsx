@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '../../../utils/axios.js';
 import { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
 import PinDialog from "../../../components/dialog/PinDialog";
