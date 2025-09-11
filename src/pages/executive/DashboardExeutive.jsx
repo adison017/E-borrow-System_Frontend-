@@ -1,6 +1,6 @@
 import axios from '../../utils/axios.js';
 import { motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { FaChartBar, FaChartLine, FaExclamationTriangle, FaTools } from 'react-icons/fa';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { API_BASE } from '@/utils/api';
@@ -28,59 +28,38 @@ const widgetConfigs = [
 
 const colorPalette = ['#1e40af', '#dc2626', '#059669', '#d97706', '#7c3aed', '#0891b2', '#be185d', '#0d9488', '#7c2d12', '#86198f'];
 
+// Loading skeleton components
+const SkeletonCard = () => (
+  <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-6 h-full animate-pulse">
+    <div className="flex items-center gap-3 mb-4">
+      <div className="w-12 h-12 rounded-xl bg-slate-200"></div>
+    </div>
+    <div className="flex-1">
+      <div className="h-4 bg-slate-200 rounded mb-3 w-3/4"></div>
+      <div className="h-6 bg-slate-200 rounded w-1/2"></div>
+    </div>
+  </div>
+);
+
+const SkeletonChart = () => (
+  <div className="bg-white rounded-2xl shadow-md border border-slate-100 p-6 animate-pulse">
+    <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+      <div className="w-3 h-3 bg-slate-200 rounded-full"></div>
+      <div className="h-5 bg-slate-200 rounded w-1/3"></div>
+    </div>
+    <div className="h-[300px] flex items-center justify-center">
+      <div className="w-full h-full bg-slate-100 rounded"></div>
+    </div>
+  </div>
+);
+
 const DashboardExeutive = () => {
   const [data, setData] = useState({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Fetch dashboard data from all endpoints with delays to prevent rate limiting
-  useEffect(() => {
-    const fetchAllData = async () => {
-      setLoading(true);
-      const newData = {};
-      
-      // Process requests sequentially with delays to prevent rate limiting
-      for (let i = 0; i < widgetConfigs.length; i++) {
-        const cfg = widgetConfigs[i];
-        try {
-          // Add delay between requests (except for the first one)
-          if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-          
-          const res = await axios.get(API(cfg.endpoint));
-          console.log(`[API] ${cfg.endpoint} response:`, res.data);
-          newData[cfg.key] = res.data;
-        } catch (err) {
-          console.error(`Dashboard API error: ${cfg.endpoint}`, err);
-          if (["table","bar","line","pie","area","donut"].includes(cfg.type)) {
-            newData[cfg.key] = [];
-          } else {
-            newData[cfg.key] = {};
-          }
-        }
-      }
-      
-      console.log('[DashboardExeutive] setData:', newData);
-      setData(newData);
-      setLoading(false);
-    };
-    
-    fetchAllData();
-  }, []);
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.1 } }
-  };
-  const itemVariants = {
-    hidden: { y: 30, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: "easeOut" } }
-  };
-
-
-  // Enhanced summary cards with icons and better styling
-  const summaryCards = [
+  // Memoize summary cards data to prevent unnecessary recalculations
+  const summaryCards = useMemo(() => [
     {
       title: 'มูลค่าครุภัณฑ์ทั้งหมด',
       value: Number((data.totalEquipmentValue && (typeof data.totalEquipmentValue.total_value === 'string' ? parseFloat(data.totalEquipmentValue.total_value) : data.totalEquipmentValue.total_value)) ?? 0),
@@ -113,15 +92,123 @@ const DashboardExeutive = () => {
       icon: <FaChartLine className="text-4xl text-green-500" />,
       unit: ' ครั้ง',
     },
-  ];
+  ], [data]);
 
-  // Loading screen
+  // Fetch dashboard data from all endpoints in parallel for better performance
+  useEffect(() => {
+    const fetchAllData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Create all API requests at once
+        const requests = widgetConfigs.map(cfg => 
+          axios.get(API(cfg.endpoint)).catch(err => {
+            console.error(`Dashboard API error: ${cfg.endpoint}`, err);
+            return { data: [] };
+          })
+        );
+        
+        // Execute all requests in parallel
+        const responses = await Promise.all(requests);
+        
+        // Process responses
+        const newData = {};
+        widgetConfigs.forEach((cfg, index) => {
+          newData[cfg.key] = responses[index].data;
+        });
+        
+        setData(newData);
+      } catch (err) {
+        console.error('Dashboard loading error:', err);
+        setError('Failed to load dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchAllData();
+  }, []);
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.05, delayChildren: 0.1 } }
+  };
+  const itemVariants = {
+    hidden: { y: 30, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.6, ease: "easeOut" } }
+  };
+
+  // Loading screen with skeletons
   if (loading) {
     return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <motion.div 
+          className="p-4 sm:p-6 lg:p-8 max-w-[1400px] mx-auto"
+          initial="hidden" 
+          animate="visible" 
+          variants={containerVariants}
+        >
+          {/* Header Section */}
+          <motion.div className="mb-8" variants={itemVariants}>
+            <div className="h-8 bg-slate-200 rounded w-1/3 mb-2 animate-pulse"></div>
+            <div className="h-4 bg-slate-200 rounded w-1/2 animate-pulse"></div>
+          </motion.div>
+
+          {/* Summary Cards Skeleton */}
+          <motion.div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-10" variants={containerVariants}>
+            {[1, 2, 3, 4].map((item) => (
+              <motion.div 
+                key={item} 
+                variants={itemVariants}
+              >
+                <SkeletonCard />
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Charts Skeleton */}
+          <motion.div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-10" variants={containerVariants}>
+            {[1, 2, 3].map((item) => (
+              <motion.div 
+                key={item} 
+                variants={itemVariants}
+              >
+                <SkeletonChart />
+              </motion.div>
+            ))}
+          </motion.div>
+
+          {/* Secondary Charts Skeleton */}
+          <motion.div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10" variants={containerVariants}>
+            {[1, 2].map((item) => (
+              <motion.div 
+                key={item} 
+                variants={itemVariants}
+              >
+                <SkeletonChart />
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-slate-600 text-lg font-medium">กำลังโหลดข้อมูล...</p>
+        <div className="text-center p-8 bg-white rounded-2xl shadow-lg max-w-md">
+          <div className="text-red-500 text-5xl mb-4">⚠️</div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">Error Loading Dashboard</h2>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );

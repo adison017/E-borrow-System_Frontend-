@@ -502,7 +502,7 @@ const ActivityLogs = () => {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700 flex items-center gap-1">
+                <label className=" text-sm font-medium text-gray-700 flex items-center gap-1">
                   <UserIcon className="w-3 h-3 text-indigo-500" />
                   ชื่อผู้ใช้
                 </label>
@@ -516,7 +516,7 @@ const ActivityLogs = () => {
               </div>
               
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700 flex items-center gap-1">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <DocumentTextIcon className="w-3 h-3 text-blue-500" />
                   ประเภทกิจกรรม
                 </label>
@@ -535,7 +535,7 @@ const ActivityLogs = () => {
               </div>
               
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700 flex items-center gap-1">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <ComputerDesktopIcon className="w-3 h-3 text-purple-500" />
                   ตารางข้อมูล
                 </label>
@@ -554,7 +554,7 @@ const ActivityLogs = () => {
               </div>
               
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700 flex items-center gap-1">
+                <label className=" text-sm font-medium text-gray-700 flex items-center gap-1">
                   <ClockIcon className="w-3 h-3 text-emerald-500" />
                   วันที่เริ่มต้น
                 </label>
@@ -567,7 +567,7 @@ const ActivityLogs = () => {
               </div>
               
               <div className="space-y-1">
-                <label className="block text-sm font-medium text-gray-700 flex items-center gap-1">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <ClockIcon className="w-3 h-3 text-red-500" />
                   วันที่สิ้นสุด
                 </label>
@@ -580,7 +580,7 @@ const ActivityLogs = () => {
               </div>
               
               <div className="space-y-1 sm:col-span-2 lg:col-span-3">
-                <label className="block text-sm font-medium text-gray-700 flex items-center gap-1">
+                <label className="text-sm font-medium text-gray-700 flex items-center gap-1">
                   <MagnifyingGlassIcon className="w-3 h-3 text-orange-500" />
                   ค้นหา
                 </label>

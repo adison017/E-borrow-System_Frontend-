@@ -17,13 +17,17 @@ import { BsFillFilterCircleFill } from "react-icons/bs";
 import { useEffect, useState } from "react";
 import { BiSearchAlt2 } from "react-icons/bi";
 import { UPLOAD_BASE } from '../../utils/api';
-import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
 import { useBadgeCounts, useSocket } from '../../hooks/useSocket';
+
+// Add this import for the new dialog
+import BorrowDetailsViewDialog from "./dialogs/BorrowDetailsViewDialog";
 
 export default function HistoryBorrow() {
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  // Add new state for the view dialog
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   // Default: show all statuses
@@ -308,7 +312,8 @@ export default function HistoryBorrow() {
 
   const handleOpenDialog = (request) => {
     setSelectedRequest(request);
-    setIsDialogOpen(true);
+    // Open the view dialog instead of the approval dialog
+    setIsViewDialogOpen(true);
   };
 
   const handleApproveRequest = (approvedData) => {
@@ -635,12 +640,11 @@ export default function HistoryBorrow() {
       </div>
 
       {/* Dialog สำหรับอนุมัติคำขอ */}
-      <BorrowDetailsDialog
-        open={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        borrowRequest={selectedRequest}
-        onApprove={handleApproveRequest}
-        onReject={handleRejectRequest}
+      {/* Replace the existing dialog with the new view dialog */}
+      <BorrowDetailsViewDialog
+        borrowItem={selectedRequest}
+        isOpen={isViewDialogOpen}
+        onClose={() => setIsViewDialogOpen(false)}
       />
 
       {/* Notification Component */}
