@@ -15,6 +15,8 @@ import { getEquipment, UPLOAD_BASE } from '../../utils/api';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+// Import the QRScannerDialog component
+import QRScannerDialog from '../admin/dialog/QRScannerDialog';
 
 // กำหนดสีและไอคอนตามสถานะ
 const statusConfig = {
@@ -198,6 +200,14 @@ function EquipmentList() {
     } else {
       notifyEquipmentAction("error", "ไม่พบครุภัณฑ์ที่มีรหัสนี้");
     }
+  };
+
+  // Handle equipment found from QR scanner
+  const handleEquipmentFound = (equipment) => {
+    setSelectedEquipment(equipment);
+    setShowDetailDialog(true);
+    setShowQRScanner(false); // Make sure to close the QR scanner
+    notifyEquipmentAction("success", `พบครุภัณฑ์: ${equipment.name}`);
   };
 
   return (
@@ -458,42 +468,11 @@ function EquipmentList() {
       />
 
       {/* QR Scanner Dialog */}
-      {showQRScanner && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">สแกน QR Code</h3>
-                <button
-                  onClick={() => setShowQRScanner(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XMarkIcon className="w-6 h-6" />
-                </button>
-              </div>
-              <div className="text-center py-8">
-                <QrCodeIcon className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-                <p className="text-gray-600">
-                  กรุณาใช้แอปสแกน QR Code เพื่อสแกนรหัสครุภัณฑ์
-                </p>
-                <div className="mt-4">
-                  <input
-                    type="text"
-                    placeholder="หรือพิมพ์รหัสครุภัณฑ์ที่นี่"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        handleQRScan(e.target.value);
-                        e.target.value = '';
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <QRScannerDialog
+        isOpen={showQRScanner}
+        onClose={() => setShowQRScanner(false)}
+        onEquipmentFound={handleEquipmentFound}
+      />
 
       {/* Toast Container */}
       <ToastContainer
