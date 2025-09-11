@@ -234,6 +234,7 @@ export default function RepairRequestDialog({
         problem_description: formData.description,
         request_date: requestDate,
         estimated_cost: Number(formData.estimatedCost) || 0,
+        budget: 0, // Initialize budget as 0 for new requests
         status: "pending",
         pic_filename: uploadedImages.length > 0 ? uploadedImages[0].filename : null,
         images: uploadedImages
