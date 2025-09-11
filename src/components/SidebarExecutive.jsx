@@ -3,12 +3,12 @@ import { AiOutlineHistory } from "react-icons/ai";
 import { BsGraphUp } from "react-icons/bs";
 import { FaShoppingCart, FaSignOutAlt } from "react-icons/fa";
 import { GiAutoRepair } from "react-icons/gi";
-import { MdAnnouncement, MdClose, MdMenu } from "react-icons/md";
+import { MdAnnouncement, MdClose, MdHistory, MdMenu } from "react-icons/md";
 import { CubeIcon } from "@heroicons/react/24/outline";
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Notification from './Notification';
 import { getAllBorrows } from '../utils/api';
-import axios from 'axios';
+import axios from '../utils/axios';
 import { useBadgeCounts } from '../hooks/useSocket';
 import { API_BASE } from '../utils/api';
 
@@ -19,6 +19,7 @@ const menuItems = [
   { to: '/Repair', icon: <MdAnnouncement size={22} />, label: 'อนุมัติการซ่อมครุภัณฑ์', key: 'repairApproval' },
   { to: '/History', icon: <AiOutlineHistory size={22} />, label: 'ประวัติอนุมัติการยืม', key: 'history' },
   { to: '/History_Repair', icon: <GiAutoRepair size={22} />, label: 'ประวัติซ่อมครุภัณฑ์', key: 'historyRepair' },
+  { to: '/activity-logs', icon: <MdHistory size={22} />, label: 'รายงานกิจกรรมระบบ', key: 'activityLogs' },
 ];
 
 function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOpen }) {
@@ -81,19 +82,25 @@ function SidebarExecutive({ isCollapsed, toggleCollapse, mobileOpen, setMobileOp
   }, [subscribeToBadgeCounts]);
 
   useEffect(() => {
-    // initial load
-    (async () => {
+    // initial load with delay to prevent rate limiting
+    const loadData = async () => {
       try {
-        const [borrowsRes, repairsRes] = await Promise.all([
-          getAllBorrows(),
-          axios.get(`${API_BASE}/repair-requests`).then(r => r.data)
-        ]);
+        // Add delays between requests to prevent rate limiting
+        const borrowsRes = await getAllBorrows();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        const repairsRes = await axios.get(`${API_BASE}/repair-requests`).then(r => r.data);
+        
         const borrowList = Array.isArray(borrowsRes) ? borrowsRes : [];
         const repairList = Array.isArray(repairsRes) ? repairsRes : [];
         setBorrowApprovalCount(borrowList.filter(b => b.status === 'pending_approval').length);
         setRepairApprovalCount(repairList.filter(r => r.status === 'pending').length);
-      } catch {}
-    })();
+      } catch (error) {
+        console.error('Error loading sidebar data:', error);
+      }
+    };
+    
+    loadData();
   }, []);
 
   const isActive = (path) => location.pathname === path;

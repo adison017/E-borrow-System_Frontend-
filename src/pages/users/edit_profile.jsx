@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios from '../../utils/axios.js';
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { isCloudinaryUrl, getOptimizedCloudinaryUrl } from '../../utils/cloudinaryUtils';

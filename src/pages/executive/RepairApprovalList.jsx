@@ -2,7 +2,7 @@
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 import { IconButton, Tooltip } from "@material-tailwind/react";
-import axios from 'axios';
+import axios from '../../utils/axios.js';
 import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
