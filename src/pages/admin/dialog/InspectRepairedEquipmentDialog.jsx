@@ -4,14 +4,17 @@ import {
   DocumentCheckIcon,
   ExclamationTriangleIcon,
   TagIcon,
-  UserIcon
+  UserIcon,
+  WrenchIcon,
+  CheckCircleIcon
 } from "@heroicons/react/24/outline";
 import axios from '../../../utils/axios.js';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MdClose } from "react-icons/md";
 import { FaCheckCircle, FaTimesCircle, FaTools } from 'react-icons/fa';
 import { API_BASE } from '../../../utils/api';
 import { toast } from 'react-toastify';
+import { getRepairRequestsByItemId } from '../../../utils/api';
 
 export default function InspectRepairedEquipmentDialog({
   open,
@@ -25,6 +28,34 @@ export default function InspectRepairedEquipmentDialog({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [repairRequests, setRepairRequests] = useState([]);
+  const [loadingRepairRequests, setLoadingRepairRequests] = useState(false);
+
+  // Fetch repair requests when equipment changes
+  useEffect(() => {
+    if (open && equipment?.item_id) {
+      fetchRepairRequests();
+    }
+  }, [open, equipment?.item_id]);
+
+  const fetchRepairRequests = async () => {
+    if (!equipment?.item_id) return;
+    
+    try {
+      setLoadingRepairRequests(true);
+      const requests = await getRepairRequestsByItemId(equipment.item_id);
+      // Ensure we're working with an array
+      const requestsArray = Array.isArray(requests) ? requests : [requests];
+      // Filter for approved repair requests (though backend now only returns approved ones)
+      const approvedRequests = requestsArray.filter(request => request.status === 'approved');
+      setRepairRequests(approvedRequests);
+    } catch (error) {
+      console.error('Error fetching repair requests:', error);
+      setRepairRequests([]);
+    } finally {
+      setLoadingRepairRequests(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!formData.inspectionNotes.trim()) {
@@ -240,58 +271,109 @@ export default function InspectRepairedEquipmentDialog({
                   title="บันทึกการตรวจสอบ"
                   icon={<DocumentCheckIcon className="h-5 w-5 text-white" />}
                 />
-                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 flex-1">
-                  <div className="p-6 h-full flex flex-col justify-center">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-bold text-white mb-2">
-                          บันทึกการตรวจสอบ <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                          rows={6}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-2xl shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                          value={formData.inspectionNotes}
-                          onChange={(e) => setFormData({ ...formData, inspectionNotes: e.target.value })}
-                          placeholder="บันทึกผลการตรวจสอบ เช่น การซ่อมแซมที่ทำ, ส่วนที่ยังต้องปรับปรุง, ข้อสังเกตต่างๆ..."
+                <div className="bg-white rounded-xl p-4 mb-4 shadow-md border border-blue-200">
+                  <div className="space-y-4">
+                    {/* Repair Approval Information - Moved inside inspection section */}
+                    {repairRequests.length > 0 && (
+                      <div className="bg-white rounded-xl p-4 mb-4 shadow-md border border-blue-200">
+                        <h4 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                          <WrenchIcon className="h-5 w-5 text-blue-600" />
+                          ข้อมูลการอนุมัติซ่อม
+                        </h4>
+                        <div className="space-y-3">
+                          {repairRequests.map((request, index) => (
+                            <div key={request.id} className="bg-blue-50 rounded-lg border border-blue-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+                              <div className="flex items-center justify-between mb-3">
+                                <h5 className="font-bold text-gray-800 text-sm">คำขอซ่อม #{request.repair_code || request.id}</h5>
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-800 border border-green-300">
+                                  <CheckCircleIcon className="w-3 h-3 mr-1" />
+                                  อนุมัติแล้ว
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                <div className="flex items-center">
+                                  <span className="font-medium text-gray-600 w-32">งบประมาณที่อนุมัติ:</span>
+                                  <span className="text-gray-800 font-medium">
+                                    {Number(request.budget || 0).toLocaleString('th-TH')} บาท
+                                  </span>
+                                </div>
+                                <div className="flex items-center">
+                                  <span className="font-medium text-gray-600 w-32">วันที่อนุมัติ:</span>
+                                  <span className="text-gray-800">
+                                    {request.approval_date 
+                                      ? new Date(request.approval_date).toLocaleDateString('th-TH', {
+                                          year: 'numeric',
+                                          month: 'short',
+                                          day: 'numeric'
+                                        })
+                                      : 'ไม่ระบุ'}
+                                  </span>
+                                </div>
+                                <div className="md:col-span-2 flex items-center">
+                                  <span className="font-medium text-gray-600 w-32">ผู้รับผิดชอบ:</span>
+                                  <span className="text-gray-800">{request.responsible_person || 'ไม่ระบุ'}</span>
+                                </div>
+                                {request.note && (
+                                  <div className="md:col-span-2 flex">
+                                    <span className="font-medium text-gray-600 w-32">หมายเหตุ:</span>
+                                    <span className="text-gray-800">{request.note}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div>
+                      <label className="block text-sm font-bold text-gray-800 mb-2">
+                        บันทึกการตรวจสอบ <span className="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        rows={6}
+                        className="w-full px-3 py-2 border border-blue-200 rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                        value={formData.inspectionNotes}
+                        onChange={(e) => setFormData({ ...formData, inspectionNotes: e.target.value })}
+                        placeholder="บันทึกผลการตรวจสอบ เช่น การซ่อมแซมที่ทำ, ส่วนที่ยังต้องปรับปรุง, ข้อสังเกตต่างๆ..."
+                      />
+                      {error && formData.inspectionNotes.trim() === '' && (
+                        <p className="text-red-500 text-sm mt-1">{error}</p>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <label className={`flex items-center gap-3 cursor-pointer p-4 rounded-lg border transition-all  ${
+                        formData.isRepaired
+                          ? 'border-green-300 bg-green-50'
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="repairStatus"
+                          className="radio radio-success"
+                          checked={formData.isRepaired}
+                          onChange={() => setFormData({ ...formData, isRepaired: true })}
                         />
-                        {error && formData.inspectionNotes.trim() === '' && (
-                          <p className="text-red-500 text-sm mt-1">{error}</p>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <label className={`flex items-center gap-3 cursor-pointer p-4 rounded-full border-2 transition-all  ${
-                          formData.isRepaired
-                            ? 'border-green-300 bg-green-50'
-                            : 'border-gray-200 hover:bg-green-50 hover:border-green-200 bg-white/50'
-                        }`}>
-                          <input
-                            type="radio"
-                            name="repairStatus"
-                            className="radio radio-success"
-                            checked={formData.isRepaired}
-                            onChange={() => setFormData({ ...formData, isRepaired: true })}
-                          />
-                          <div className="flex items-center gap-2">
-                            <span className="text-black font-medium">ซ่อมสำเร็จ</span>
-                          </div>
-                        </label>
-                        <label className={`flex items-center gap-3 cursor-pointer p-4 rounded-full border-2 transition-all ${
-                          !formData.isRepaired
-                            ? 'border-red-300 bg-red-50'
-                            : 'border-gray-200 hover:bg-red-50 hover:border-red-200 bg-white/50 '
-                        }`}>
-                          <input
-                            type="radio"
-                            name="repairStatus"
-                            className="radio radio-error"
-                            checked={!formData.isRepaired}
-                            onChange={() => setFormData({ ...formData, isRepaired: false })}
-                          />
-                          <div className="flex items-center gap-2">
-                            <span className="text-black font-medium">ซ่อมไม่สำเร็จ</span>
-                          </div>
-                        </label>
-                      </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-800 font-medium">ซ่อมสำเร็จ</span>
+                        </div>
+                      </label>
+                      <label className={`flex items-center gap-3 cursor-pointer p-4 rounded-lg border transition-all ${
+                        !formData.isRepaired
+                          ? 'border-red-300 bg-red-50'
+                          : 'border-gray-200 hover:bg-gray-50'
+                      }`}>
+                        <input
+                          type="radio"
+                          name="repairStatus"
+                          className="radio radio-error"
+                          checked={!formData.isRepaired}
+                          onChange={() => setFormData({ ...formData, isRepaired: false })}
+                        />
+                        <div className="flex items-center gap-2">
+                          <span className="text-gray-800 font-medium">ซ่อมไม่สำเร็จ</span>
+                        </div>
+                      </label>
                     </div>
                   </div>
                 </div>

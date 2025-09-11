@@ -400,17 +400,8 @@ function ManageEquipment() {
     // Try to fetch repair requests for this equipment
     try {
       const repairRequests = await getRepairRequestsByItemId(equipment.item_id || equipment.id || equipment.item_code);
-      // Find the latest repair request with status 'กำลังซ่อม' or similar (if needed)
-      let latestRequest = null;
-      if (Array.isArray(repairRequests) && repairRequests.length > 0) {
-        // Sort by created_at or id descending if available
-        latestRequest = repairRequests.sort((a, b) => {
-          if (a.created_at && b.created_at) {
-            return new Date(b.created_at) - new Date(a.created_at);
-          }
-          return (b.id || 0) - (a.id || 0);
-        })[0];
-      }
+      // Get the latest repair request (though backend now only returns one)
+      const latestRequest = Array.isArray(repairRequests) ? repairRequests[0] : repairRequests;
       const equipmentWithRequest = latestRequest
         ? { ...equipment, repair_request_id: latestRequest.id }
         : equipment;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MdClose } from 'react-icons/md';
 import { 
   TagIcon,
@@ -9,14 +9,45 @@ import {
   CurrencyDollarIcon,
   HashtagIcon,
   DocumentTextIcon,
-  MapPinIcon
+  MapPinIcon,
+  WrenchIcon,
+  CheckCircleIcon
 } from '@heroicons/react/24/outline';
 import { UPLOAD_BASE } from '../../../utils/api';
+import { getRepairRequestsByItemId } from '../../../utils/api';
 
 const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [roomImageModalOpen, setRoomImageModalOpen] = useState(false);
+  const [repairRequests, setRepairRequests] = useState([]);
+  const [loadingRepairRequests, setLoadingRepairRequests] = useState(false);
   
+  // Fetch repair requests when equipment changes
+  useEffect(() => {
+    if (open && equipment?.item_id) {
+      fetchRepairRequests();
+    }
+  }, [open, equipment?.item_id]);
+
+  const fetchRepairRequests = async () => {
+    if (!equipment?.item_id) return;
+    
+    try {
+      setLoadingRepairRequests(true);
+      const requests = await getRepairRequestsByItemId(equipment.item_id);
+      // Ensure we're working with an array
+      const requestsArray = Array.isArray(requests) ? requests : [requests];
+      // Filter for approved repair requests (though backend now only returns approved ones)
+      const approvedRequests = requestsArray.filter(request => request.status === 'approved');
+      setRepairRequests(approvedRequests);
+    } catch (error) {
+      console.error('Error fetching repair requests:', error);
+      setRepairRequests([]);
+    } finally {
+      setLoadingRepairRequests(false);
+    }
+  };
+
   if (!open || !equipment) return null;
 
   const getStatusColor = (status) => {
@@ -265,6 +296,59 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
               )}
             </div>
           </div>
+
+          {/* Repair Approval Information */}
+          {repairRequests.length > 0 && (
+            <div className="mt-8 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
+                <WrenchIcon className="w-6 h-6 text-amber-600" />
+                ข้อมูลการอนุมัติซ่อม
+              </h3>
+              <div className="space-y-4">
+                {repairRequests.map((request, index) => (
+                  <div key={request.id} className="bg-white rounded-lg border border-amber-100 p-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-gray-800">คำขอซ่อม #{request.repair_code || request.id}</h4>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                        <CheckCircleIcon className="w-3 h-3 mr-1" />
+                        อนุมัติแล้ว
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-600">งบประมาณที่อนุมัติ:</span>
+                        <span className="ml-2 text-gray-800">
+                          {Number(request.budget || 0).toLocaleString('th-TH')} บาท
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-600">วันที่อนุมัติ:</span>
+                        <span className="ml-2 text-gray-800">
+                          {request.approval_date 
+                            ? new Date(request.approval_date).toLocaleDateString('th-TH', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })
+                            : 'ไม่ระบุ'}
+                        </span>
+                      </div>
+                      <div className="md:col-span-2">
+                        <span className="font-medium text-gray-600">ผู้รับผิดชอบ:</span>
+                        <span className="ml-2 text-gray-800">{request.responsible_person || 'ไม่ระบุ'}</span>
+                      </div>
+                      {request.note && (
+                        <div className="md:col-span-2">
+                          <span className="font-medium text-gray-600">หมายเหตุ:</span>
+                          <span className="ml-2 text-gray-800">{request.note}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Description - Full Width */}
           {equipment.description && (

@@ -1150,7 +1150,10 @@ const Home = () => {
                         <div className="card-body p-4 md:p-6">
                           <div className="card-title flex flex-col gap-2">
                             <h2 className="font-semibold line-clamp-1 text-lg md:text-xl">{equipment.name}</h2>
-                            <p className="text-sm">{equipment.code}</p>
+                            <div className="flex flex-col">
+                              <span className="text-xs text-gray-500 mb-1">รหัสครุภัณฑ์</span>
+                              <p className="text-sm font-mono bg-gray-100 rounded px-2 py-1 text-gray-700 truncate" title={equipment.code}>{equipment.code}</p>
+                            </div>
                           </div>
 
                           <div className="flex flex-col items-center w-full mt-2">
