@@ -37,6 +37,7 @@ import ActivityLogs from './pages/executive/ActivityLogs';
 import BorrowApprovalList from './pages/executive/BorrowApprovalList';
 import DashboardExeutive from './pages/executive/DashboardExeutive';
 import EquipmentList from './pages/executive/EquipmentList';
+import ExpenseManagement from './pages/executive/ExpenseManagement';
 import Historybt from './pages/executive/Historyborrow';
 import HistoryRe from './pages/executive/HistoryRepair';
 import RepairApprovalList from './pages/executive/RepairApprovalList';
@@ -509,6 +510,7 @@ function AppInner() {
                 <Route path="/Repair" element={<RepairApprovalList />} />
                 <Route path="/History" element={<Historybt />} />
                 <Route path="/History_repair" element={<HistoryRe />} />
+                <Route path="/expenses" element={<ExpenseManagement />} />
                 <Route path="/activity-logs" element={<ActivityLogs />} />
                 <Route path="/edit_profile" element={<Edit_pro />} />
                 <Route path="*" element={<Navigate to="/DashboardEx" replace />} />

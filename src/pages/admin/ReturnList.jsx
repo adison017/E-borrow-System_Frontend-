@@ -97,10 +97,17 @@ const statusConfig = {
     icon: ClockIcon,
     backgroundColor: "bg-amber-50",
     borderColor: "border-amber-100"
+  },
+  paid: {
+    label: "ชำระเงินแล้ว",
+    color: "green",
+    icon: CheckCircleSolidIcon,
+    backgroundColor: "bg-green-50",
+    borderColor: "border-green-100"
   }
 };
 
-const displayableStatusKeys = ["approved", "overdue", "waiting_payment"];
+const displayableStatusKeys = ["approved", "overdue", "waiting_payment", "paid"];
 
 const FINE_RATE_PER_DAY = 50;
 function calculateReturnStatus(borrowedItem) {
@@ -503,6 +510,12 @@ const ReturnList = () => {
             <BanknotesIcon className="w-4 h-4" /> รอชำระเงิน
           </div>
         );
+      case "paid":
+        return (
+          <div className="inline-flex items-center gap-1 rounded-lg bg-green-100 px-2 py-1 text-green-700 text-xs font-semibold">
+            <CheckCircleSolidIcon className="w-4 h-4" /> ชำระเงินแล้ว
+          </div>
+        );
       default:
         return <div className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-gray-700 text-xs font-semibold">ไม่ทราบสถานะ</div>;
     }
@@ -533,7 +546,7 @@ const ReturnList = () => {
   const paginatedReturns = filteredReturns.slice((page - 1) * rowsPerPage, page * rowsPerPage);
 
   // กรองข้อมูลก่อน render เฉพาะที่ยังไม่คืนสำเร็จ
-  const displayableStatus = ["approved", "overdue", "waiting_payment"];
+  const displayableStatus = ["approved", "overdue", "waiting_payment", "paid"];
   const displayReturns = returns.filter(item => displayableStatus.includes(item.status));
 
   return (
@@ -712,7 +725,14 @@ const ReturnList = () => {
                             className="w-10 h-10 rounded-full object-cover bg-white border border-gray-200 shadow-sm flex-shrink-0"
                           />
                           <div className="overflow-hidden">
-                            <Typography variant="small" className="font-semibold text-gray-900 truncate">{item.borrower.name}</Typography>
+                            <Typography variant="small" className="font-semibold text-gray-900 truncate">
+                              {item.borrower.name}
+                            </Typography>
+                            {item.return_by_name && (
+                              <Typography variant="small" className="font-normal text-gray-600 text-xs">
+                                ผู้แจ้ง: {item.return_by_name}
+                              </Typography>
+                            )}
                             <Typography variant="small" className="font-normal text-gray-600 text-xs">
                               {item.borrower.position}
                             </Typography>
