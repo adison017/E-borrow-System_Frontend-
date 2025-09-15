@@ -181,6 +181,13 @@ export default function EditEquipmentDialog({
         return;
       }
 
+      // ตรวจสอบชื่อครุภัณฑ์ (อนุญาตตัวอักษรไทย อังกฤษ ตัวเลข เว้นวรรค และเครื่องหมายวรรคตอนทั่วไป)
+      const namePattern = /^[a-zA-Z0-9ก-๛\s\-\(\)\.\/\%\#\@\!\&\+\=\:\;\'\"\?\,\>\<\[\]\{\}\_\*\^\~\`\|\\]+$/;
+      if (!namePattern.test(formData.name)) {
+        setMissingFields(['ชื่อครุภัณฑ์ไม่ถูกต้อง (อนุญาตตัวอักษรไทย อังกฤษ ตัวเลข เว้นวรรค และเครื่องหมายวรรคตอนทั่วไป)']);
+        return;
+      }
+
       let dataToSave = { ...formData };
 
       // อัปโหลดรูปภาพไปยัง Cloudinary ถ้ามีไฟล์ใหม่
