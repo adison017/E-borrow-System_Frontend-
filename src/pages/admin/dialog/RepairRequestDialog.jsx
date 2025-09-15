@@ -44,8 +44,10 @@ export default function RepairRequestDialog({
 
   // Function to generate random repair code
   const generateRepairCode = () => {
-    const randomNum = Math.floor(10000 + Math.random() * 90000); // Random 5 digits
-    return `RP-${randomNum}`;
+    // Generate a more unique repair code with timestamp and longer random component
+    const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+    const randomNum = Math.floor(100000 + Math.random() * 900000); // 6-digit random number
+    return `RP-${timestamp}-${randomNum}`;
   };
 
   // Function to fetch user data from API
