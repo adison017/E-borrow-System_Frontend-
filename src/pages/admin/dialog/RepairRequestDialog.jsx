@@ -44,11 +44,15 @@ export default function RepairRequestDialog({
 
   // Function to generate random repair code
   const generateRepairCode = () => {
-    // Generate a more unique repair code with timestamp and longer random component
-    const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
-    const randomNum = Math.floor(100000 + Math.random() * 900000); // 6-digit random number
-    return `RP-${timestamp}-${randomNum}`;
-  };
+  // เอา timestamp ปัจจุบัน (มิลลิวินาที) + ตัวเลขสุ่ม 4 หลัก
+  const timestamp = Date.now(); // เช่น 1694775123456
+  const randomPart = Math.floor(1000 + Math.random() * 9000); // 4 หลักสุ่ม
+  const code = `RP-${String(timestamp).slice(-6)}${randomPart}`; // เอา 6 หลักท้ายของ timestamp + 4 หลักสุ่ม = 10 หลัก
+  return code;
+};
+
+console.log(generateRepairCode()); // ตัวอย่าง: RP-1234567890
+
 
   // Function to fetch user data from API
   const fetchUserData = async () => {
