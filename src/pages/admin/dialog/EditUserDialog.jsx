@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { GiOfficeChair } from "react-icons/gi";
-// EditUserDialog.jsx
 import axios from '../../../utils/axios.js';
 import {
   FaBook,
@@ -58,24 +57,22 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   const [pinError, setPinError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
 
-              // Add validation state for real-time feedback
-            const [validation, setValidation] = useState({
-              email: null,
-              user_code: null,
-              phone: null,
-              username: null
-            });
+  const [validation, setValidation] = useState({
+    email: null,
+    user_code: null,
+    phone: null,
+    username: null
+  });
 
   useEffect(() => {
-    // Get current user from localStorage
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {
         const user = JSON.parse(userStr);
         setCurrentUser(user);
-          } catch (error) {
-      // Error parsing user data
-    }
+      } catch (error) {
+        // Error parsing user data
+      }
     }
 
     const fetchData = async () => {
@@ -96,21 +93,13 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         setRoles(rolesResponse.data);
         setProvinces(provincesResponse);
 
-        // If we have user data, set the address data
         if (userData) {
-          // Setting initial address data for user
-
-          // Find the matching province
           const province = provincesResponse.find(p => p.name_th === userData.province);
           if (province) {
             setAmphures(province.amphure);
-
-            // Find the matching amphure (district)
             const amphure = province.amphure.find(a => a.name_th === userData.district);
             if (amphure) {
               setTambons(amphure.tambon);
-
-              // Find the matching tambon (parish)
               const tambon = amphure.tambon.find(t => t.name_th === userData.parish);
               if (tambon) {
                 setSelected({
@@ -122,8 +111,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
             }
           }
         }
-
-        // Fetched data successfully
       } catch (error) {
         // Error fetching data
       }
@@ -136,13 +123,9 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
   const getAvatarUrl = (path) => {
     if (!path) return 'logo_it.png';
-
-    // ถ้าเป็น Cloudinary URL ใช้เลย
     if (path.includes('cloudinary.com')) {
       return path;
     }
-
-    // ถ้าเป็น local path ให้แปลงเป็น filename
     let filename = path;
     filename = filename.replace(/^http:\/\/localhost:5000\//, '')
       .replace(/^[\\/]+/, '')
@@ -208,9 +191,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   useEffect(() => {
     if (userData) {
       const avatarPath = getAvatarUrl(userData.avatar);
-              // Setting form data with user data
 
-      // Find province, amphure, and tambon IDs based on names
       const province = provinces.find(p => p.name_th === userData.province);
       if (province) {
         setAmphures(province.amphure);
@@ -249,7 +230,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         postal_no: userData.postal_no || '',
         password: ''
       });
-      // ตั้งค่า preview image - ถ้าเป็น Cloudinary URL ใช้เลย ถ้าเป็น local path ให้สร้าง URL
+
       if (avatarPath && avatarPath.includes('cloudinary.com')) {
         setPreviewImage(avatarPath);
       } else {
@@ -258,7 +239,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     }
   }, [userData, provinces]);
 
-    // Real-time validation function
   const validateField = async (name, value) => {
     if (!value) {
       setValidation(prev => ({ ...prev, [name]: null }));
@@ -270,38 +250,31 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
       if (name === 'email' && value.includes('@')) {
         const res = await axios.get(`${API_BASE}/users/email/${value}`);
-        // Check if data exists and belongs to a different user
         const isDuplicate = res.data && res.data.user_id !== currentUserId;
         setValidation(prev => ({ ...prev, email: isDuplicate ? 'duplicate' : 'ok' }));
       } else if (name === 'user_code' && value.length >= 5) {
         const res = await axios.get(`${API_BASE}/users/username/${value}`);
-        // Check if data exists and belongs to a different user
         const isDuplicate = res.data && res.data.user_id !== currentUserId;
         setValidation(prev => ({ ...prev, user_code: isDuplicate ? 'duplicate' : 'ok' }));
       } else if (name === 'username' && value.length >= 3) {
         const res = await axios.get(`${API_BASE}/users/username/${value}`);
-        // Check if data exists and belongs to a different user
         const isDuplicate = res.data && res.data.user_id !== currentUserId;
         setValidation(prev => ({ ...prev, username: isDuplicate ? 'duplicate' : 'ok' }));
       } else if (name === 'phone' && value.length >= 9) {
         const res = await axios.get(`${API_BASE}/users/phone/${value}`);
-        // Check if data exists and belongs to a different user
         const isDuplicate = res.data && res.data.user_id !== currentUserId;
         setValidation(prev => ({ ...prev, phone: isDuplicate ? 'duplicate' : 'ok' }));
       }
     } catch (error) {
-      // If error, assume field is available
       setValidation(prev => ({ ...prev, [name]: 'ok' }));
     }
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-            // Handling change
 
     if (name === 'position_name') {
       const selectedPosition = positions.find(p => p.position_name === value);
-              // Selected position
       setFormData(prev => ({
         ...prev,
         position_name: value,
@@ -309,7 +282,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
       }));
     } else if (name === 'branch_name') {
       const selectedBranch = branches.find(b => b.branch_name === value);
-              // Selected branch
       setFormData(prev => ({
         ...prev,
         branch_name: value,
@@ -317,7 +289,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
       }));
     } else if (name === 'role_name') {
       const selectedRole = roles.find(r => r.role_name === value);
-              // Selected role
       setFormData(prev => ({
         ...prev,
         role_name: value,
@@ -327,10 +298,9 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
 
-                // Real-time validation for email, user_code, username, and phone
-            if (['email', 'user_code', 'username', 'phone'].includes(name)) {
-              validateField(name, value);
-            }
+    if (['email', 'user_code', 'username', 'phone'].includes(name)) {
+      validateField(name, value);
+    }
   };
 
   const handleImageChange = (e) => {
@@ -353,11 +323,10 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         return;
       }
 
-      // แสดง preview รูปภาพทันที แต่ยังไม่อัพโหลด
       const reader = new FileReader();
       reader.onload = (e) => {
         setPreviewImage(e.target.result);
-        setFormData(prev => ({ ...prev, pic: file })); // เก็บไฟล์ไว้ใน formData
+        setFormData(prev => ({ ...prev, pic: file }));
       };
       reader.readAsDataURL(file);
     }
@@ -389,18 +358,14 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
 
   const handlePinSubmit = async (e) => {
     e.preventDefault();
-    // handlePinSubmit called
 
     if (!currentUser) {
-              // No currentUser found
       setPinError("ไม่พบข้อมูลผู้ใช้ปัจจุบัน");
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
-              // Token check and sending request
-
       const response = await axios.post(`${API_BASE}/users/verify-password`,
         { password: pin },
         {
@@ -411,28 +376,21 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         }
       );
 
-              // Response received
-
       if (response.data.success) {
-                  // Password verified successfully
         setShowPin(false);
         setPin("");
         setPinError("");
-        handleSubmit(); // call the real submit
+        handleSubmit();
       } else {
-                  // Password verification failed
         setPinError("รหัสผ่านไม่ถูกต้อง");
       }
     } catch (error) {
-              // Error in handlePinSubmit
       setPinError(error.response?.data?.message || "รหัสผ่านไม่ถูกต้อง");
     }
   };
 
-  // ปรับ handleSubmit ให้ไม่รับ event ถ้ามาจาก PIN
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    // handleSubmit called
     setIsLoading(true);
     setError(null);
 
@@ -444,10 +402,8 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     }
 
     try {
-      // Pre-submission validation for duplicates
       const currentUserId = formData.user_id;
 
-      // Check for duplicate email (excluding current user)
       if (formData.email) {
         try {
           const emailRes = await axios.get(`${API_BASE}/users/email/${formData.email}`);
@@ -461,7 +417,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         }
       }
 
-      // Check for duplicate user_code (excluding current user)
       if (formData.user_code) {
         try {
           const userCodeRes = await axios.get(`${API_BASE}/users/username/${formData.user_code}`);
@@ -475,7 +430,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         }
       }
 
-      // Check for duplicate username (excluding current user)
       if (formData.username) {
         try {
           const usernameRes = await axios.get(`${API_BASE}/users/username/${formData.username}`);
@@ -489,7 +443,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         }
       }
 
-      // Check for duplicate phone (excluding current user)
       if (formData.phone) {
         try {
           const phoneRes = await axios.get(`${API_BASE}/users/phone/${formData.phone}`);
@@ -501,19 +454,13 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         } catch (error) {
           // Continue if error
         }
-            }
+      }
 
-      // ตรวจสอบรูปภาพ - ถ้าเป็น Cloudinary URL ใช้เลย ถ้าเป็น File ให้อัปโหลดก่อน
       let avatarUrl = formData.pic;
-              // formData.pic type and value
 
       if (formData.pic && typeof formData.pic === 'string' && formData.pic.includes('cloudinary.com')) {
-        // ถ้าเป็น Cloudinary URL ใช้เลย
-                  // Using existing Cloudinary URL
         avatarUrl = formData.pic;
       } else if (formData.pic instanceof File) {
-        // ถ้าเป็น File ให้อัปโหลดก่อน
-                  // Uploading file to Cloudinary
         const formDataImage = new FormData();
         formDataImage.append('user_code', formData.user_code);
         formDataImage.append('avatar', formData.pic);
@@ -526,7 +473,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
             }
           });
           if (uploadResponse.data && uploadResponse.data.url) {
-            // File uploaded successfully
             avatarUrl = uploadResponse.data.url;
           }
         } catch (uploadError) {
@@ -534,7 +480,8 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
           setIsLoading(false);
           return;
         }
-              }
+      }
+
       const updateData = {
         user_id: formData.user_id,
         user_code: formData.user_code,
@@ -552,9 +499,6 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         postal_no: formData.postal_no,
         avatar: avatarUrl
       };
-      if (formData.password) {
-        updateData.password = formData.password;
-      }
 
       const validationErrors = validateForm(updateData);
 
@@ -563,6 +507,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         setIsLoading(false);
         return;
       }
+
       const response = await axios.patch(
         `${API_BASE}/users/id/${formData.user_id}`,
         updateData,
@@ -599,362 +544,433 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   if (!open) return null;
 
   return (
-    <div className="modal modal-open">
-      <div className="modal-box relative w-full max-h-[95vh] max-w-8xl mx-auto bg-white rounded-3xl overflow-hidden animate-fadeIn transition-all duration-300 transform overflow-y-auto">
+    <div className="modal modal-open backdrop-blur-sm bg-black/30">
+      <div className="relative w-full max-h-[97vh] max-w-8xl mx-auto bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-100 animate-fadeIn transition-all duration-500 transform scale-100 hover:shadow-3xl overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute right-5 top-5 text-gray-400 hover:text-red-500 p-2 rounded-full hover:bg-gray-50 z-10 transition-all duration-200 transform hover:rotate-90"
-          aria-label="ปิด"
+          className="absolute right-6 top-6 text-gray-400 hover:text-red-500 p-3 rounded-full hover:bg-red-50 z-20 transition-all duration-300 transform hover:rotate-180 hover:scale-110"
         >
-          <MdClose className="w-7 h-7" />
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
 
         <div className="flex flex-col md:flex-row h-full">
-          <div className="flex flex-col items-center justify-start pt-10 px-10 bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 md:min-w-[280px]">
-            <div className="mb-8">
-              <h2 className="text-xl font-bold text-blue-800 text-center mb-2">แก้ข้อมูลผู้ใช้งาน</h2>
-              <h3 className="text-lg font-bold text-blue-800 text-center mb-2">รูปโปรไฟล์</h3>
-              <p className="text-xs text-gray-500 text-center">อัพโหลดรูปภาพสำหรับใช้เป็นรูปโปรไฟล์</p>
+          <div className="flex flex-col items-center justify-start pt-20 px-12 bg-blue-50 md:min-w-[320px] relative overflow-hidden">
+            <div className="mb-10 text-center relative z-10">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-500 rounded-full mb-4 shadow-full">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold text-blue-700 mb-2">แก้ไขข้อมูลผู้ใช้งาน</h2>
+              <h3 className="text-lg font-semibold text-blue-700 mb-1">รูปโปรไฟล์</h3>
+              <p className="text-sm text-gray-600">อัพโหลดรูปภาพสำหรับใช้เป็นรูปโปรไฟล์</p>
             </div>
-            <div className="w-36 h-36 rounded-full bg-white shadow-lg flex items-center justify-center relative group overflow-hidden border-4 border-white hover:border-blue-200 transition-all duration-300">
-              <img
-                src={previewImage && previewImage.includes('cloudinary.com') ? previewImage : previewImage || "/profile.png"}
-                alt="Profile"
-                className="w-full h-full object-cover rounded-full"
-                onError={e => {
-                  e.target.onerror = null;
-                  e.target.src = "/profile.png";
-                }}
-              />
-              <label htmlFor="profile-upload-edit" className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer rounded-full">
-                <MdCloudUpload className="w-8 h-8 text-white mb-1" />
-                <span className="text-xs font-medium text-white bg-blue-600/80 hover:bg-blue-700 px-3 py-1.5 rounded-full shadow-lg transform transition-transform duration-300 group-hover:scale-110">เปลี่ยนรูป</span>
-              </label>
-              <input
-                id="profile-upload-edit"
-                type="file"
-                className="hidden"
-                accept="image/jpeg, image/png"
-                ref={fileInputRef}
-                onChange={handleImageChange}
-              />
+            
+            <div className="relative group">
+              <div className="w-40 h-40 rounded-full bg-white shadow-2xl group-hover:shadow-3xl transition-all duration-500 group-hover:scale-105">
+                <img
+                  src={previewImage && previewImage.includes('cloudinary.com') ? previewImage : previewImage || "/profile.png"}
+                  alt="Profile"
+                  className="w-full h-full object-cover rounded-full transition-all duration-500 group-hover:scale-110"
+                  onError={e => {
+                    e.target.onerror = null;
+                    e.target.src = "/profile.png";
+                  }}
+                />
+                <label htmlFor="profile-upload-edit" className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer rounded-full">
+                  <MdCloudUpload className="w-8 h-8 text-white mb-1" />
+                  <span className="text-xs font-medium text-white bg-blue-600/80 hover:bg-blue-700 px-3 py-1.5 rounded-full shadow-lg transform transition-transform duration-300 group-hover:scale-110">เปลี่ยนรูป</span>
+                </label>
+                <input
+                  id="profile-upload-edit"
+                  type="file"
+                  className="hidden"
+                  accept="image/jpeg, image/png"
+                  ref={fileInputRef}
+                  onChange={handleImageChange}
+                />
+              </div>
+              <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${
+                formData.role_name === 'admin' ? 'bg-red-500' :
+                formData.role_name === 'executive' ? 'bg-purple-500' :
+                'bg-emerald-500'
+              }`}>
+                {formData.role_name === 'user' ? 'ผู้ใช้งาน' : formData.role_name === 'admin' ? 'ผู้ดูแลระบบ' : formData.role_name === 'executive' ? 'ผู้บริหาร' : formData.role_name}
+              </div>
             </div>
             {formData.pic && typeof formData.pic !== 'string' && (
               <span className="text-xs text-gray-500 max-w-full truncate px-3 bg-white/70 py-1.5 rounded-full mt-4 shadow-sm border border-gray-100">{formData.pic.name}</span>
             )}
-            <div>
-                      <label className="mt-5 text-sm font-medium text-gray-700 mb-1 flex justify-center items-center">
-                        <GiOfficeChair className="w-5 h-5 mr-2 text-center text-blue-500" />
-                        บทบาท<span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <select
-                        name="role_name"
-                        className="w-35 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
-                        value={formData.role_name}
-                        onChange={handleChange}
-                        required
-                      >
-                        <option value="" disabled>เลือกบทบาท</option>
-                        {roles.map(role => (
-                          <option key={role.role_id} value={role.role_name}>
-                            {role.role_name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
           </div>
 
-          <div className="flex-1 flex flex-col justify-start px-8 md:px-10 bg-gradient-to-br from-white to-gray-50">
-            <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-indigo-600 bg-clip-text text-transparent">
-                แก้ไขข้อมูลผู้ใช้งาน
-              </h2>
-            </div>
+          <div className="flex-1 flex flex-col justify-start px-10 md:px-12 py-8 bg-white relative">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100/30 rounded-full -translate-y-32 translate-x-32"></div>
+            
+            <div className="relative z-10">
+              <div className="mb-8">
+                <h2 className="text-3xl font-semibold text-blue-700 mb-3">
+                  แก้ไขข้อมูลผู้ใช้งาน
+                </h2>
+                <div className="w-20 h-1 bg-blue-500 rounded-full"></div>
+              </div>
 
-            <form
-              onSubmit={e => {
-                e.preventDefault();
-                setShowPin(true);
-              }}
-              className="space-y-8"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-5 bg-white p-1 rounded-2xl transition-all duration-300 border border-gray-50">
-                  <div className="flex items-center space-x-2 pb-3 mb-1 border-b border-gray-100">
-                    <FaUser className="w-5 h-5 text-blue-600" />
-                    <h3 className="text-lg font-semibold text-gray-800">ข้อมูลผู้ใช้งาน</h3>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                        <FaIdCard className="w-4 h-4 mr-2 text-blue-500" />
-                        รหัสนิสิต <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="user_code"
-                        className={`w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100 ${
-                          validation.user_code === 'duplicate' ? 'border-red-500' :
-                          validation.user_code === 'ok' ? 'border-green-500' : ''
-                        }`}
-                        value={formData.user_code}
-                        onChange={handleChange}
-                        placeholder="เช่น 64010123"
-                        required
-                        readOnly
-                        disabled
-                      />
-                      {validation.user_code === 'duplicate' && (
-                        <span className="text-red-500 text-xs mt-1">รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว</span>
-                      )}
+              <div className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 border border-gray-100/50 hover:border-blue-200/50 group">
+                    <div className="flex items-center space-x-3 pb-4 mb-6">
+                      <div className="p-2 bg-blue-500 rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-700">ข้อมูลผู้ใช้งาน</h3>
                     </div>
 
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                        <FaUser className="w-4 h-4 mr-2 text-blue-500" />
-                        ชื่อ-นามสกุล <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="Fullname"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
-                        value={formData.Fullname}
-                        onChange={handleChange}
-                        placeholder="ระบุชื่อ-นามสกุล"
-                        required
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                          <FaBuilding className="w-4 h-4 mr-2 text-blue-500" />
-                          ตำแหน่ง <span className="text-red-500 ml-1">*</span>
+                          <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V4a2 2 0 114 0v2m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
+                          </svg>
+                          รหัสนิสิต <span className="text-red-500 ml-1">*</span>
                         </label>
-                        <select
-                          name="position_name"
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
-                          value={formData.position_name}
-                          onChange={handleChange}
-                          required
-                        >
-                          <option value="" disabled>เลือกตำแหน่ง</option>
-                          {positions.map(position => (
-                            <option key={position.position_id} value={position.position_name}>
-                              {position.position_name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                          <FaBook className="w-4 h-4 mr-2 text-blue-500" />
-                          สาขา <span className="text-red-500 ml-1">*</span>
-                        </label>
-                        <select
-                          name="branch_name"
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
-                          value={formData.branch_name}
-                          onChange={handleChange}
-                          required
-                        >
-                          <option value="" disabled>เลือกสาขา</option>
-                          {branches.map(branch => (
-                            <option key={branch.branch_id} value={branch.branch_name}>
-                              {branch.branch_name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                        <FaUser className="w-4 h-4 mr-2 text-blue-500" />
-                        ชื่อผู้ใช้งาน <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        name="username"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
-                        value={formData.username}
-                        onChange={handleChange}
-                        placeholder="ระบุชื่อผู้ใช้งาน"
-                        required
-                        readOnly
-                        disabled
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                        <FaLock className="w-4 h-4 mr-2 text-blue-500" />
-                        รหัสผ่าน
-                      </label>
-                      <input
-                        type="password"
-                        name="password"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
-                        value={formData.password}
-                        onChange={handleChange}
-                        placeholder="รหัสผ่าน"
-                      />
-                      <span className="text-xs text-gray-400 mt-1 block">(เว้นว่างหากไม่ต้องการเปลี่ยนรหัสผ่าน)</span>
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                        <FaEnvelope className="w-4 h-4 mr-2 text-blue-500" />
-                        อีเมล <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <input
-                        type="email"
-                        name="email"
-                        className={`w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white ${
-                          validation.email === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
-                          validation.email === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
-                        }`}
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="example@domain.com"
-                        required
-                      />
-                      {validation.email === 'duplicate' && (
-                        <span className="text-red-500 text-xs mt-1">อีเมลนี้ถูกใช้ไปแล้ว</span>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                        <FaPhone className="w-4 h-4 mr-2 text-blue-500" />
-                        เบอร์โทรศัพท์ <span className="text-red-500 ml-1">*</span>
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="user_code"
+                            className={`w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50 shadow-inner focus:shadow-md transition-all duration-300 ${
+                              validation.user_code === 'duplicate' ? 'border-red-500' :
+                              validation.user_code === 'ok' ? 'border-green-500' : ''
+                            }`}
+                            value={formData.user_code}
+                            onChange={handleChange}
+                            placeholder="เช่น 64010123"
+                            required
+                            readOnly
+                            disabled
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                          </div>
                         </div>
-                        <input
-                          type="tel"
-                          name="phone"
-                          className={`w-full pl-4 px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white ${
-                            validation.phone === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
-                            validation.phone === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
-                          }`}
-                          value={formData.phone}
-                          onChange={handleChange}
-                          placeholder="0812345678"
-                          required
-                        />
+                        {validation.user_code === 'duplicate' && (
+                          <span className="text-red-500 text-xs mt-1">รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว</span>
+                        )}
                       </div>
-                      {validation.phone === 'duplicate' && (
-                        <span className="text-red-500 text-xs mt-1">เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว</span>
-                      )}
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          ชื่อ-นามสกุล <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="Fullname"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50 shadow-inner focus:shadow-md transition-all duration-300"
+                            value={formData.Fullname}
+                            onChange={handleChange}
+                            placeholder="ระบุชื่อ-นามสกุล"
+                            required
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            ตำแหน่ง <span className="text-red-500 ml-1">*</span>
+                          </label>
+                          <div className="relative">
+                            <select
+                              name="position_name"
+                              className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300 appearance-none"
+                              value={formData.position_name}
+                              onChange={handleChange}
+                              required
+                            >
+                              <option value="" disabled>เลือกตำแหน่ง</option>
+                              {positions.map(position => (
+                                <option key={position.position_id} value={position.position_name}>
+                                  {position.position_name}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            สาขา <span className="text-red-500 ml-1">*</span>
+                          </label>
+                          <div className="relative">
+                            <select
+                              name="branch_name"
+                              className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300 appearance-none"
+                              value={formData.branch_name}
+                              onChange={handleChange}
+                              required
+                            >
+                              <option value="" disabled>เลือกสาขา</option>
+                              {branches.map(branch => (
+                                <option key={branch.branch_id} value={branch.branch_name}>
+                                  {branch.branch_name}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          ชื่อผู้ใช้งาน <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="username"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50 shadow-inner focus:shadow-md transition-all duration-300"
+                            value={formData.username}
+                            onChange={handleChange}
+                            placeholder="ระบุชื่อผู้ใช้งาน"
+                            required
+                            readOnly
+                            disabled
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="space-y-5 bg-white p-2 rounded-2xl transition-all duration-300 border border-gray-50">
-                  <div className="flex items-center space-x-2 pb-3 mb-1 border-b border-gray-100">
-                    <FaMapMarkerAlt className="w-5 h-5 text-blue-600" />
-                    <h3 className="text-lg font-semibold text-gray-800">ที่อยู่</h3>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">ที่อยู่ปัจจุบัน <span className="text-red-500 ml-1">*</span></label>
-                      <textarea
-                        name="street"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white"
-                        rows="3"
-                        value={formData.street}
-                        onChange={handleChange}
-                        placeholder="ที่อยู่ปัจจุบัน"
-                      />
+                  <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 border border-gray-100/50 hover:border-green-200/50 group">
+                    <div className="flex items-center space-x-3 pb-4 mb-6">
+                      <div className="p-2 bg-green-500 rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300">
+                        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-bold text-gray-800">ข้อมูลติดต่อ</h3>
                     </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          อีเมล <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="email"
+                            name="email"
+                            className={`w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300 ${
+                              validation.email === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                              validation.email === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                            }`}
+                            value={formData.email}
+                            onChange={handleChange}
+                            placeholder="example@domain.com"
+                            required
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                          </div>
+                        </div>
+                        {validation.email === 'duplicate' && (
+                          <span className="text-red-500 text-xs mt-1">อีเมลนี้ถูกใช้ไปแล้ว</span>
+                        )}
+                      </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                          <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
-                          จังหวัด <span className="text-red-500 ml-1">*</span>
+                          <svg className="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          เบอร์โทรศัพท์ <span className="text-red-500 ml-1">*</span>
                         </label>
-                        <select
-                          name="province"
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
-                          value={selected.province_id || ''}
-                          onChange={(e) => { handleAddressChange(e, 'province'); }}
-                          required
-                        >
-                          <option value="" disabled>เลือกจังหวัด</option>
-                          {provinces.map(province => (
-                            <option key={province.id} value={province.id}>
-                              {province.name_th}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="relative">
+                          <input
+                            type="tel"
+                            name="phone"
+                            className={`w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300 ${
+                              validation.phone === 'duplicate' ? 'border-red-500 focus:ring-red-500' :
+                              validation.phone === 'ok' ? 'border-green-500 focus:ring-green-500' : ''
+                            }`}
+                            value={formData.phone}
+                            onChange={handleChange}
+                            placeholder="0812345678"
+                            required
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                          </div>
+                        </div>
+                        {validation.phone === 'duplicate' && (
+                          <span className="text-red-500 text-xs mt-1">เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว</span>
+                        )}
                       </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                          <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
-                          อำเภอ <span className="text-red-500 ml-1">*</span>
-                        </label>
-                        <select
-                          name="district"
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
-                          value={selected.amphure_id || ''}
-                          onChange={(e) => { handleAddressChange(e, 'amphure'); }}
-                          required
-                        >
-                          <option value="" disabled>เลือกอำเภอ</option>
-                          {amphures.map(amphure => (
-                            <option key={amphure.id} value={amphure.id}>
-                              {amphure.name_th}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                          <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
-                          ตำบล <span className="text-red-500 ml-1">*</span>
-                        </label>
-                        <select
-                          name="parish"
-                          className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all duration-200 shadow-sm hover:border-blue-300 bg-white appearance-none"
-                          value={selected.tambon_id || ''}
-                          onChange={(e) => { handleAddressChange(e, 'tambon'); }}
-                          required
-                        >
-                          <option value="" disabled>เลือกตำบล</option>
-                          {tambons.map(tambon => (
-                            <option key={tambon.id} value={tambon.id}>
-                              {tambon.name_th}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
 
-                    <div>
-                      <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                        <FaMapMarkerAlt className="w-4 h-4 mr-2 text-blue-500" />
-                        รหัสไปรษณีย์
-                      </label>
-                      <input
-                        type="text"
-                        name="postal_no"
-                        className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100"
-                        value={formData.postal_no}
-                        onChange={handleChange}
-                        placeholder="รหัสไปรษณีย์"
-                        readOnly
-                        disabled
-                      />
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          ที่อยู่ <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <div className="relative">
+                          <textarea
+                            name="street"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300 resize-none"
+                            rows="3"
+                            value={formData.street}
+                            onChange={handleChange}
+                            placeholder="ที่อยู่ปัจจุบัน"
+                          />
+                          <div className="absolute top-3 right-3">
+                            <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            </svg>
+                            จังหวัด <span className="text-red-500 ml-1">*</span>
+                          </label>
+                          <div className="relative">
+                            <select
+                              name="province"
+                              className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300 appearance-none"
+                              value={selected.province_id || ''}
+                              onChange={(e) => handleAddressChange(e, 'province')}
+                              required
+                            >
+                              <option value="" disabled>เลือกจังหวัด</option>
+                              {provinces.map(province => (
+                                <option key={province.id} value={province.id}>
+                                  {province.name_th}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                              <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            </svg>
+                            อำเภอ <span className="text-red-500 ml-1">*</span>
+                          </label>
+                          <div className="relative">
+                            <select
+                              name="district"
+                              className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300 appearance-none"
+                              value={selected.amphure_id || ''}
+                              onChange={(e) => handleAddressChange(e, 'amphure')}
+                              required
+                            >
+                              <option value="" disabled>เลือกอำเภอ</option>
+                              {amphures.map(amphure => (
+                                <option key={amphure.id} value={amphure.id}>
+                                  {amphure.name_th}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                              <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                            <svg className="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            </svg>
+                            ตำบล <span className="text-red-500 ml-1">*</span>
+                          </label>
+                          <div className="relative">
+                            <select
+                              name="parish"
+                              className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300 appearance-none"
+                              value={selected.tambon_id || ''}
+                              onChange={(e) => handleAddressChange(e, 'tambon')}
+                              required
+                            >
+                              <option value="" disabled>เลือกตำบล</option>
+                              {tambons.map(tambon => (
+                                <option key={tambon.id} value={tambon.id}>
+                                  {tambon.name_th}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                              <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
+                          <svg className="w-4 h-4 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          </svg>
+                          รหัสไปรษณีย์
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            name="postal_no"
+                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100 shadow-inner transition-all duration-300"
+                            value={formData.postal_no}
+                            placeholder="รหัสไปรษณีย์"
+                            readOnly
+                            disabled
+                          />
+                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                            <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-              <div className="flex justify-end gap-4 pb-2">
+              
+              <form onSubmit={e => {
+                e.preventDefault();
+                setShowPin(true);
+              }} className="flex justify-end gap-4 mt-6">
                 <button
                   type="button"
                   className="px-6 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 hover:text-red-600 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all duration-200 shadow-sm"
@@ -983,27 +999,24 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
                     </div>
                   ) : 'บันทึกการเปลี่ยนแปลง'}
                 </button>
-              </div>
-            </form>
-            {/* PIN Dialog */}
-            <PinDialog
-              open={showPin}
-              pin={pin}
-              setPin={setPin}
-              pinError={pinError}
-              onCancel={() => {
-                setShowPin(false);
-                setPin("");
-                setPinError("");
-              }}
-              onSubmit={handlePinSubmit}
-            />
+              </form>
+
+              <PinDialog
+                open={showPin}
+                pin={pin}
+                setPin={setPin}
+                pinError={pinError}
+                onCancel={() => {
+                  setShowPin(false);
+                  setPin("");
+                  setPinError("");
+                }}
+                onSubmit={handlePinSubmit}
+              />
+            </div>
           </div>
         </div>
       </div>
-      <form method="dialog" className="modal-backdrop">
-        <button onClick={onClose}>close</button>
-      </form>
     </div>
   );
 }
