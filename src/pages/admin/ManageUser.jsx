@@ -99,7 +99,8 @@ function ManageUser() {
     phone: "",
     position: "",
     department: "",
-    password: ""
+    password: "",
+    role_name: "user"
   });
 
   const [searchTerm, setSearchTerm] = useState("");

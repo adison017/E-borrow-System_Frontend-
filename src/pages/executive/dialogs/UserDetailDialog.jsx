@@ -1,125 +1,14 @@
-import axios from '../../../utils/axios.js';
-import { useEffect, useState } from "react";
-import {
-  FaBook,
-  FaBuilding,
-  FaEnvelope,
-  FaIdCard,
-  FaMapMarkerAlt,
-  FaPhone,
-  FaUser
-} from "react-icons/fa";
-import { MdClose } from "react-icons/md";
-import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
+import { UPLOAD_BASE } from '../../../utils/api';
 
-const getAvatarUrl = (path) => {
-  if (!path) return '/logo_it.png';
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (path.startsWith('/uploads/')) return `${UPLOAD_BASE}${path}`;
-  return `${UPLOAD_BASE}/uploads/user/${path}`;
-};
-
-export default function ViewUserDialog({ open, onClose, userData }) {
-  const [formData, setFormData] = useState({
-    user_id: "",
-    user_code: "",
-    username: "",
-    Fullname: "",
-    pic: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-    email: "",
-    phone: "",
-    position_name: "",
-    branch_name: "",
-    street: "",
-    province: "",
-    district: "",
-    parish: "",
-    postal_no: "",
-    password: ""
-  });
-  const [previewImage, setPreviewImage] = useState(null);
-  const [positions, setPositions] = useState([]);
-  const [branches, setBranches] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [provinces, setProvinces] = useState([]);
-  const [amphures, setAmphures] = useState([]);
-  const [tambons, setTambons] = useState([]);
-  const [selected, setSelected] = useState({
-    province_id: undefined,
-    amphure_id: undefined,
-    tambon_id: undefined
-  });
-
-  useEffect(() => {
-    if (userData) {
-      setFormData({
-        user_id: userData.user_id || '',
-        user_code: userData.user_code || '',
-        username: userData.username || '',
-        Fullname: userData.Fullname || '',
-        pic: userData.avatar ? getAvatarUrl(userData.avatar) : '/logo_it.png',
-        email: userData.email || '',
-        phone: userData.phone || '',
-        position_name: userData.position_name || '',
-        branch_name: userData.branch_name || '',
-        street: userData.street || '',
-        province: userData.province || '',
-        district: userData.district || '',
-        parish: userData.parish || '',
-        postal_no: userData.postal_no || '',
-        password: ''
-      });
-      setPreviewImage(userData.avatar ? getAvatarUrl(userData.avatar) : '/logo_it.png');
-    }
-  }, [userData]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [positionsResponse, branchesResponse, rolesResponse, provincesResponse] = await Promise.all([
-          axios.get(`${API_BASE}/users/positions`),
-          axios.get(`${API_BASE}/users/branches`),
-          axios.get(`${API_BASE}/users/roles`),
-          fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json').then(res => res.json())
-        ]);
-        setPositions(positionsResponse.data);
-        setBranches(branchesResponse.data);
-        setRoles(rolesResponse.data);
-        setProvinces(provincesResponse);
-
-        if (userData) {
-          const province = provincesResponse.find(p => p.name_th === userData.province);
-          if (province) {
-            setAmphures(province.amphure);
-            const amphure = province.amphure.find(a => a.name_th === userData.district);
-            if (amphure) {
-              setTambons(amphure.tambon);
-              const tambon = amphure.tambon.find(t => t.name_th === userData.parish);
-              if (tambon) {
-                setSelected({
-                  province_id: province.id,
-                  amphure_id: amphure.id,
-                  tambon_id: tambon.id
-                });
-              }
-            }
-          }
-        }
-      } catch (error) {
-        // Error handling
-      }
-    };
-    if (open) fetchData();
-  }, [open, userData]);
-
-  if (!open) return null;
+const UserDetailDialog = ({ isOpen, onClose, selectedUser }) => {
+  if (!isOpen) return null;
 
   return (
     <div className="modal modal-open backdrop-blur-sm bg-black/30">
       <div className="relative w-full max-h-[90vh] max-w-8xl mx-auto bg-white rounded-3xl overflow-hidden shadow-2xl border border-gray-100 animate-fadeIn transition-all duration-500 transform scale-100 hover:shadow-3xl overflow-y-auto">
         <button
           onClick={onClose}
-          className="absolute right-6 top-6 text-gray-400 hover:text-red-500 p-3 rounded-full hover:bg-red-50 z-20 transition-all duration-300 transform hover:rotate-180 hover:scale-110"
+          className="absolute right-6 top-6 text-gray-400 hover:text-red-500 p-3 rounded-full hover:bg-red-50 z-20 transition-all duration-300 transform hover:rotate-180 hover:scale-110 "
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
@@ -142,7 +31,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
             <div className="relative group">
               <div className="w-40 h-40 rounded-full bg-white shadow-2xl group-hover:shadow-3xl transition-all duration-500 group-hover:scale-105">
                 <img
-                  src={previewImage || "/logo_it.png"}
+                  src={selectedUser?.avatar && selectedUser.avatar.includes('cloudinary.com') ? selectedUser.avatar : selectedUser?.avatar ? `${UPLOAD_BASE}/uploads/user/${selectedUser.avatar}?t=${Date.now()}` : "/logo_it.png"}
                   alt="Profile"
                   className="w-full h-full object-cover rounded-full transition-all duration-500 group-hover:scale-110"
                   onError={e => {
@@ -151,17 +40,19 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                   }}
                 />
               </div>
+              {/* Role badge */}
               <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-bold text-white shadow-lg ${
-                userData?.role_name === 'admin' ? 'bg-red-500' :
-                userData?.role_name === 'executive' ? 'bg-purple-500' :
+                selectedUser?.role_name === 'admin' ? 'bg-red-500' :
+                selectedUser?.role_name === 'executive' ? 'bg-purple-500' :
                 'bg-emerald-500'
               }`}>
-                {userData?.role_name === 'user' ? 'ผู้ใช้งาน' : userData?.role_name === 'admin' ? 'ผู้ดูแลระบบ' : userData?.role_name === 'executive' ? 'ผู้บริหาร' : userData?.role_name}
+                {selectedUser?.role_name === 'user' ? 'ผู้ใช้งาน' : selectedUser?.role_name === 'admin' ? 'ผู้ดูแลระบบ' : selectedUser?.role_name === 'executive' ? 'ผู้บริหาร' : selectedUser?.role_name}
               </div>
             </div>
           </div>
 
           <div className="flex-1 flex flex-col justify-start px-10 md:px-12 py-8 bg-white relative">
+            {/* Decorative background */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-100/30 rounded-full -translate-y-32 translate-x-32"></div>
             
             <div className="relative z-10">
@@ -175,13 +66,13 @@ export default function ViewUserDialog({ open, onClose, userData }) {
               <div className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 border border-gray-100/50 hover:border-blue-200/50 group">
-                    <div className="flex items-center space-x-3 pb-4 mb-6">
+                    <div className="flex items-center space-x-3 pb-4 mb-6 ">
                       <div className="p-2 bg-blue-500 rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300">
                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-700">ข้อมูลผู้ใช้งาน</h3>
+                      <h3 className="text-xl font-bold text-gray-700">ข้อมูลผู้ใช้งาน</h3>
                     </div>
                     <div className="space-y-4">
                       <div>
@@ -194,9 +85,8 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                         <div className="relative">
                           <input
                             type="text"
-                            name="user_code"
                             className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50 shadow-inner focus:shadow-md transition-all duration-300"
-                            value={formData.user_code}
+                            value={selectedUser?.user_code || ''}
                             readOnly
                             disabled
                           />
@@ -215,9 +105,8 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                         <div className="relative">
                           <input
                             type="text"
-                            name="Fullname"
                             className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50 shadow-inner focus:shadow-md transition-all duration-300"
-                            value={formData.Fullname}
+                            value={selectedUser?.Fullname || ''}
                             readOnly
                             disabled
                           />
@@ -237,9 +126,8 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                           <div className="relative">
                             <input
                               type="text"
-                              name="position_name"
                               className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300"
-                              value={formData.position_name}
+                              value={selectedUser?.position_name || ''}
                               readOnly
                               disabled
                             />
@@ -258,9 +146,8 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                           <div className="relative">
                             <input
                               type="text"
-                              name="branch_name"
                               className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300"
-                              value={formData.branch_name}
+                              value={selectedUser?.branch_name || ''}
                               readOnly
                               disabled
                             />
@@ -270,38 +157,17 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                           </div>
                         </div>
                       </div>
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-1 flex items-center">
-                          <svg className="w-4 h-4 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          ชื่อผู้ใช้งาน
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            name="username"
-                            className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-50 shadow-inner focus:shadow-md transition-all duration-300"
-                            value={formData.username}
-                            readOnly
-                            disabled
-                          />
-                          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                          </div>
-                        </div>
-                      </div>
                     </div>
                   </div>
 
                   <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-500 border border-gray-100/50 hover:border-green-200/50 group">
                     <div className="flex items-center space-x-3 pb-4 mb-6">
-                      <div className="p-2 bg-green-500 rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300">
+                      <div className="p-2 bg-green-500  rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300">
                         <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                       </div>
-                      <h3 className="text-xl font-bold text-gray-800">ข้อมูลติดต่อ</h3>
+                      <h3 className="text-xl font-bold bg-gray-800 bg-clip-text text-transparent">ข้อมูลติดต่อ</h3>
                     </div>
                     <div className="space-y-4">
                       <div>
@@ -314,9 +180,8 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                         <div className="relative">
                           <input
                             type="email"
-                            name="email"
                             className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300"
-                            value={formData.email}
+                            value={selectedUser?.email || ''}
                             readOnly
                             disabled
                           />
@@ -335,9 +200,8 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                         <div className="relative">
                           <input
                             type="tel"
-                            name="phone"
                             className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300"
-                            value={formData.phone}
+                            value={selectedUser?.phone || ''}
                             readOnly
                             disabled
                           />
@@ -358,7 +222,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                           <textarea
                             className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300 resize-none"
                             rows="3"
-                            value={formData.street || ''}
+                            value={selectedUser?.street || ''}
                             readOnly
                             disabled
                           />
@@ -379,7 +243,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                             <input
                               type="text"
                               className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300"
-                              value={formData.province || ''}
+                              value={selectedUser?.province || ''}
                               readOnly
                               disabled
                             />
@@ -399,7 +263,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                             <input
                               type="text"
                               className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300"
-                              value={formData.district || ''}
+                              value={selectedUser?.district || ''}
                               readOnly
                               disabled
                             />
@@ -419,7 +283,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                             <input
                               type="text"
                               className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gradient-to-r from-gray-50 to-gray-100 shadow-inner focus:shadow-md transition-all duration-300"
-                              value={formData.parish || ''}
+                              value={selectedUser?.parish || ''}
                               readOnly
                               disabled
                             />
@@ -440,7 +304,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
                           <input
                             type="text"
                             className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl bg-gray-100 shadow-inner transition-all duration-300"
-                            value={formData.postal_no || ''}
+                            value={selectedUser?.postal_no || ''}
                             readOnly
                             disabled
                           />
@@ -459,4 +323,6 @@ export default function ViewUserDialog({ open, onClose, userData }) {
       </div>
     </div>
   );
-}
+};
+
+export default UserDetailDialog;

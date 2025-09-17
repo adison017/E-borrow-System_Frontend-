@@ -40,6 +40,7 @@ import EquipmentList from './pages/executive/EquipmentList';
 import ExpenseManagement from './pages/executive/ExpenseManagement';
 import Historybt from './pages/executive/Historyborrow';
 import HistoryRe from './pages/executive/HistoryRepair';
+import ManageUserRole from './pages/executive/ManageUserRole';
 import RepairApprovalList from './pages/executive/RepairApprovalList';
 
 // User Pages
@@ -508,6 +509,7 @@ function AppInner() {
                 <Route path="/EquipmentList" element={<EquipmentList />} />
                 <Route path="/BorrowApprovalList" element={<BorrowApprovalList />} />
                 <Route path="/Repair" element={<RepairApprovalList />} />
+                <Route path="/manage-user-role" element={<ManageUserRole />} />
                 <Route path="/History" element={<Historybt />} />
                 <Route path="/History_repair" element={<HistoryRe />} />
                 <Route path="/expenses" element={<ExpenseManagement />} />

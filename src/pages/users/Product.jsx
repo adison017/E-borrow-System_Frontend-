@@ -351,7 +351,7 @@ const Home = () => {
           return;
         }
 
-                                   // สร้าง map ของ borrow data เพื่อหา due_date (วันที่กำหนดคืน)
+      // สร้าง map ของ borrow data เพื่อหา due_date (วันที่กำหนดคืน)
           const borrowMap = {};
           if (Array.isArray(borrowData)) {
             borrowData.forEach(borrow => {
@@ -461,13 +461,26 @@ const Home = () => {
   });
 
   // Get status badge with appropriate styling
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, equipment) => {
     const baseClasses = "badge px-4 py-4 rounded-full text-sm font-medium ";
     switch (status) {
       case 'พร้อมใช้งาน':
         return <span className={`${baseClasses} badge-success text-white`}>พร้อมใช้งาน</span>;
       case 'ถูกยืม':
-        return <span className={`${baseClasses} badge-warning text-black`}>ถูกยืม</span>;
+        const dueDate = (() => {
+          if (equipment.dueDate && equipment.dueDate !== '' && equipment.dueDate !== null && !isNaN(new Date(equipment.dueDate).getTime())) {
+            return new Date(equipment.dueDate).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
+          }
+          return 'กำลังตรวจสอบ';
+        })();
+        return (
+          <div className="flex flex-col items-center gap-1">
+            <span className={`${baseClasses} badge-warning text-black animate-pulse`}>ถูกยืม</span>
+            <span className="text-xs bg-amber-400 border border-yellow-200 text-black px-2 py-1 rounded-full animate-pulse">
+              กำหนดคืน {dueDate}
+            </span>
+          </div>
+        );
       case 'รออนุมัติซ่อม':
       case 'ชำรุด':
       case 'กำลังซ่อม':
@@ -1122,142 +1135,118 @@ const Home = () => {
                     {filteredEquipment.map((equipment, index) => (
                       <motion.div
                         key={equipment.id}
-                        className="card rounded-4xl shadow-md hover:shadow-xl bg-white cursor-pointer transition-all duration-300 ease-in-out group border border-transparent hover:border-blue-200 relative overflow-hidden"
+                        className="relative group cursor-pointer"
                         variants={itemVariants}
                         whileHover={{
-                          scale: 1.02,
-                          y: -5
+                          scale: 1.03,
+                          y: -8
                         }}
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1, duration: 0.2 }}
-                        onClick={() => showEquipmentDetail(equipment)}>
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white to-blue-700 opacity-0 group-hover:opacity-10 transition-opacity duration-300 pointer-events-none z-0"></div>
-                        <figure className="px-4 pt-4 relative">
-                          <img
-                            src={equipment.image}
-                            alt={equipment.name}
-                            className="rounded-xl h-40 w-full object-contain cursor-pointer"
-                            // onClick={(e) => {
-                            //   e.stopPropagation();
-                            //   showImageModal(equipment.image);
-                            // }}
-                          />
-                          <div className="absolute top-6 right-6">
-                            {getStatusBadge(equipment.status)}
-                          </div>
-                        </figure>
-                        <div className="card-body p-4 md:p-6">
-                          <div className="card-title flex flex-col gap-2">
-                            <h2 className="font-semibold line-clamp-1 text-lg md:text-xl">{equipment.name}</h2>
-                            <div className="flex flex-col">
-                              <span className="text-xs text-gray-500 mb-1">รหัสครุภัณฑ์</span>
-                              <p className="text-sm font-mono bg-gray-100 rounded px-2 py-1 text-gray-700 truncate" title={equipment.code}>{equipment.code}</p>
+                        transition={{ delay: index * 0.1, duration: 0.3 }}
+                        onClick={() => showEquipmentDetail(equipment)}
+                      >
+                        {/* Card Container with Enhanced Design */}
+                        <div className="bg-white rounded-4xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden border border-gray-100 group-hover:border-blue-200 relative">
+                          {/* Image Section */}
+                          <div className="relative p-6 pb-4">
+                            <div className="relative overflow-hidden rounded-2xl bg-white transition-all duration-500">
+                              <img
+                                src={equipment.image}
+                                alt={equipment.name}
+                                className="w-full h-48 object-contain transition-transform duration-500 group-hover:scale-105"
+                              />
+                              {/* Status Badge */}
+                              <div className="absolute top-3 right-3 z-20">
+                                {getStatusBadge(equipment.status, equipment)}
+                              </div>
                             </div>
                           </div>
 
-                          <div className="flex flex-col items-center w-full mt-2">
-                            <p className="text-sm font-medium text-white bg-blue-700 px-4 py-2 rounded-full">
-                              จำนวน {equipment.available} {equipment.unit || ''}
-                            </p>
-                            {equipment.status === 'พร้อมยืม' && (
-                              <p className="text-sm">คงเหลือ {equipment.available} ชิ้น</p>
-                            )}
-                                                                                      {/* แสดงวันที่คืนเมื่อมีสถานะการยืมที่ active หรือสถานะครุภัณฑ์เป็น 'ถูกยืม' */}
-                                                           {(equipment.borrowStatus && ['pending', 'approved', 'carry', 'waiting_payment'].includes(equipment.borrowStatus) || equipment.status === 'ถูกยืม') && (
-                               <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-full bg-yellow-100 border border-yellow-300 shadow-sm animate-pulse">
-                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                 </svg>
-                                                                   <span className="text-sm font-bold text-black">
-                                    กำหนดคืน {(() => {
-                                      // Debug: ตรวจสอบข้อมูล
-                                      console.log('Equipment debug:', {
-                                        id: equipment.id,
-                                        name: equipment.name,
-                                        status: equipment.status,
-                                        borrowStatus: equipment.borrowStatus,
-                                        dueDate: equipment.dueDate,
-                                        dueDateType: typeof equipment.dueDate,
-                                        dueDateValid: equipment.dueDate && equipment.dueDate !== '' && equipment.dueDate !== null && !isNaN(new Date(equipment.dueDate).getTime())
-                                      });
+                          {/* Content Section */}
+                          <div className="px-6 pb-6 relative z-20">
+                            {/* Title and Code */}
+                            <div className="mb-4">
+                              <p className="text-sm font-mono text-gray-600 truncate" title={equipment.code}>
+                                {equipment.code}
+                              </p>
+                              <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 transition-colors duration-300">
+                                {equipment.name}
+                              </h3>
+                              
+                            </div>
 
-                                      // ตรวจสอบว่ามี dueDate ที่ถูกต้องก่อน (ไม่ว่าจะมาจาก borrow API หรือ equipment API)
-                                      if (equipment.dueDate && equipment.dueDate !== '' && equipment.dueDate !== null && !isNaN(new Date(equipment.dueDate).getTime())) {
-                                        return new Date(equipment.dueDate).toLocaleDateString('th-TH', { year: 'numeric', month: '2-digit', day: '2-digit' });
-                                      }
-
-                                                                             // ถ้าไม่มี dueDate ที่ถูกต้อง แต่มีสถานะการยืมที่ active ให้แสดงข้อความที่เหมาะสม
-                                       if (equipment.borrowStatus === 'pending') {
-                                         return 'รออนุมัติ';
-                                       } else if (equipment.borrowStatus === 'approved') {
-                                         return 'รอรับมอบ';
-                                       } else if (equipment.borrowStatus === 'carry') {
-                                         return 'รอส่งมอบ';
-                                       } else if (equipment.borrowStatus === 'waiting_payment') {
-                                         return 'รอชำระเงิน';
-                                       } else if (equipment.status === 'ถูกยืม') {
-                                        // ถ้าสถานะครุภัณฑ์เป็น "ถูกยืม" แต่ไม่มีข้อมูล borrowStatus หรือ dueDate
-                                        // แสดงว่าเป็นครุภัณฑ์ที่ถูกยืมแล้วแต่ข้อมูลยังไม่ sync
-                                        return 'กำลังตรวจสอบ';
-                                      } else {
-                                        return 'ไม่ระบุ';
-                                      }
-                                    })()}
+                            {/* Quantity and Status Info */}
+                            <div className="space-y-3 mb-4">
+                              {/* Available Quantity */}
+                              <div className="flex items-center justify-center">
+                                <div className="bg-blue-600 text-white px-4 py-2 rounded-full shadow-md transition-all duration-300">
+                                  <span className="text-sm font-semibold">
+                                    จำนวน {equipment.available} {equipment.unit || 'ชิ้น'}
                                   </span>
-                               </div>
-                             )}
-                          </div>
+                                </div>
+                              </div>
 
-                          <div className="card-actions flex-col items-center justify-center mt-2 ">
-                            {(equipment.status === 'พร้อมยืม' || equipment.status === 'พร้อมใช้งาน') ? (
-                              quantities[equipment.id] ? (
-                                <div className="flex items-center gap-2 mt-2" onClick={(e) => e.stopPropagation()}>
+
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex justify-center">
+                              {(equipment.status === 'พร้อมยืม' || equipment.status === 'พร้อมใช้งาน') ? (
+                                quantities[equipment.id] ? (
+                                  <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                                    <motion.button
+                                      className="flex items-center justify-center w-11 h-11 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleIncrease(equipment.id);
+                                      }}
+                                      disabled={quantities[equipment.id] >= equipment.available}
+                                      whileHover={{ scale: 1.1, rotate: 5 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      aria-label="เพิ่มจำนวน"
+                                    >
+                                      <MdAdd className="w-6 h-6" />
+                                    </motion.button>
+                                    
+                                    <div className="bg-indigo-600 text-white px-4 py-3 rounded-full shadow-lg min-w-[3rem] text-center">
+                                      <span className="text-lg font-bold">{quantities[equipment.id]}</span>
+                                    </div>
+                                    
+                                    <motion.button
+                                      className="flex items-center justify-center w-11 h-11 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDecrease(equipment.id);
+                                      }}
+                                      whileHover={{ scale: 1.1, rotate: -5 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      aria-label="ลดจำนวน"
+                                    >
+                                      <MdRemove className="w-6 h-6" />
+                                    </motion.button>
+                                  </div>
+                                ) : (
                                   <motion.button
-                                    className={`flex items-center justify-center w-9 h-9 rounded-full  border border-blue-500 bg-white shadow-sm transition-colors duration-150 text-blue-700 hover:bg-blue-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed ${quantities[equipment.id] >= equipment.available ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    className="flex items-center justify-center w-12 h-12 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleIncrease(equipment.id);
                                     }}
-                                    disabled={quantities[equipment.id] >= equipment.available}
-                                    whileHover={{ scale: 1.1 }}
+                                    disabled={equipment.available <= 0}
+                                    whileHover={{ scale: 1.1, rotate: 10 }}
                                     whileTap={{ scale: 0.95 }}
-                                    aria-label="เพิ่มจำนวน"
+                                    aria-label="เลือก"
                                   >
-                                    <MdAdd className="w-5 h-5" />
+                                    <MdAdd className="w-6 h-6" />
                                   </motion.button>
-                                  <span className="inline-flex items-center justify-center w-10 h-9 rounded-lg bg-blue-700 text-base font-semibold text-white border border-gray-200">
-                                    {quantities[equipment.id]}
-                                  </span>
-                                  <motion.button
-                                    className="flex items-center justify-center w-9 h-9 rounded-full border border-blue-500 bg-white shadow-sm transition-colors duration-150 text-blue-700 hover:bg-blue-600 hover:text-white"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDecrease(equipment.id);
-                                    }}
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    aria-label="ลดจำนวน"
-                                  >
-                                    <MdRemove className="w-5 h-5" />
-                                  </motion.button>
-                                </div>
+                                )
                               ) : (
-                                <motion.button
-                                  className={`flex items-center justify-center w-10 h-10 rounded-full mt-2 border border-blue-500  shadow-sm text-blue-700 font-medium gap-2 hover:bg-blue-600 hover:text-white transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${equipment.available <= 0 ? 'opacity-60 cursor-not-allowed' : ''}`}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleIncrease(equipment.id);
-                                  }}
-                                  disabled={equipment.available <= 0}
-                                  whileHover={{ scale: 1.07 }}
-                                  whileTap={{ scale: 0.97 }}
-                                  aria-label="เลือก"
-                                >
-                                  <MdAdd className="w-5 h-5" />
-                                </motion.button>
-                              )
-                            ) : null}
+                                <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-full text-sm font-medium">
+                                  ไม่สามารถยืมได้
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </motion.div>
@@ -1366,7 +1355,7 @@ const Home = () => {
           setShowDetailDialog={setShowDetailDialog}
           selectedEquipment={selectedEquipment}
           showImageModal={showImageModal}
-          getStatusBadge={getStatusBadge}
+          getStatusBadge={(status) => getStatusBadge(status, selectedEquipment)}
         />
 
         <ImageModal
