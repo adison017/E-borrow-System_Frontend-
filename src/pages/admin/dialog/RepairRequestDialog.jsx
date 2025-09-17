@@ -44,9 +44,15 @@ export default function RepairRequestDialog({
 
   // Function to generate random repair code
   const generateRepairCode = () => {
-    const randomNum = Math.floor(10000 + Math.random() * 90000); // Random 5 digits
-    return `RP-${randomNum}`;
-  };
+  // เอา timestamp ปัจจุบัน (มิลลิวินาที) + ตัวเลขสุ่ม 4 หลัก
+  const timestamp = Date.now(); // เช่น 1694775123456
+  const randomPart = Math.floor(1000 + Math.random() * 9000); // 4 หลักสุ่ม
+  const code = `RP-${String(timestamp).slice(-6)}${randomPart}`; // เอา 6 หลักท้ายของ timestamp + 4 หลักสุ่ม = 10 หลัก
+  return code;
+};
+
+console.log(generateRepairCode()); // ตัวอย่าง: RP-1234567890
+
 
   // Function to fetch user data from API
   const fetchUserData = async () => {
@@ -234,6 +240,7 @@ export default function RepairRequestDialog({
         problem_description: formData.description,
         request_date: requestDate,
         estimated_cost: Number(formData.estimatedCost) || 0,
+        budget: 0, // Initialize budget as 0 for new requests
         status: "pending",
         pic_filename: uploadedImages.length > 0 ? uploadedImages[0].filename : null,
         images: uploadedImages

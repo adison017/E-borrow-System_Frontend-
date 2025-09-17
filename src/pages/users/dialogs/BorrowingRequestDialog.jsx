@@ -196,6 +196,8 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const [uploadStep, setUploadStep] = useState(1); // 1 = ยืนยันการอัพโหลด, 2 = ยืนยันการชำระเงิน
   const [isDownloadingQR, setIsDownloadingQR] = useState(false);
+  const [showErrorForm, setShowErrorForm] = useState(false); // New state for error display
+  const [errorFormMessage, setErrorFormMessage] = useState(""); // Message for error display
   const qrCodeRef = useRef(null);
 
   // คำนวณค่าปรับรวม
@@ -696,6 +698,12 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                         } catch (err) {
                           // Submit slip error occurred
                           setUploadError("เกิดข้อผิดพลาดในการส่งสลิป: " + err.message);
+                          // Show error form for 5 seconds
+                          setErrorFormMessage("เกิดข้อผิดพลาดในการส่งสลิป: " + err.message);
+                          setShowErrorForm(true);
+                          setTimeout(() => {
+                            setShowErrorForm(false);
+                          }, 5000);
                         } finally {
                           setIsUploading(false);
                           setIsConfirming(false);
@@ -844,27 +852,54 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
       </div>
 
       {/* Success Alert */}
-      <AlertDialog
-        show={showSuccessAlert}
-        title="📋 รออนุมัติการชำระ"
-        message="ส่งสลิปการชำระเงินเรียบร้อยแล้ว กรุณารอการตรวจสอบจากผู้ดูแลระบบ ระบบจะอัปเดตสถานะภายใน 1 ชั่วโมง"
-        type="success"
-        duration={3000}
-        onClose={() => {
-          // AlertDialog onClose function called
-          setShowSuccessAlert(false);
-          if (onClose) onClose();
-        }}
-        actions={[
-          {
-            label: 'ตกลง',
-            onClick: () => {
-              setShowSuccessAlert(false);
-              if (onClose) onClose();
+      {showSuccessAlert && (
+        <AlertDialog
+          show={showSuccessAlert}
+          title="📋 รออนุมัติการชำระ"
+          message="ส่งสลิปการชำระเงินเรียบร้อยแล้ว กรุณารอการตรวจสอบจากผู้ดูแลระบบ ระบบจะอัปเดตสถานะภายใน 1 ชั่วโมง"
+          type="success"
+          duration={3000}
+          onClose={() => {
+            // AlertDialog onClose function called
+            setShowSuccessAlert(false);
+            if (onClose) onClose();
+          }}
+          actions={[
+            {
+              label: 'ตกลง',
+              onClick: () => {
+                setShowSuccessAlert(false);
+                if (onClose) onClose();
+              }
             }
-          }
-        ]}
-      />
+          ]}
+        />
+      )}
+
+      {/* Error Form Display */}
+      {showErrorForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <div className="p-4 md:p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-red-600">เกิดข้อผิดพลาด</h3>
+                <button
+                  onClick={() => setShowErrorForm(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <FaTimes className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                <p className="text-red-700">{errorFormMessage}</p>
+              </div>
+              <div className="mt-4 text-center text-gray-500">
+                <p>หน้าต่างนี้จะปิดอัตโนมัติภายใน 5 วินาที</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -56,7 +56,7 @@ export default function RepairApprovalDialog({
   };
 
   const [notes, setNotes] = useState('')
-  const [budgetApproved, setBudgetApproved] = useState(repairRequest?.estimated_cost || 0)
+  const [budgetApproved, setBudgetApproved] = useState(repairRequest?.budget || repairRequest?.estimated_cost || 0)
   const [assignedTo, setAssignedTo] = useState('')
   const [assignedToName, setAssignedToName] = useState('')
   const [isZoomed, setIsZoomed] = useState(false);
@@ -265,11 +265,11 @@ export default function RepairApprovalDialog({
       equipment_category: normalizedRepairRequest.equipment_category,
       problem_description: normalizedRepairRequest.problem_description,
       request_date: formattedRequestDate,
-      estimated_cost: budgetApproved,
+      estimated_cost: normalizedRepairRequest.estimated_cost, // Keep original estimated cost
+      budget: budgetApproved, // Use approved budget
       status: "approved",
       pic_filename: normalizedRepairRequest.pic_filename || normalizedRepairRequest.repair_pic_raw || '',
       note: notes,
-      budget: budgetApproved,
       responsible_person: assignedToName,
       approval_date: new Date().toISOString(),
       images: normalizedRepairRequest.repair_pic || []
@@ -388,11 +388,11 @@ export default function RepairApprovalDialog({
              equipment_category: normalizedRepairRequest.equipment_category,
              problem_description: normalizedRepairRequest.problem_description,
              request_date: formattedRequestDate,
-             estimated_cost: normalizedRepairRequest.estimated_cost,
+             estimated_cost: normalizedRepairRequest.estimated_cost, // Keep original estimated cost
+             budget: normalizedRepairRequest.budget || normalizedRepairRequest.estimated_cost, // Use existing budget or estimated cost
              status: "rejected",
              pic_filename: normalizedRepairRequest.pic_filename || normalizedRepairRequest.repair_pic_raw || '',
              note: '', // ไม่ใช้ note สำหรับการปฏิเสธ
-             budget: normalizedRepairRequest.estimated_cost,
              responsible_person: assignedToName,
              approval_date: new Date().toISOString(),
              images: normalizedRepairRequest.repair_pic || [],
@@ -650,6 +650,17 @@ export default function RepairApprovalDialog({
                           <p className="font-bold text-lg text-gray-800">{Number(repairRequest.estimated_cost || 0).toLocaleString()} บาท</p>
                         </div>
                       </div>
+                      {repairRequest.budget > 0 && (
+                        <div className="flex items-center gap-4 p-4 bg-green-50 rounded-xl">
+                          <div className="p-3 bg-green-500 rounded-full">
+                            <TagIcon className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-green-600 font-medium mb-1">งบประมาณที่อนุมัติ</p>
+                            <p className="font-bold text-lg text-gray-800">{Number(repairRequest.budget || 0).toLocaleString()} บาท</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -811,6 +822,42 @@ export default function RepairApprovalDialog({
                 <div className="bg-yellow-400 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
                   <div className="p-6">
                     <div className="space-y-4">
+                      <div className="grid grid-cols-1 gap-4">
+                        <div className="bg-white/80 p-4 rounded-lg">
+                          <p className="text-sm text-gray-600 mb-2">ค่าใช้จ่ายประมาณการจากผู้แจ้ง</p>
+                          <p className="text-xl font-bold text-gray-800">{Number(normalizedRepairRequest.estimated_cost || 0).toLocaleString()} บาท</p>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                          งบประมาณที่อนุมัติ
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm ${
+                            fieldErrors.budgetApproved ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+                          }`}
+                          value={
+                            budgetApproved === '' ? '' : Number(budgetApproved.toString().replace(/,/g, '')).toLocaleString()
+                          }
+                          onChange={e => {
+                            let raw = e.target.value.replace(/[^\d]/g, '');
+                            setBudgetApproved(raw);
+                            if (fieldErrors.budgetApproved) {
+                              setFieldErrors(prev => ({ ...prev, budgetApproved: null }));
+                            }
+                          }}
+                          inputMode="numeric"
+                          pattern="[0-9,]*"
+                          placeholder="0"
+                        />
+                        {fieldErrors.budgetApproved && (
+                          <p className="text-xs text-red-600 mt-1">{fieldErrors.budgetApproved}</p>
+                        )}
+                      </div>
+                      
                       <div>
                         <label className="block text-sm font-bold text-gray-700 mb-2">
                           หมายเหตุ (ถ้ามี)
@@ -823,72 +870,44 @@ export default function RepairApprovalDialog({
                           placeholder="ระบุหมายเหตุเพิ่มเติม"
                         />
                       </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-2">
-                            งบประมาณที่อนุมัติ
-                            <span className="text-red-500 ml-1">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                              fieldErrors.budgetApproved ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
-                            }`}
-                            value={
-                              budgetApproved === '' ? '' : Number(budgetApproved.toString().replace(/,/g, '')).toLocaleString()
+                      
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-2">
+                          มอบหมายให้
+                          <span className="text-red-500 ml-1">*</span>
+                        </label>
+                        <select
+                          className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm ${
+                            fieldErrors.assignedTo ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
+                          }`}
+                          value={assignedTo}
+                          onChange={(e) => {
+                            handleAssignedToChange(e.target.value);
+                            if (fieldErrors.assignedTo) {
+                              setFieldErrors(prev => ({ ...prev, assignedTo: null }));
                             }
-                            onChange={e => {
-                              let raw = e.target.value.replace(/[^\d]/g, '');
-                              setBudgetApproved(raw);
-                              if (fieldErrors.budgetApproved) {
-                                setFieldErrors(prev => ({ ...prev, budgetApproved: null }));
-                              }
-                            }}
-                            inputMode="numeric"
-                            pattern="[0-9,]*"
-                            placeholder="0"
-                          />
-                          {fieldErrors.budgetApproved && (
-                            <p className="text-xs text-red-600 mt-1">{fieldErrors.budgetApproved}</p>
-                          )}
-                        </div>
-                        <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-2">
-                            มอบหมายให้
-                            <span className="text-red-500 ml-1">*</span>
-                          </label>
-                          <select
-                            className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm ${
-                              fieldErrors.assignedTo ? 'border-red-500 focus:ring-red-500' : 'border-gray-300'
-                            }`}
-                            value={assignedTo}
-                            onChange={(e) => {
-                              handleAssignedToChange(e.target.value);
-                              if (fieldErrors.assignedTo) {
-                                setFieldErrors(prev => ({ ...prev, assignedTo: null }));
-                              }
-                            }}
-                            disabled={loadingAdmins}
-                          >
-                            <option value="" disabled>
-                              {loadingAdmins ? 'กำลังโหลด...' : 'เลือกผู้รับผิดชอบ'}
+                          }}
+                          disabled={loadingAdmins}
+                        >
+                          <option value="" disabled>
+                            {loadingAdmins ? 'กำลังโหลด...' : 'เลือกผู้รับผิดชอบ'}
+                          </option>
+                          {adminUsers.map(user => (
+                            <option key={user.user_id} value={user.user_id}>
+                              {user.Fullname} ({user.role_name || 'Admin'})
                             </option>
-                            {adminUsers.map(user => (
-                              <option key={user.user_id} value={user.user_id}>
-                                {user.Fullname} ({user.role_name || 'Admin'})
-                              </option>
-                            ))}
-                          </select>
-                          {fieldErrors.assignedTo && (
-                            <p className="text-xs text-red-600 mt-1">{fieldErrors.assignedTo}</p>
-                          )}
-                        </div>
+                          ))}
+                        </select>
+                        {fieldErrors.assignedTo && (
+                          <p className="text-xs text-red-600 mt-1">{fieldErrors.assignedTo}</p>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             )}
+
           </div>
 
           {/* Enhanced Footer */}
