@@ -893,31 +893,6 @@ const Home = () => {
             <div className="flex flex-col items-center justify-center text-center">
               <h1 className="text-3xl font-bold text-gray-900">ระบบยืมคืนครุภัณฑ์</h1>
               <p className="mt-2 text-lg text-gray-600">คณะวิทยาการสารสนเทศ</p>
-
-              {/* Location Status Badge */}
-              <div className="mt-4">
-                {locationPermission === 'granted' ? (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-full">
-                    <MdLocationOn className="h-5 w-5 text-green-600" />
-                    <span className="text-sm font-medium text-green-700">อนุญาตติดตามตำแหน่งแล้ว</span>
-                  </div>
-                                 ) : locationPermission === 'denied' ? (
-                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-full">
-                     <MdLocationOn className="h-5 w-5 text-red-600" />
-                     <span className="text-sm font-medium text-red-700">ต้องอนุญาตตำแหน่งก่อน</span>
-                   </div>
-                ) : locationPermission === 'not_supported' ? (
-                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 border border-gray-300 rounded-full">
-                    <MdLocationOn className="h-5 w-5 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">ไม่รองรับการติดตามตำแหน่ง</span>
-                  </div>
-                                 ) : (
-                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 border border-red-300 rounded-full">
-                     <MdLocationOn className="h-5 w-5 text-red-600" />
-                     <span className="text-sm font-medium text-red-700">ต้องอนุญาตตำแหน่งก่อน</span>
-                   </div>
-                 )}
-              </div>
             </div>
           </div>
         </motion.header>
@@ -929,10 +904,10 @@ const Home = () => {
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5, delay: 0.2 }}
         >
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 shadow-sm">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-full p-6 shadow-sm">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               {/* Privacy Notice */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 ">
                 <MdPrivacyTip className="h-6 w-6 text-blue-600" />
                 <div>
                   <h3 className="text-sm font-semibold text-gray-900">ความเป็นส่วนตัว</h3>
@@ -1278,13 +1253,13 @@ const Home = () => {
         {/* Floating Cart Summary */}
         {totalSelectedItems > 0 && (
           <motion.div
-            className="fixed bottom-6 right-11 md:bottom-6 md:right-6 bg-white shadow-xl p-4 z-10 rounded-2xl"
+            className="fixed bottom-6 right-6 bg-white shadow-xl p-4 z-50 rounded-2xl max-w-sm"
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: "spring", stiffness: 100 }}
           >
             <div className="flex flex-col gap-3">
-                             {/* Location Permission Status */}
+              {/* Location Permission Status */}
                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl">
                  <MdLocationOn className={`h-4 w-4 ${locationPermission === 'granted' ? 'text-green-600' : 'text-red-600'}`} />
                  <span className="text-xs font-medium">
