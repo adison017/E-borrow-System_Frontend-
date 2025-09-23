@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { XCircleIcon as ErrorIcon, MagnifyingGlassIcon, QrCodeIcon, ArrowsUpDownIcon } from "@heroicons/react/24/solid";
-import { BrowserMultiFormatReader, ChecksumException, FormatException, NotFoundException } from "@zxing/library";
 import { MdClose } from "react-icons/md";
 import { FaCamera, FaSearch } from "react-icons/fa";
+import { BrowserMultiFormatReader, ChecksumException, FormatException, NotFoundException } from "@zxing/library";
 import { getEquipment } from '../../../utils/api';
 import PermissionRequest from '../../../components/PermissionRequest';
 
@@ -314,7 +314,7 @@ const QRScannerDialog = ({ isOpen, onClose, onEquipmentFound }) => {
               className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors shadow-sm"
               title={`สลับเป็น ${getCameraLabel()}`}
             >
-              <ArrowsPointingInOutIcon className="w-4 h-4" />
+              <ArrowsUpDownIcon className="w-4 h-4" />
               <span>{getCameraLabel()}</span>
             </button>
           </div>
