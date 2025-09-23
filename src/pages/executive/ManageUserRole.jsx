@@ -20,7 +20,8 @@ import {
   ThemeProvider,
   Typography
 } from "@material-tailwind/react";
-import { API_BASE, UPLOAD_BASE } from '../../utils/api';
+import { API_BASE } from '../../utils/api';
+import { getAvatarSrc } from '../../utils/image';
 import UserDetailDialog from './dialogs/UserDetailDialog';
 
 const theme = {
@@ -394,7 +395,7 @@ function ManageUserRole() {
                         <td className="px-3 py-4 w-15 h-full whitespace-nowrap">
                           <div className="flex items-center justify-center object-cover">
                             <Avatar
-                              src={avatar && avatar.includes('cloudinary.com') ? avatar : avatar ? `${UPLOAD_BASE}/uploads/user/${avatar}?t=${Date.now()}` : "/public/profile.png"}
+                              src={getAvatarSrc(avatar)}
                               alt={Fullname}
                               size="md"
                               className="rounded-full w-13 h-13 object-cover"
