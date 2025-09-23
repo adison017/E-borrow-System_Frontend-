@@ -1,7 +1,7 @@
 import { Button, Menu, MenuHandler, MenuItem, MenuList } from "@material-tailwind/react";
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { MdAdd, MdRemove, MdSearch, MdShoppingCart, MdLocationOn, MdPrivacyTip } from "react-icons/md";
+import { MdAdd, MdRemove, MdSearch, MdShoppingCart, MdLocationOn, MdPrivacyTip, MdViewModule, MdViewList } from "react-icons/md";
 // import { globalUserData } from '../../components/Header';
 import Notification from '../../components/Notification';
 import { getCategories, getEquipment, updateEquipmentStatus, authFetch, API_BASE } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
@@ -48,6 +48,9 @@ const Home = () => {
   const [locationError, setLocationError] = useState(null);
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   const [borrowList, setBorrowList] = useState([]);
+  const [viewMode, setViewMode] = useState('card'); // 'card' หรือ 'row'
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
   const { subscribeToBadgeCounts } = useBadgeCounts();
 
@@ -460,6 +463,11 @@ const Home = () => {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
+  // Pagination
+  const totalPages = Math.ceil(filteredEquipment.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedEquipment = filteredEquipment.slice(startIndex, startIndex + itemsPerPage);
+
   // Get status badge with appropriate styling
   const getStatusBadge = (status, equipment) => {
     const baseClasses = "badge px-4 py-4 rounded-full text-sm font-medium ";
@@ -493,11 +501,13 @@ const Home = () => {
   // Handle status filter change
   const handleStatusFilter = (status) => {
     setSelectedStatus(status);
+    setCurrentPage(1);
   };
 
   // Handle category filter change
   const handleCategoryFilter = (category) => {
     setSelectedCategory(category);
+    setCurrentPage(1);
   };
 
   // Handle confirm button click
@@ -921,7 +931,7 @@ const Home = () => {
               {/* Location Permission Status */}
               <div className="flex items-center gap-3">
                 {locationPermission === 'granted' ? (
-                  <div className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-full">
+                  <div className="flex items-center gap-2 px-4 py-2 bg-green-100 border border-green-300 rounded-4xl">
                     <MdLocationOn className="h-5 w-5 text-green-600" />
                     <span className="text-sm font-medium text-green-700">อนุญาตตำแหน่งแล้ว</span>
                   </div>
@@ -931,7 +941,7 @@ const Home = () => {
                     <span className="text-sm font-medium text-red-700">ต้องอนุญาตตำแหน่งก่อน</span>
                     <button
                       onClick={requestLocationPermission}
-                      className="text-xs bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 transition-colors"
+                      className="text-xs bg-red-600 text-white px-2 py-1 rounded-full hover:bg-red-700 transition-colors"
                     >
                       ลองใหม่
                     </button>
@@ -944,7 +954,7 @@ const Home = () => {
                 ) : (
                   <button
                     onClick={requestLocationPermission}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-sm "
                   >
                     <MdLocationOn className="h-5 w-5" />
                     <span className="text-sm font-medium">อนุญาตตำแหน่ง (จำเป็น)</span>
@@ -968,7 +978,7 @@ const Home = () => {
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-6 shadow-sm">
+                <div className="bg-green-50 border border-green-200 rounded-4xl p-6 shadow-sm">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <MdLocationOn className="h-6 w-6 text-green-600" />
@@ -1020,7 +1030,10 @@ const Home = () => {
                       className="block w-full pl-10 pr-3 py-3 border border-gray-300 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-full text-sm"
                       placeholder="ค้นหาชื่อครุภัณฑ์หรือรหัส..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1);
+                      }}
                     />
                   </div>
                 </motion.div>
@@ -1096,6 +1109,38 @@ const Home = () => {
                     </div>
                   </div>
                 </motion.div>
+
+                {/* View Mode Toggle */}
+                <motion.div
+                  className="flex justify-end mb-6"
+                  variants={itemVariants}
+                >
+                  <div className="flex items-center gap-2 bg-white p-2 rounded-full shadow-md border border-gray-200">
+                    <span className="text-sm text-gray-600 px-2">รูปแบบการแสดง:</span>
+                    <button
+                      onClick={() => setViewMode('card')}
+                      className={`p-2 rounded-full transition-colors ${
+                        viewMode === 'card'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      title="แสดงเป็น Card"
+                    >
+                      <MdViewModule className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => setViewMode('row')}
+                      className={`p-2 rounded-full transition-colors ${
+                        viewMode === 'row'
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                      title="แสดงเป็น Row"
+                    >
+                      <MdViewList className="w-5 h-5" />
+                    </button>
+                  </div>
+                </motion.div>
               </motion.div>
 
               {/* Equipment Grid */}
@@ -1106,127 +1151,267 @@ const Home = () => {
                 animate="visible"
               >
                 {filteredEquipment.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-                    {filteredEquipment.map((equipment, index) => (
-                      <motion.div
-                        key={equipment.id}
-                        className="relative group cursor-pointer"
-                        variants={itemVariants}
-                        whileHover={{
-                          scale: 1.03,
-                          y: -8
-                        }}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.1, duration: 0.3 }}
-                        onClick={() => showEquipmentDetail(equipment)}
-                      >
-                        {/* Card Container with Enhanced Design */}
-                        <div className="bg-white rounded-4xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden border border-gray-100 group-hover:border-blue-200 relative">
-                          {/* Image Section */}
-                          <div className="relative p-6 pb-4">
-                            <div className="relative overflow-hidden rounded-2xl bg-white transition-all duration-500">
-                              <img
-                                src={equipment.image}
-                                alt={equipment.name}
-                                className="w-full h-48 object-contain transition-transform duration-500 group-hover:scale-105"
-                              />
-                              {/* Status Badge */}
-                              <div className="absolute top-3 right-3 z-20">
-                                {getStatusBadge(equipment.status, equipment)}
+                  <>
+                    <div className={viewMode === 'card' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8" : "space-y-4 mb-8"}>
+                      {paginatedEquipment.map((equipment, index) => (
+                      viewMode === 'card' ? (
+                        <motion.div
+                          key={equipment.id}
+                          className="relative group cursor-pointer"
+                          variants={itemVariants}
+                          whileHover={{
+                            scale: 1.03,
+                            y: -8
+                          }}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1, duration: 0.3 }}
+                          onClick={() => showEquipmentDetail(equipment)}
+                        >
+                          {/* Card Container with Enhanced Design */}
+                          <div className="bg-white rounded-4xl shadow-lg hover:shadow-2xl transition-all duration-500 ease-out overflow-hidden relative">
+                            {/* Image Section */}
+                            <div className="relative p-6 pb-4">
+                              <div className="relative overflow-hidden rounded-2xl bg-white transition-all duration-500">
+                                <img
+                                  src={equipment.image}
+                                  alt={equipment.name}
+                                  className="w-full h-48 object-contain transition-transform duration-500 group-hover:scale-105"
+                                />
+                                {/* Status Badge */}
+                                <div className="absolute top-3 right-3 z-20">
+                                  {getStatusBadge(equipment.status, equipment)}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Content Section */}
+                            <div className="px-6 pb-6 relative z-20">
+                              {/* Title and Code */}
+                              <div className="mb-4">
+                                <p className="text-sm font-mono text-gray-600 truncate" title={equipment.code}>
+                                  {equipment.code}
+                                </p>
+                                <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 transition-colors duration-300">
+                                  {equipment.name}
+                                </h3>
+                                
+                              </div>
+
+                              {/* Quantity and Status Info */}
+                              <div className="space-y-3 mb-4">
+                                {/* Available Quantity */}
+                                <div className="flex items-center justify-center">
+                                  <div className="bg-blue-600 text-white px-4 py-2 rounded-full shadow-md transition-all duration-300">
+                                    <span className="text-sm font-semibold">
+                                      จำนวน {equipment.available} {equipment.unit || 'ชิ้น'}
+                                    </span>
+                                  </div>
+                                </div>
+
+
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex justify-center">
+                                {(equipment.status === 'พร้อมยืม' || equipment.status === 'พร้อมใช้งาน') ? (
+                                  quantities[equipment.id] ? (
+                                    <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                                      <motion.button
+                                        className="flex items-center justify-center w-11 h-11 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleIncrease(equipment.id);
+                                        }}
+                                        disabled={quantities[equipment.id] >= equipment.available}
+                                        whileHover={{ scale: 1.1, rotate: 5 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        aria-label="เพิ่มจำนวน"
+                                      >
+                                        <MdAdd className="w-6 h-6" />
+                                      </motion.button>
+                                      
+                                      <div className="bg-indigo-600 text-white px-4 py-3 rounded-full shadow-lg min-w-[3rem] text-center">
+                                        <span className="text-lg font-bold">{quantities[equipment.id]}</span>
+                                      </div>
+                                      
+                                      <motion.button
+                                        className="flex items-center justify-center w-11 h-11 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDecrease(equipment.id);
+                                        }}
+                                        whileHover={{ scale: 1.1, rotate: -5 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        aria-label="ลดจำนวน"
+                                      >
+                                        <MdRemove className="w-6 h-6" />
+                                      </motion.button>
+                                    </div>
+                                  ) : (
+                                    <motion.button
+                                      className="flex items-center justify-center w-12 h-12 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleIncrease(equipment.id);
+                                      }}
+                                      disabled={equipment.available <= 0}
+                                      whileHover={{ scale: 1.1, rotate: 10 }}
+                                      whileTap={{ scale: 0.95 }}
+                                      aria-label="เลือก"
+                                    >
+                                      <MdAdd className="w-6 h-6" />
+                                    </motion.button>
+                                  )
+                                ) : (
+                                  <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-full text-sm font-medium">
+                                    ไม่สามารถยืมได้
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </div>
-
-                          {/* Content Section */}
-                          <div className="px-6 pb-6 relative z-20">
-                            {/* Title and Code */}
-                            <div className="mb-4">
-                              <p className="text-sm font-mono text-gray-600 truncate" title={equipment.code}>
-                                {equipment.code}
-                              </p>
-                              <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 transition-colors duration-300">
-                                {equipment.name}
-                              </h3>
-                              
+                        </motion.div>
+                      ) : (
+                        /* Row Layout */
+                        <motion.div
+                          key={equipment.id}
+                          className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer"
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.05, duration: 0.3 }}
+                          onClick={() => showEquipmentDetail(equipment)}
+                        >
+                          <div className="flex items-center p-4 gap-4">
+                            {/* Image */}
+                            <div className="flex-shrink-0">
+                              <img
+                                src={equipment.image}
+                                alt={equipment.name}
+                                className="w-20 h-20 object-contain rounded-xl bg-gray-50"
+                              />
                             </div>
 
-                            {/* Quantity and Status Info */}
-                            <div className="space-y-3 mb-4">
-                              {/* Available Quantity */}
-                              <div className="flex items-center justify-center">
-                                <div className="bg-blue-600 text-white px-4 py-2 rounded-full shadow-md transition-all duration-300">
-                                  <span className="text-sm font-semibold">
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <div className="flex-1">
+                                  <p className="text-sm font-mono text-gray-500 mb-1">{equipment.code}</p>
+                                  <h3 className="text-lg font-semibold text-gray-900 truncate">{equipment.name}</h3>
+                                  <p className="text-sm text-gray-600 mt-1">
                                     จำนวน {equipment.available} {equipment.unit || 'ชิ้น'}
-                                  </span>
+                                  </p>
+                                </div>
+
+                                {/* Status Badge */}
+                                <div className="flex-shrink-0 ml-4">
+                                  {getStatusBadge(equipment.status, equipment)}
                                 </div>
                               </div>
-
-
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex justify-center">
+                            <div className="flex-shrink-0 ml-4">
                               {(equipment.status === 'พร้อมยืม' || equipment.status === 'พร้อมใช้งาน') ? (
                                 quantities[equipment.id] ? (
-                                  <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
-                                    <motion.button
-                                      className="flex items-center justify-center w-11 h-11 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                    <button
+                                      className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 text-white transition-colors disabled:opacity-50"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleIncrease(equipment.id);
                                       }}
                                       disabled={quantities[equipment.id] >= equipment.available}
-                                      whileHover={{ scale: 1.1, rotate: 5 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      aria-label="เพิ่มจำนวน"
                                     >
-                                      <MdAdd className="w-6 h-6" />
-                                    </motion.button>
+                                      <MdAdd className="w-4 h-4" />
+                                    </button>
                                     
-                                    <div className="bg-indigo-600 text-white px-4 py-3 rounded-full shadow-lg min-w-[3rem] text-center">
-                                      <span className="text-lg font-bold">{quantities[equipment.id]}</span>
+                                    <div className="bg-indigo-600 text-white px-3 py-1 rounded-full min-w-[2rem] text-center">
+                                      <span className="text-sm font-bold">{quantities[equipment.id]}</span>
                                     </div>
                                     
-                                    <motion.button
-                                      className="flex items-center justify-center w-11 h-11 rounded-full bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                                    <button
+                                      className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         handleDecrease(equipment.id);
                                       }}
-                                      whileHover={{ scale: 1.1, rotate: -5 }}
-                                      whileTap={{ scale: 0.95 }}
-                                      aria-label="ลดจำนวน"
                                     >
-                                      <MdRemove className="w-6 h-6" />
-                                    </motion.button>
+                                      <MdRemove className="w-4 h-4" />
+                                    </button>
                                   </div>
                                 ) : (
-                                  <motion.button
-                                    className="flex items-center justify-center w-12 h-12 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                                  <button
+                                    className="flex items-center justify-center w-10 h-10 rounded-full bg-green-500 hover:bg-green-600 text-white transition-colors disabled:opacity-50"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleIncrease(equipment.id);
                                     }}
                                     disabled={equipment.available <= 0}
-                                    whileHover={{ scale: 1.1, rotate: 10 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    aria-label="เลือก"
                                   >
-                                    <MdAdd className="w-6 h-6" />
-                                  </motion.button>
+                                    <MdAdd className="w-5 h-5" />
+                                  </button>
                                 )
                               ) : (
-                                <div className="bg-gray-100 text-gray-500 px-4 py-2 rounded-full text-sm font-medium">
+                                <div className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-sm">
                                   ไม่สามารถยืมได้
                                 </div>
                               )}
                             </div>
                           </div>
+                        </motion.div>
+                      )
+                      ))}
+                    </div>
+                    
+                    {/* Pagination */}
+                    {totalPages > 1 && (
+                      <motion.div 
+                        className="flex justify-center items-center gap-3 mb-16"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <motion.button
+                          onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                          disabled={currentPage === 1}
+                          className="px-6 py-3 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 shadow-md hover:shadow-lg font-medium"
+                          whileHover={{ scale: currentPage === 1 ? 1 : 1.05 }}
+                          whileTap={{ scale: currentPage === 1 ? 1 : 0.95 }}
+                        >
+                          ← ก่อนหน้า
+                        </motion.button>
+                        
+                        <div className="flex gap-2 bg-white rounded-full p-2 shadow-lg border border-gray-100">
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <motion.button
+                              key={page}
+                              onClick={() => setCurrentPage(page)}
+                              className={`w-12 h-12 rounded-full font-semibold transition-all duration-300 ${
+                                currentPage === page
+                                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg transform scale-110'
+                                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-800'
+                              }`}
+                              whileHover={{ scale: currentPage === page ? 1.1 : 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              {page}
+                            </motion.button>
+                          ))}
                         </div>
+                        
+                        <motion.button
+                          onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                          disabled={currentPage === totalPages}
+                          className="px-6 py-3 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 hover:from-gray-200 hover:to-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300 shadow-md hover:shadow-lg font-medium"
+                          whileHover={{ scale: currentPage === totalPages ? 1 : 1.05 }}
+                          whileTap={{ scale: currentPage === totalPages ? 1 : 0.95 }}
+                        >
+                          ถัดไป →
+                        </motion.button>
                       </motion.div>
-                    ))}
-                  </div>
+                    )}
+                  </>
                 ) : (
                   <motion.div
                     className="text-center py-12 bg-white rounded-lg shadow-sm"
@@ -1238,6 +1423,7 @@ const Home = () => {
                         setSearchTerm('');
                         setSelectedStatus('ทั้งหมด');
                         setSelectedCategory('ทั้งหมด');
+                        setCurrentPage(1);
                       }}
                       className="mt-4 btn btn-md btn-ghost px-4 py-2 rounded-full bg-gray-200 hover:bg-blue-700 transition-colors"
                     >
