@@ -2148,6 +2148,8 @@ function ManageEquipment() {
 
   // ฟังก์ชันที่ใช้ QR Code จริงที่สแกนได้
   const handleDownloadRealQRCodesNew = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     console.log('Downloading real QR Codes (improved version)...');
 
     try {
@@ -2322,13 +2324,15 @@ function ManageEquipment() {
 
       // สร้างและดาวน์โหลด PDF file
       pdf.save('QR_Codes_Equipment.pdf');
-      
+
       // ปิด preview dialog และแสดง alert
       setPreviewAllQRCodesOpen(false);
       notifyEquipmentAction("qr_download_all_success");
     } catch (error) {
       console.error('Error generating PDF:', error);
       notifyEquipmentAction("qr_download_all_error");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -2380,7 +2384,7 @@ function ManageEquipment() {
               </Typography>
             </div>
           </div>
-          
+
           <div className="flex flex-col md:flex-row items-center justify-between gap-y-4 md:gap-x-4">
            <div className="w-full md:flex-grow relative">
             <label htmlFor="search" className="sr-only"> {/* Screen reader only label */}
@@ -2401,7 +2405,7 @@ function ManageEquipment() {
             </div>
            </div>
             <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
-              <Button 
+              <Button
                 onClick={() => setQrScannerOpen(true)}
                 className="bg-blue-700 hover:bg-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
               >
@@ -2570,7 +2574,7 @@ function ManageEquipment() {
                           <div className="flex flex-col items-center justify-center space-y-2">
                             <span className="text-sm font-bold text-gray-900">{item_code}</span>
                             <Tooltip content="คลิกเพื่อดาวน์โหลด QR Code">
-                              <div 
+                              <div
                                 className="bg-white p-1 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-purple-300 transition-all duration-200"
                                 onClick={() => handlePrintQRCode(item)}
                               >
@@ -2824,7 +2828,7 @@ function ManageEquipment() {
           equipment={selectedEquipment}
           onSubmit={handleInspectSubmit}
         />
-        
+
         {/* Equipment Detail Dialog (for QR Scanner) */}
         <EquipmentDetailDialog
           open={equipmentDetailDialogOpen}
@@ -2876,8 +2880,16 @@ function ManageEquipment() {
                     color="purple"
                     onClick={handleDownloadRealQRCodesNew}
                     className="px-4 py-2"
+                    disabled={isSubmitting}
                   >
-                    ดาวน์โหลด PDF
+                    {isSubmitting ? (
+                      <span className="inline-flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                        กำลังดาวน์โหลด...
+                      </span>
+                    ) : (
+                      'ดาวน์โหลด PDF'
+                    )}
                   </Button>
                 </div>
               </div>
