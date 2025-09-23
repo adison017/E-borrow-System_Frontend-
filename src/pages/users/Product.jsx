@@ -1,15 +1,15 @@
 import { Button, Menu, MenuHandler, MenuItem, MenuList } from "@material-tailwind/react";
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { MdAdd, MdRemove, MdSearch, MdShoppingCart, MdLocationOn, MdPrivacyTip, MdViewModule, MdViewList } from "react-icons/md";
+import { MdAdd, MdLocationOn, MdPrivacyTip, MdRemove, MdSearch, MdShoppingCart, MdViewList, MdViewModule } from "react-icons/md";
 // import { globalUserData } from '../../components/Header';
 import Notification from '../../components/Notification';
-import { getCategories, getEquipment, updateEquipmentStatus, authFetch, API_BASE } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
+import { useBadgeCounts } from '../../hooks/useSocket';
+import { API_BASE, authFetch, getCategories, getEquipment, updateEquipmentStatus } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
+import locationTracker from '../../utils/locationTracker';
 import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
 import ImageModal from './dialogs/ImageModal';
-import { useBadgeCounts } from '../../hooks/useSocket';
-import locationTracker from '../../utils/locationTracker';
 
 // ฟังก์ชันดึงวันพรุ่งนี้ของไทย (string YYYY-MM-DD)
 function getTomorrowTH() {
@@ -104,13 +104,6 @@ const Home = () => {
 
         // เริ่มติดตามตำแหน่งอัตโนมัติ
         startLocationTracking();
-
-        setNotification({
-          show: true,
-          title: 'อนุญาตสำเร็จ',
-          message: 'ระบบจะติดตามตำแหน่งของคุณระหว่างการยืมครุภัณฑ์',
-          type: 'success'
-        });
       },
       (error) => {
         console.error('Location permission denied:', error);
@@ -524,14 +517,7 @@ const Home = () => {
       return; // หยุดการทำงาน
     }
 
-    // แจ้งเตือนเมื่ออนุญาตแล้ว
-    setNotification({
-      show: true,
-      title: 'ข้อมูลตำแหน่ง',
-      message: 'ระบบจะติดตามตำแหน่งของคุณระหว่างการยืม ข้อมูลจะถูกลบเมื่อคืนอุปกรณ์แล้ว',
-      type: 'info',
-      duration: 3000
-    });
+    // ไม่มีการแจ้งเตือนข้อความเกี่ยวกับการติดตามตำแหน่งอีก (ข้อความแสดงใน modal อยู่แล้ว)
 
     setShowBorrowDialog(true);
     const tomorrow = getTomorrowTH();
@@ -634,17 +620,38 @@ const Home = () => {
     }
 
     // Create FormData for file upload
-    const formData = new FormData();
-    formData.append('user_id', globalUserData.user_id);
-    formData.append('purpose', borrowData.reason);
-    formData.append('borrow_date', borrowData.borrowDate);
-    formData.append('return_date', borrowData.returnDate);
-    formData.append('items', JSON.stringify(items));
-    formData.append('files_count', selectedFiles.length.toString());
+  const formData = new FormData();
+  formData.append('user_id', globalUserData.user_id);
+
+  // Merge location fields into the purpose string so backend stores reason + location together
+  const locationParts = [];
+  if (borrowData.usageProvince) locationParts.push(`จังหวัด${borrowData.usageProvince}`);
+  if (borrowData.usageDistrict) locationParts.push(`อำเภอ${borrowData.usageDistrict}`);
+  if (borrowData.usageSubdistrict) locationParts.push(`ตำบล${borrowData.usageSubdistrict}`);
+  if (borrowData.usageLocation) locationParts.push(`${borrowData.usageLocation}`);
+
+  const mergedPurpose = [borrowData.reason, ...locationParts].filter(Boolean).join(' ');
+
+  // Send merged purpose (reason + location) to be stored in `purpose` column
+  formData.append('purpose', mergedPurpose);
+  // Also send individual location fields in case backend or future features need structured values
+  if (borrowData.usageProvince) formData.append('usageProvince', borrowData.usageProvince);
+  if (borrowData.usageDistrict) formData.append('usageDistrict', borrowData.usageDistrict);
+  if (borrowData.usageSubdistrict) formData.append('usageSubdistrict', borrowData.usageSubdistrict);
+  if (borrowData.usageLocation) formData.append('usageLocation', borrowData.usageLocation);
+
+  formData.append('borrow_date', borrowData.borrowDate);
+  formData.append('return_date', borrowData.returnDate);
+  formData.append('items', JSON.stringify(items));
+  formData.append('files_count', selectedFiles.length.toString());
 
     console.log('FormData created:', {
       user_id: globalUserData.user_id,
-      purpose: borrowData.reason,
+      purpose: mergedPurpose,
+      usageProvince: borrowData.usageProvince,
+      usageDistrict: borrowData.usageDistrict,
+      usageSubdistrict: borrowData.usageSubdistrict,
+      usageLocation: borrowData.usageLocation,
       borrow_date: borrowData.borrowDate,
       return_date: borrowData.returnDate,
       items: JSON.stringify(items),

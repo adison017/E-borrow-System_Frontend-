@@ -1,19 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
-import { GiOfficeChair } from "react-icons/gi";
-import axios from '../../../utils/axios.js';
-import {
-  FaBook,
-  FaBuilding,
-  FaEnvelope,
-  FaIdCard,
-  FaLock,
-  FaMapMarkerAlt,
-  FaPhone,
-  FaUser
-} from "react-icons/fa";
-import { MdClose, MdCloudUpload } from "react-icons/md";
+import { useEffect, useRef, useState } from "react";
+import { MdCloudUpload } from "react-icons/md";
 import PinDialog from "../../../components/dialog/PinDialog";
-import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
+import { API_BASE } from '../../../utils/api';
+import axios from '../../../utils/axios.js';
+import { getAvatarSrc } from '../../../utils/image';
 
 export default function EditUserDialog({ open, onClose, userData, onSave }) {
   const [formData, setFormData] = useState({
@@ -81,7 +71,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
           axios.get(`${API_BASE}/users/positions`),
           axios.get(`${API_BASE}/users/branches`),
           axios.get(`${API_BASE}/users/roles`),
-          fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json').then(res => res.json())
+          fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/refs/heads/master/api/latest/province_with_district_and_sub_district.json').then(res => res.json())
         ]);
 
         if (!positionsResponse.data) throw new Error('Failed to fetch positions');
@@ -91,21 +81,24 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         setPositions(positionsResponse.data);
         setBranches(branchesResponse.data);
         setRoles(rolesResponse.data);
-        setProvinces(provincesResponse);
+  setProvinces(provincesResponse || []);
 
         if (userData) {
-          const province = provincesResponse.find(p => p.name_th === userData.province);
+          const province = (provincesResponse || []).find(p => p.name_th === userData.province);
           if (province) {
-            setAmphures(province.amphure);
-            const amphure = province.amphure.find(a => a.name_th === userData.district);
-            if (amphure) {
-              setTambons(amphure.tambon);
-              const tambon = amphure.tambon.find(t => t.name_th === userData.parish);
-              if (tambon) {
+            // kongvut latest JSON uses `districts` and each district has `sub_districts`
+            const districts = province.districts || [];
+            setAmphures(districts);
+            const district = districts.find(a => a.name_th === userData.district);
+            if (district) {
+              const subDistricts = district.sub_districts || [];
+              setTambons(subDistricts);
+              const sub = subDistricts.find(t => t.name_th === userData.parish);
+              if (sub) {
                 setSelected({
                   province_id: province.id,
-                  amphure_id: amphure.id,
-                  tambon_id: tambon.id
+                  amphure_id: district.id,
+                  tambon_id: sub.id
                 });
               }
             }
@@ -121,11 +114,10 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     }
   }, [open, userData]);
 
+  // kept for backward-compat; use shared helper for final preview URL
   const getAvatarUrl = (path) => {
     if (!path) return 'logo_it.png';
-    if (path.includes('cloudinary.com')) {
-      return path;
-    }
+    if (path.includes('cloudinary.com')) return path;
     let filename = path;
     filename = filename.replace(/^http:\/\/localhost:5000\//, '')
       .replace(/^[\\/]+/, '')
@@ -155,7 +147,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         postal_no: ''
       }));
       if (provinceObj) {
-        setAmphures(provinceObj.amphure);
+        setAmphures(provinceObj.districts || []);
       }
     } else if (type === 'amphure') {
       setTambons([]);
@@ -172,7 +164,7 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         postal_no: ''
       }));
       if (amphureObj) {
-        setTambons(amphureObj.tambon);
+        setTambons(amphureObj.sub_districts || []);
       }
     } else if (type === 'tambon') {
       setSelected(prev => ({
@@ -192,18 +184,20 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
     if (userData) {
       const avatarPath = getAvatarUrl(userData.avatar);
 
-      const province = provinces.find(p => p.name_th === userData.province);
+      const province = (provinces || []).find(p => p.name_th === userData.province);
       if (province) {
-        setAmphures(province.amphure);
-        const amphure = province.amphure.find(a => a.name_th === userData.district);
-        if (amphure) {
-          setTambons(amphure.tambon);
-          const tambon = amphure.tambon.find(t => t.name_th === userData.parish);
-          if (tambon) {
+        const districts = province.districts || [];
+        setAmphures(districts);
+        const district = districts.find(a => a.name_th === userData.district);
+        if (district) {
+          const subDistricts = district.sub_districts || [];
+          setTambons(subDistricts);
+          const sub = subDistricts.find(t => t.name_th === userData.parish);
+          if (sub) {
             setSelected({
               province_id: province.id,
-              amphure_id: amphure.id,
-              tambon_id: tambon.id
+              amphure_id: district.id,
+              tambon_id: sub.id
             });
           }
         }
@@ -231,11 +225,8 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
         password: ''
       });
 
-      if (avatarPath && avatarPath.includes('cloudinary.com')) {
-        setPreviewImage(avatarPath);
-      } else {
-        setPreviewImage(avatarPath ? `${UPLOAD_BASE}/uploads/user/${avatarPath}` : "/profile.png");
-      }
+      // normalize preview with shared helper (returns local placeholder for 'profile.png')
+      setPreviewImage(getAvatarSrc(avatarPath));
     }
   }, [userData, provinces]);
 

@@ -1,23 +1,7 @@
-import axios from '../../../utils/axios.js';
 import { useEffect, useState } from "react";
-import {
-  FaBook,
-  FaBuilding,
-  FaEnvelope,
-  FaIdCard,
-  FaMapMarkerAlt,
-  FaPhone,
-  FaUser
-} from "react-icons/fa";
-import { MdClose } from "react-icons/md";
-import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
-
-const getAvatarUrl = (path) => {
-  if (!path) return '/logo_it.png';
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  if (path.startsWith('/uploads/')) return `${UPLOAD_BASE}${path}`;
-  return `${UPLOAD_BASE}/uploads/user/${path}`;
-};
+import { API_BASE } from '../../../utils/api';
+import axios from '../../../utils/axios.js';
+import { getAvatarSrc } from '../../../utils/image';
 
 export default function ViewUserDialog({ open, onClose, userData }) {
   const [formData, setFormData] = useState({
@@ -57,7 +41,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
         user_code: userData.user_code || '',
         username: userData.username || '',
         Fullname: userData.Fullname || '',
-        pic: userData.avatar ? getAvatarUrl(userData.avatar) : '/logo_it.png',
+        pic: getAvatarSrc(userData.avatar),
         email: userData.email || '',
         phone: userData.phone || '',
         position_name: userData.position_name || '',
@@ -69,7 +53,7 @@ export default function ViewUserDialog({ open, onClose, userData }) {
         postal_no: userData.postal_no || '',
         password: ''
       });
-      setPreviewImage(userData.avatar ? getAvatarUrl(userData.avatar) : '/logo_it.png');
+  setPreviewImage(getAvatarSrc(userData.avatar));
     }
   }, [userData]);
 
@@ -80,26 +64,28 @@ export default function ViewUserDialog({ open, onClose, userData }) {
           axios.get(`${API_BASE}/users/positions`),
           axios.get(`${API_BASE}/users/branches`),
           axios.get(`${API_BASE}/users/roles`),
-          fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json').then(res => res.json())
+          fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/refs/heads/master/api/latest/province_with_district_and_sub_district.json').then(res => res.json())
         ]);
         setPositions(positionsResponse.data);
         setBranches(branchesResponse.data);
         setRoles(rolesResponse.data);
-        setProvinces(provincesResponse);
+        setProvinces(provincesResponse || []);
 
         if (userData) {
-          const province = provincesResponse.find(p => p.name_th === userData.province);
+          const province = (provincesResponse || []).find(p => p.name_th === userData.province);
           if (province) {
-            setAmphures(province.amphure);
-            const amphure = province.amphure.find(a => a.name_th === userData.district);
-            if (amphure) {
-              setTambons(amphure.tambon);
-              const tambon = amphure.tambon.find(t => t.name_th === userData.parish);
-              if (tambon) {
+            const districts = province.districts || [];
+            setAmphures(districts);
+            const district = districts.find(a => a.name_th === userData.district);
+            if (district) {
+              const subDistricts = district.sub_districts || [];
+              setTambons(subDistricts);
+              const sub = subDistricts.find(t => t.name_th === userData.parish);
+              if (sub) {
                 setSelected({
                   province_id: province.id,
-                  amphure_id: amphure.id,
-                  tambon_id: tambon.id
+                  amphure_id: district.id,
+                  tambon_id: sub.id
                 });
               }
             }
