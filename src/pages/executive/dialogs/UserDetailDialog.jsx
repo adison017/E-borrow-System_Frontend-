@@ -1,4 +1,4 @@
-import { UPLOAD_BASE } from '../../../utils/api';
+import { getAvatarSrc } from '../../../utils/image';
 
 const UserDetailDialog = ({ isOpen, onClose, selectedUser }) => {
   if (!isOpen) return null;
@@ -31,7 +31,7 @@ const UserDetailDialog = ({ isOpen, onClose, selectedUser }) => {
             <div className="relative group">
               <div className="w-40 h-40 rounded-full bg-white shadow-2xl group-hover:shadow-3xl transition-all duration-500 group-hover:scale-105">
                 <img
-                  src={selectedUser?.avatar && selectedUser.avatar.includes('cloudinary.com') ? selectedUser.avatar : selectedUser?.avatar ? `${UPLOAD_BASE}/uploads/user/${selectedUser.avatar}?t=${Date.now()}` : "/logo_it.png"}
+                  src={getAvatarSrc(selectedUser?.avatar) || "/logo_it.png"}
                   alt="Profile"
                   className="w-full h-full object-cover rounded-full transition-all duration-500 group-hover:scale-110"
                   onError={e => {

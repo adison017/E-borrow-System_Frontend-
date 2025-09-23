@@ -1,11 +1,10 @@
-import axios from '../../utils/axios.js';
+import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { isCloudinaryUrl, getOptimizedCloudinaryUrl } from '../../utils/cloudinaryUtils';
-import { uploadFileToCloudinary } from '../../utils/cloudinaryUtils';
-import { API_BASE } from '../../utils/api';
 import Notification from '../../components/Notification.jsx';
 import OtpDialog from '../../components/OtpDialog.jsx';
+import { API_BASE } from '../../utils/api';
+import axios from '../../utils/axios.js';
+import { getOptimizedCloudinaryUrl, isCloudinaryUrl, uploadFileToCloudinary } from '../../utils/cloudinaryUtils';
 // import { globalUpdateProfileImage } from '../../components/Header';
 
 const PersonalInfoEdit = () => {
@@ -173,30 +172,31 @@ const PersonalInfoEdit = () => {
     tambon_id: undefined
   });
 
-  // 3. useEffect สำหรับ fetch จังหวัด/อำเภอ/ตำบล
+  // 3. useEffect สำหรับ fetch จังหวัด/อำเภอ/ตำบล (ใช้ชุดข้อมูลล่าสุดจาก kongvut)
   useEffect(() => {
-    fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json')
+    fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/refs/heads/master/api/latest/province_with_district_and_sub_district.json')
       .then(res => res.json())
-      .then(data => setProvinces(data))
+      .then(data => setProvinces(data || []))
       .catch(() => setProvinces([]));
   }, []);
 
   // เมื่อ provinces หรือ formData.province/district/parish เปลี่ยน ให้ sync dropdown
   useEffect(() => {
     if (provinces.length && formData.province) {
-      const provinceObj = provinces.find(p => p.name_th === formData.province);
+      const provinceObj = provinces.find(p => p.name_th === formData.province || p.name === formData.province);
       if (provinceObj) {
-        setAmphures(provinceObj.amphure);
+        // provinces now has `districts` array which contains `sub_districts`
+        setAmphures(provinceObj.districts || []);
         let amphure_id, tambon_id;
         if (formData.district) {
-          const amphureObj = provinceObj.amphure.find(a => a.name_th === formData.district);
-          if (amphureObj) {
-            setTambons(amphureObj.tambon);
-            amphure_id = amphureObj.id;
+          const districtObj = (provinceObj.districts || []).find(d => d.name_th === formData.district || d.name === formData.district);
+          if (districtObj) {
+            setTambons(districtObj.sub_districts || []);
+            amphure_id = districtObj.id;
             if (formData.parish) {
-              const tambonObj = amphureObj.tambon.find(t => t.name_th === formData.parish);
-              if (tambonObj) {
-                tambon_id = tambonObj.id;
+              const subObj = (districtObj.sub_districts || []).find(t => t.name_th === formData.parish || t.name === formData.parish);
+              if (subObj) {
+                tambon_id = subObj.id;
               }
             }
           }
@@ -226,7 +226,8 @@ const PersonalInfoEdit = () => {
         parish: '',
         postal_no: ''
       }));
-      if (provinceObj) setAmphures(provinceObj.amphure);
+      // kongvut latest JSON uses `districts` (each district has `sub_districts`)
+      if (provinceObj) setAmphures(provinceObj.districts || []);
     } else if (type === 'amphure') {
       setTambons([]);
       setSelected(prev => ({ ...prev, amphure_id: id, tambon_id: undefined }));
@@ -237,7 +238,8 @@ const PersonalInfoEdit = () => {
         parish: '',
         postal_no: ''
       }));
-      if (amphureObj) setTambons(amphureObj.tambon);
+      // each district object contains `sub_districts` in the kongvut data
+      if (amphureObj) setTambons(amphureObj.sub_districts || []);
     } else if (type === 'tambon') {
       setSelected(prev => ({ ...prev, tambon_id: id }));
       const tambonObj = tambons.find(t => t.id === id);
@@ -911,7 +913,7 @@ const PersonalInfoEdit = () => {
                         value={selected.amphure_id || ''}
                         onChange={e => handleAddressChange(e, 'amphure')}
                         className="select select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
-                        disabled={!amphures.length}
+                        disabled={!Array.isArray(amphures) || !amphures.length}
                       >
                         <option value=''>เลือกอำเภอ</option>
                         {amphures.map(a => (
@@ -928,7 +930,7 @@ const PersonalInfoEdit = () => {
                         value={selected.tambon_id || ''}
                         onChange={e => handleAddressChange(e, 'tambon')}
                         className="select select-bordered w-full focus:ring-2 focus:ring-primary focus:border-transparent h-12 rounded-xl bg-white shadow-sm transition-all duration-200 hover:shadow-md border-0"
-                        disabled={!tambons.length}
+                        disabled={!Array.isArray(tambons) || !tambons.length}
                       >
                         <option value=''>เลือกตำบล</option>
                         {tambons.map(t => (

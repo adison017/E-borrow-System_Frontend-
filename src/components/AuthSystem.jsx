@@ -1,16 +1,16 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import axios from '../utils/axios';
+import { useEffect, useMemo, useState } from 'react';
 import { FaBuilding, FaChartBar, FaCog, FaEnvelope, FaEye, FaEyeSlash, FaGraduationCap, FaIdCard, FaLaptop, FaLock, FaMapMarkerAlt, FaPhone, FaUser, FaUserAlt } from 'react-icons/fa';
 import { GiHandTruck } from "react-icons/gi";
 import { useNavigate } from 'react-router-dom';
 import { API_BASE } from '../utils/api.js';
+import axios from '../utils/axios';
 import socketService from '../utils/socketService';
 import {
-  LoginErrorDialog,
-  LoginSuccessDialog,
-  PasswordMismatchDialog,
-  RegisterErrorDialog,
-  RegisterSuccessDialog
+    LoginErrorDialog,
+    LoginSuccessDialog,
+    PasswordMismatchDialog,
+    RegisterErrorDialog,
+    RegisterSuccessDialog
 } from './dialog/AlertDialog';
 import Notification from './Notification';
 import OtpDialog from './OtpDialog';
@@ -187,15 +187,15 @@ const AuthSystem = (props) => {
   useEffect(() => {
     setIsMounted(true);
     // โหลดอำเภอเริ่มต้นตามจังหวัดเริ่มต้น
-    const initialProvince = provinces.find(p => p.name === registerData.province);
+    const initialProvince = (provinces || []).find(p => p.name === registerData.province || p.name_th === registerData.province);
     if (initialProvince) {
-      const provinceDistricts = amphures.find(a => a.id === Number(registerData.amphureId))?.tambon || [];
+      const provinceDistricts = initialProvince.districts || [];
       setAvailableDistricts(provinceDistricts);
 
       // โหลดตำบลเริ่มต้นตามอำเภอเริ่มต้น
-      const initialDistrict = provinceDistricts.find(d => d.name === registerData.district);
+      const initialDistrict = (provinceDistricts || []).find(d => String(d.id) === String(registerData.amphureId) || d.name === registerData.district || d.name_th === registerData.district);
       if (initialDistrict) {
-        const districtSubdistricts = tambons.find(t => t.id === Number(registerData.tambonId))?.zip_code || '';
+        const districtSubdistricts = initialDistrict.sub_districts || [];
         setAvailableSubdistricts(districtSubdistricts);
       }
     }
@@ -204,19 +204,21 @@ const AuthSystem = (props) => {
 
   useEffect(() => {
     // fetch จังหวัด/อำเภอ/ตำบล จาก github
-    fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json')
+    fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/refs/heads/master/api/latest/province_with_district_and_sub_district.json')
       .then(res => res.json())
       .then(data => {
-        setProvinces(data);
+        setProvinces(data || []);
         // โหลดอำเภอเริ่มต้นตามจังหวัดเริ่มต้น
-        const initialProvince = data.find(p => p.name === registerData.province);
+        const initialProvince = (data || []).find(p => p.name === registerData.province || p.name_th === registerData.province);
         if (initialProvince) {
-          setAmphures(initialProvince.amphure);
-          const initialDistrict = initialProvince.amphure.find(d => d.name === registerData.district);
+          setAmphures(initialProvince.districts || []);
+          const initialDistrict = (initialProvince.districts || []).find(d => d.name === registerData.district || d.name_th === registerData.district);
           if (initialDistrict) {
-            setTambons(initialDistrict.tambon);
+            setTambons(initialDistrict.sub_districts || []);
           }
         }
+      }).catch(() => {
+        setProvinces([]);
       });
     // fetch positions
     axios.get(`${API_BASE}/users/positions`)
@@ -336,15 +338,15 @@ const AuthSystem = (props) => {
     setSelected({ province_id: provinceId, amphure_id: undefined, tambon_id: undefined });
     const provinceObj = provinces.find(p => p.id === provinceId);
     setRegisterData(prev => ({ ...prev, provinceId, amphureId: '', tambonId: '', postalCode: '' }));
-    setAmphures(provinceObj ? provinceObj.amphure : []);
+  setAmphures(provinceObj ? (provinceObj.districts || []) : []);
     setTambons([]);
   };
   const handleDistrictChange = (e) => {
     const amphureId = Number(e.target.value);
     setSelected(prev => ({ ...prev, amphure_id: amphureId, tambon_id: undefined }));
-    const amphureObj = amphures.find(a => a.id === amphureId);
+  const amphureObj = amphures.find(a => a.id === amphureId);
     setRegisterData(prev => ({ ...prev, amphureId, tambonId: '', postalCode: '' }));
-    setTambons(amphureObj ? amphureObj.tambon : []);
+  setTambons(amphureObj ? (amphureObj.sub_districts || []) : []);
   };
   const handleSubdistrictChange = (e) => {
     const tambonId = Number(e.target.value);

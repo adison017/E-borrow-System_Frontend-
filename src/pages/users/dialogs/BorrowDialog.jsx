@@ -1,7 +1,7 @@
+import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const BorrowDialog = ({
   showBorrowDialog,
@@ -20,6 +20,16 @@ const BorrowDialog = ({
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // State สำหรับจังหวัด/อำเภอ/ตำบล
+  const [provinces, setProvinces] = useState([]);
+  const [amphures, setAmphures] = useState([]);
+  const [tambons, setTambons] = useState([]);
+  const [selected, setSelected] = useState({
+    province_id: undefined,
+    amphure_id: undefined,
+    tambon_id: undefined
+  });
 
   // ฟังก์ชันตรวจสอบประเภทไฟล์ Office
   const getFileIcon = (fileName) => {
@@ -109,8 +119,61 @@ const BorrowDialog = ({
     if (!showBorrowDialog) {
       setSelectedFiles([]);
       setIsSubmitting(false); // Reset loading state when dialog closes
+      // Reset location data
+      setSelected({
+        province_id: undefined,
+        amphure_id: undefined,
+        tambon_id: undefined
+      });
+      setAmphures([]);
+      setTambons([]);
     }
   }, [showBorrowDialog]);
+
+  // Fetch provinces data
+  useEffect(() => {
+    fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/refs/heads/master/api/latest/province_with_district_and_sub_district.json')
+      .then(res => res.json())
+      .then(data => setProvinces(data))
+      .catch(() => setProvinces([]));
+  }, []);
+
+  // Handle address change
+  const handleAddressChange = (event, type) => {
+    const value = event.target.value;
+    const id = Number(value);
+    
+    if (type === 'province') {
+      setAmphures([]);
+      setTambons([]);
+      setSelected({ province_id: id, amphure_id: undefined, tambon_id: undefined });
+      const provinceObj = provinces.find(p => p.id === id);
+      setBorrowData(prev => ({
+        ...prev,
+        usageProvince: provinceObj ? provinceObj.name_th : '',
+        usageDistrict: '',
+        usageSubdistrict: ''
+      }));
+  if (provinceObj) setAmphures(provinceObj.districts || []);
+    } else if (type === 'amphure') {
+      setTambons([]);
+      setSelected(prev => ({ ...prev, amphure_id: id, tambon_id: undefined }));
+  const amphureObj = (amphures || []).find(a => a.id === id);
+      setBorrowData(prev => ({
+        ...prev,
+        usageDistrict: amphureObj ? amphureObj.name_th : '',
+        usageSubdistrict: ''
+      }));
+  if (amphureObj) setTambons(amphureObj.sub_districts || []);
+    } else if (type === 'tambon') {
+      setSelected(prev => ({ ...prev, tambon_id: id }));
+      const tambonObj = tambons.find(t => t.id === id);
+      setBorrowData(prev => ({
+        ...prev,
+        usageSubdistrict: tambonObj ? tambonObj.name_th : ''
+      }));
+    }
+  };
 
     // File handling functions
   const handleFileSelect = (e) => {
@@ -314,6 +377,89 @@ const BorrowDialog = ({
                     required
                     disabled={isSubmitting}
                   />
+                </div>
+
+                {/* สถานที่ใช้งาน */}
+                <div className="mb-4">
+                  <h3 className="text-gray-700 font-medium mb-3 flex items-center">
+                    <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    สถานที่ใช้งาน
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2 text-sm">จังหวัด</label>
+                      <select
+                        value={selected.province_id || ''}
+                        onChange={e => handleAddressChange(e, 'province')}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm ${
+                          isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                        }`}
+                        disabled={isSubmitting}
+                        required
+                      >
+                        <option value=''>เลือกจังหวัด</option>
+                        {provinces.map(p => (
+                          <option key={p.id} value={p.id}>{p.name_th}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2 text-sm">อำเภอ</label>
+                      <select
+                        value={selected.amphure_id || ''}
+                        onChange={e => handleAddressChange(e, 'amphure')}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm ${
+                          isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                        }`}
+                        disabled={!amphures.length || isSubmitting}
+                        required
+                      >
+                        <option value=''>เลือกอำเภอ</option>
+                        {amphures.map(a => (
+                          <option key={a.id} value={a.id}>{a.name_th}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-gray-700 font-medium mb-2 text-sm">ตำบล</label>
+                      <select
+                        value={selected.tambon_id || ''}
+                        onChange={e => handleAddressChange(e, 'tambon')}
+                        className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm ${
+                          isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                        }`}
+                        disabled={!tambons.length || isSubmitting}
+                        required
+                      >
+                        <option value=''>เลือกตำบล</option>
+                        {tambons.map(t => (
+                          <option key={t.id} value={t.id}>{t.name_th}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2 text-sm">รายละเอียดสถานที่</label>
+                    <textarea
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all text-sm ${
+                        isSubmitting ? 'bg-gray-100 cursor-not-allowed' : ''
+                      }`}
+                      placeholder="กรุณากรอกรายละเอียดสถานที่ใช้งาน เช่น ชื่ออาคาร ห้อง ฯลฯ"
+                      rows={2}
+                      name="usageLocation"
+                      value={borrowData.usageLocation || ''}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting}
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">

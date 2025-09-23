@@ -1,12 +1,12 @@
-import React, { useEffect, useRef, useState } from "react";
 import {
   MagnifyingGlassIcon,
   TrashIcon
 } from "@heroicons/react/24/outline";
-import axios from '../../utils/axios';
+import { useEffect, useRef, useState } from "react";
 import { ImMail4 } from "react-icons/im";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import axios from '../../utils/axios';
 
 import {
   PencilIcon,
@@ -123,6 +123,18 @@ function ManageUser() {
   const [isExporting, setIsExporting] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [togglingUserId, setTogglingUserId] = useState(null);
+
+  // helper to resolve avatar src: avoid requesting default placeholder filenames from the upload server
+  const getAvatarSrc = (avatar) => {
+    if (!avatar) return "/profile.png"; // use local public asset
+    if (typeof avatar === 'string' && avatar.includes('cloudinary.com')) return avatar;
+    // sometimes backend stores the placeholder filename (e.g. 'profile.png') in avatar field
+    const name = String(avatar).split('/').pop();
+    if (!name || name === 'profile.png' || name === 'logo_it.png' || name === 'lo.png' || name === 'placeholder-user.png' || name === 'public/profile.png') {
+      return `/${name === 'public/profile.png' ? 'profile.png' : name || 'profile.png'}`;
+    }
+    return `${UPLOAD_BASE}/uploads/user/${name}?t=${Date.now()}`;
+  };
 
   // ฟังก์ชันรวมคำอธิบายแจ้งเตือน (เหมือน borrowlist/news)
   const getUserNotifyMessage = (action, extra) => {
@@ -713,8 +725,8 @@ function ManageUser() {
                         <td className="px-3 py-4 whitespace-nowrap text-md font-bold text-gray-900">{user_code}</td>
                         <td className="px-3 py-4 w-15 h-full whitespace-nowrap">
                           <div className="flex items-center justify-center object-cover">
-                                            <Avatar
-                  src={avatar && avatar.includes('cloudinary.com') ? avatar : avatar ? `${UPLOAD_BASE}/uploads/user/${avatar}?t=${Date.now()}` : "/public/profile.png"}
+                            <Avatar
+                              src={getAvatarSrc(avatar)}
                               alt={Fullname}
                               size="md"
                               className="rounded-full w-13 h-13 object-cover"

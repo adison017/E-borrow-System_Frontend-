@@ -1,24 +1,16 @@
-import React, { useEffect, useRef, useState } from "react";
-import axios from '../../../utils/axios.js';
+import { useEffect, useRef, useState } from "react";
 import {
-  FaBook,
-  FaBuilding,
-  FaEnvelope,
   FaEye,
   FaEyeSlash,
-  FaIdCard,
-  FaLock,
-  FaMapMarkerAlt,
-  FaPhone,
-  FaUser
+  FaLock
 } from "react-icons/fa";
-import { GiOfficeChair } from "react-icons/gi";
-import { MdClose, MdCloudUpload } from "react-icons/md";
-import Swal from 'sweetalert2';
-import 'react-toastify/dist/ReactToastify.css';
+import { MdCloudUpload } from "react-icons/md";
 import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import Swal from 'sweetalert2';
 import PinDialog from "../../../components/dialog/PinDialog";
-import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
+import { API_BASE } from '../../../utils/api';
+import axios from '../../../utils/axios.js';
 
 export default function AddUserDialog({
   open,
@@ -103,7 +95,7 @@ export default function AddUserDialog({
         setRoles(rolesResponse.data);
 
         try {
-          const res = await fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/master/api_province_with_amphure_tambon.json');
+          const res = await fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/refs/heads/master/api/latest/province_with_district_and_sub_district.json');
           const data = await res.json();
           if (Array.isArray(data) && data.length > 0) {
             setProvinces(data);
@@ -300,7 +292,7 @@ export default function AddUserDialog({
         postal_no: ''
       }));
       if (provinceObj) {
-        setAmphures(provinceObj.amphure);
+        setAmphures(provinceObj.districts || []);
       }
     } else if (type === 'amphure') {
       setTambons([]);
@@ -317,7 +309,7 @@ export default function AddUserDialog({
         postal_no: ''
       }));
       if (amphureObj) {
-        setTambons(amphureObj.tambon);
+        setTambons(amphureObj.sub_districts || []);
       }
     } else if (type === 'tambon') {
       setSelected(prev => ({
