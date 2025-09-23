@@ -55,7 +55,7 @@ const Fine = () => {
 
   useEffect(() => {
     fetchFineData();
-    
+
     // === เพิ่มฟัง event badgeCountsUpdated เพื่ออัปเดต fine list แบบ real-time ===
     const handleBadgeUpdate = () => {
       fetchFineData();
@@ -117,7 +117,7 @@ const Fine = () => {
     return () => window.removeEventListener('appNotify', handleAppNotify);
   }, []);
 
-  
+
 
   const copyText = async (text) => {
     try {
@@ -154,7 +154,7 @@ const Fine = () => {
     setIsDialogOpen(false);
     setSelectedRequest(null);
     setDialogShouldClose(false);
-    
+
     // รีเฟรช fineList ทันที
     const user_id = globalUserData?.user_id;
     if (user_id) {
@@ -163,8 +163,8 @@ const Fine = () => {
         if (shouldShowAlert && currentBorrowId) {
           // หาข้อมูลล่าสุดจากข้อมูลที่อัปเดตแล้ว
           const updatedRequest = updatedData.find(req => req.borrow_id === currentBorrowId);
-          if (updatedRequest && (updatedRequest.pay_status === 'awaiting_payment' || updatedRequest.pay_status === 'failed')) {
-            // ถ้าสถานะเป็น "awaiting_payment" หรือ "failed" ไม่ต้องแสดง success alert
+          if (updatedRequest && (updatedRequest.status === 'waiting_payment' || updatedRequest.pay_status === 'failed')) {
+            // ถ้าสถานะเป็น "waiting_payment" หรือ "failed" ไม่ต้องแสดง success alert
             // Skip success alert for pending or failed payment status
           } else {
             setShowSuccessAlert(true);
@@ -228,19 +228,21 @@ const Fine = () => {
   );
 
      // ป้องกัน error .filter is not a function
-   const safeFineList = Array.isArray(fineList) ? fineList : [];
-   const pendingList = safeFineList.filter(req => ['pending','failed','awaiting_payment'].includes(req.pay_status));
+    const safeFineList = Array.isArray(fineList) ? fineList : [];
+    const pendingList = safeFineList.filter(req => req.status === 'waiting_payment' && (req.pay_status === 'pending' || req.pay_status === 'awaiting_payment' || req.pay_status === 'failed'));
+    console.log('Filtered pendingList:', pendingList); // Debug log for filtered results
+    console.log('All safeFineList statuses:', safeFineList.map(req => ({ borrow_id: req.borrow_id, pay_status: req.pay_status }))); // Log all statuses
   // const paidList = fineList.filter(req => req.pay_status === 'paid'); // ลบส่วนนี้ออก
 
   return (
-    <motion.div 
+    <motion.div
       className="container mx-auto px-4 py-8"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       {/* Payment Method Section */}
-      <motion.div 
+      <motion.div
         className="mb-6"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -389,7 +391,7 @@ const Fine = () => {
 
       <div className="space-y-6">
         {pendingList.length === 0 && (
-          <motion.div 
+          <motion.div
             className="flex flex-col items-center justify-center py-12"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -410,8 +412,8 @@ const Fine = () => {
           const currentItem = items[currentIndex];
           const total = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
           return (
-            <motion.div 
-              key={request.borrow_id} 
+            <motion.div
+              key={request.borrow_id}
               className="card bg-white shadow-xl overflow-hidden"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -468,9 +470,15 @@ const Fine = () => {
                       {request.borrow_code}
                     </span>
                       </div>
-                                             <div className={`badge ${request.pay_status === 'failed' ? 'badge-error' : (request.pay_status === 'awaiting_payment' ? 'badge-warning' : 'badge-error')} text-white md:text-base px-4 py-4 rounded-full text-sm font-medium`}>
-                         {request.pay_status === 'failed' ? 'การชำระผิดพลาด' : (request.pay_status === 'awaiting_payment' ? 'รอยืนยันชำระ' : 'ค้างชำระเงิน')}
-                       </div>
+                      {(() => {
+                        if (request.pay_status === 'awaiting_payment') {
+                          return <div className="badge badge-info text-white md:text-base px-4 py-4 rounded-full text-sm font-medium">รอตรวจสอบการชำระ</div>;
+                        } else if (request.pay_status === 'failed') {
+                          return <div className="badge badge-error text-white md:text-base px-4 py-4 rounded-full text-sm font-medium">การชำระผิดพลาด</div>;
+                        } else {
+                          return <div className="badge badge-warning text-white md:text-base px-4 py-4 rounded-full text-sm font-medium">รอชำระเงิน</div>;
+                        }
+                      })()}
                     </div>
 
                     <div className="my-4">
@@ -489,9 +497,9 @@ const Fine = () => {
                         {request.late_fine?.toLocaleString('th-TH')} บาท ({request.late_days} วัน)
                       </p>
                     </div>
-                    
+
                                          {/* แสดงเหตุผลการปฏิเสธสำหรับสถานะ failed */}
-                     {request.pay_status === 'failed' && request.notes && (
+                     {(request.pay_status === 'failed') && request.notes && (
                        <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
                          <h3 className="font-semibold text-red-700 mb-1 flex items-center gap-2">
                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -546,14 +554,21 @@ const Fine = () => {
                          <div className="text-gray-700 font-medium text-sm md:text-base">
                            รวมทั้งหมด {total} ชิ้น
                          </div>
-                         {/* แสดงปุ่มสำหรับสถานะ "รอชำระ" และ "การชำระผิดพลาด" (ไม่แสดงสำหรับ awaiting_payment) */}
-                         {(request.pay_status === 'pending' || request.pay_status === 'failed') && (
+                         {/* แสดงปุ่มสำหรับสถานะ waiting_payment */}
+                         {request.status === 'waiting_payment' && request.pay_status === 'awaiting_payment' && (
+                           <div className="flex gap-2 w-full md:w-auto">
+                             <span className="badge badge-info text-white px-4 py-2 rounded-full text-sm font-medium">
+                               รอตรวจสอบการชำระ
+                             </span>
+                           </div>
+                         )}
+                         {request.status === 'waiting_payment' && (request.pay_status === 'pending' || request.pay_status === 'failed') && (
                            <div className="flex gap-2 w-full md:w-auto">
                              <button
                                className={`font-bold py-2 px-8 rounded-full shadow-lg text-lg tracking-wide transition-all duration-200 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-4 animate-pulse flex items-center justify-center gap-2 ${
-                                 request.pay_status === 'failed' 
-                                   ? 'bg-gradient-to-r from-orange-400 to-red-600 text-white focus:ring-orange-200' 
-                                   : 'bg-gradient-to-r from-emerald-400 to-green-600 text-white focus:ring-pink-200'
+                                 request.pay_status === 'failed'
+                                   ? 'bg-gradient-to-r from-orange-400 to-red-600 text-white focus:ring-orange-200'
+                                   : 'bg-gradient-to-r from-green-400 to-emerald-600 text-white focus:ring-green-200'
                                }`}
                                onClick={(e) => {
                                  e.stopPropagation();
@@ -574,7 +589,7 @@ const Fine = () => {
           );
         })}
       </div>
-      
+
       {/* Dialog for showing details */}
       {isDialogOpen && selectedRequest && (
         <BorrowingRequestDialog

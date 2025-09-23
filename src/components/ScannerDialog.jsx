@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { XCircleIcon as ErrorIcon, MagnifyingGlassIcon, ExclamationTriangleIcon } from "@heroicons/react/24/solid"; // Updated and added icons
+import { XCircleIcon as ErrorIcon, MagnifyingGlassIcon, ExclamationTriangleIcon, ArrowsUpDownIcon } from "@heroicons/react/24/solid"; // Updated and added icons
 import { BrowserMultiFormatReader, ChecksumException, FormatException, NotFoundException } from "@zxing/library";
 import { MdClose, MdRefresh } from "react-icons/md";
 import { checkCameraSupport, requestCameraPermission, troubleshootCamera } from "../utils/cameraUtils";
@@ -12,6 +12,7 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
   const [error, setError] = useState(null);
   const [showTroubleshoot, setShowTroubleshoot] = useState(false);
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
+  const [preferredFacingMode, setPreferredFacingMode] = useState("environment"); // Default to back camera
   const codeReader = useRef(null);
   const videoRef = useRef(null); // Essential for the video element
   const handlingScanRef = useRef(false);
@@ -30,9 +31,9 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
     return () => {
       stopScanner();
     };
-  }, [isOpen]); // Rerun when isOpen changes
+  }, [isOpen, preferredFacingMode]); // Rerun when isOpen or preferredFacingMode changes
 
-    const initializeScanner = async () => {
+    const initializeScanner = async (preferredMode = preferredFacingMode) => {
     if (scanning) return; // Prevent re-initialization if already scanning
     setScanning(true);
     setError(null);
@@ -57,7 +58,7 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
       // Request camera permission first
       try {
         await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } }
+          video: { facingMode: { ideal: preferredMode } }
         }).then(stream => {
           stream.getTracks().forEach(track => track.stop()); // Clean up test stream
         });
@@ -84,11 +85,22 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
       console.log("Available cameras:", devices.map(d => ({ id: d.deviceId, label: d.label })));
 
       // Enhanced camera selection with fallback probing
-      const rearCameraKeywords = ['back', 'rear', 'environment', 'facing back', 'camera2 0'];
+      let keywords = [];
+      if (preferredMode === "environment") {
+        keywords = ['back', 'rear', 'environment', 'facing back', 'camera2 0'];
+      } else {
+        keywords = ['front', 'selfie', 'user', 'facing front', 'camera1 0'];
+      }
+
       const candidates = [];
-      const rear = devices.find(d => rearCameraKeywords.some(k => d.label.toLowerCase().includes(k)));
-      if (rear) candidates.push(rear.deviceId);
-      if (devices.length > 1) candidates.push(devices[devices.length - 1].deviceId);
+      const preferred = devices.find(d => keywords.some(k => d.label.toLowerCase().includes(k)));
+      if (preferred) candidates.push(preferred.deviceId);
+
+      // Fallback to other devices
+      if (devices.length > 1) {
+        const fallback = devices.find(d => d.deviceId !== preferred?.deviceId);
+        if (fallback) candidates.push(fallback.deviceId);
+      }
       devices.forEach(d => { if (!candidates.includes(d.deviceId)) candidates.push(d.deviceId); });
 
       let selectedDeviceId = null;
@@ -140,7 +152,7 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
           }
         }
       );
-            } catch (e) {
+        } catch (e) {
       console.error("Scanner initialization error:", e);
 
       // แสดง Permission Request Dialog สำหรับ permission errors
@@ -217,6 +229,17 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
     }
   };
 
+  const toggleCamera = async () => {
+    const newMode = preferredFacingMode === "environment" ? "user" : "environment";
+    setPreferredFacingMode(newMode);
+    await stopScanner();
+    setTimeout(() => initializeScanner(newMode), 500);
+  };
+
+  const getCameraLabel = () => {
+    return preferredFacingMode === "environment" ? "กล้องหลัง" : "กล้องหน้า";
+  };
+
   if (!isOpen) return null;
 
   console.log('=== ScannerDialog Component Render ==='); // Debug log
@@ -262,7 +285,7 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
                     </button>
                     <button
                       className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors touch-manipulation select-none"
-                      onClick={() => { initializeScanner(); }}
+                      onClick={() => { initializeScanner(preferredFacingMode); }}
                       style={{ WebkitTapHighlightColor: 'transparent' }}
                     >
                       ลองอีกครั้ง
@@ -270,6 +293,18 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
                   </div>
                 </div>
               )}
+
+              {/* Camera Switch Button */}
+              <div className="flex justify-center">
+                <button
+                  onClick={toggleCamera}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                  title={`สลับเป็น ${getCameraLabel()}`}
+                >
+                  <ArrowsUpDownIcon className="w-4 h-4" />
+                  <span>{getCameraLabel()}</span>
+                </button>
+              </div>
 
               <p className="text-xs sm:text-sm text-gray-600 text-center">
                 วาง QR Code หรือ Barcode ของครุภัณฑ์ให้อยู่ในกรอบเพื่อสแกน

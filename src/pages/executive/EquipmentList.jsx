@@ -349,25 +349,25 @@ function EquipmentList() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                     ภาพ
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                     รหัส
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                     ชื่อครุภัณฑ์
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden md:table-cell">
                     หมวดหมู่
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                     จำนวน
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
                     สถานะ
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
                     รายละเอียด
                   </th>
                 </tr>
@@ -377,10 +377,10 @@ function EquipmentList() {
                   const { pic, item_code, name, category, quantity, status, unit } = item;
                   return (
                     <tr key={item_code} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center justify-center">
                           <img
-                            className="h-16 w-16 object-cover rounded-lg shadow-sm"
+                            className="h-12 w-12 object-cover rounded-lg shadow-sm"
                             src={pic?.startsWith('http') ? pic : `${UPLOAD_BASE}/equipment/${item_code}.jpg`}
                             alt={name}
                             onError={(e) => {
@@ -390,24 +390,24 @@ function EquipmentList() {
                           />
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-gray-900 font-bold">{item_code}</div>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-gray-900 font-medium text-sm">{item_code}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-base text-gray-900 font-medium">{name}</div>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900 font-medium max-w-xs truncate">{name}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-base text-gray-900">{category}</div>
+                      <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell">
+                        <div className="text-sm text-gray-900">{category}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-base text-gray-900">{quantity}{unit ? ` ${unit}` : ''}</div>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{quantity}{unit ? ` ${unit}` : ''}</div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <span className={`px-3 py-1 inline-flex items-center gap-1 text-xs leading-5 font-semibold rounded-full border ${statusConfig[status]?.backgroundColor || "bg-gray-100"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
+                      <td className="px-4 py-3 whitespace-nowrap text-center">
+                        <span className={`px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border ${statusConfig[status]?.backgroundColor || "bg-gray-100"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>
                           {status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                      <td className="px-4 py-3 whitespace-nowrap text-center text-sm font-medium">
                         <button
                           onClick={() => handleEquipmentClick(item)}
                           title="ดูรายละเอียด"
@@ -427,21 +427,21 @@ function EquipmentList() {
               {/* Pagination Footer */}
               <tfoot>
                 <tr>
-                  <td colSpan={7} className="bg-white px-6 py-4">
+                  <td colSpan={7} className="bg-white px-4 py-3">
                     <div className="flex flex-col sm:flex-row items-center justify-between">
-                      <span className="text-gray-600 mb-3 sm:mb-0 text-sm">
+                      <span className="text-gray-600 mb-2 sm:mb-0 text-xs">
                         แสดง {paginatedEquipment.length > 0 ? (currentPage - 1) * itemsPerPage + 1 : 0} ถึง {(currentPage - 1) * itemsPerPage + paginatedEquipment.length} จากทั้งหมด {filteredEquipment.length} รายการ
                       </span>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <button
-                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-md px-3 py-1.5 text-xs font-medium normal-case"
                           onClick={() => setCurrentPage(currentPage - 1)}
                           disabled={currentPage === 1}
                         >
                           ก่อนหน้า
                         </button>
                         <button
-                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-md px-3 py-1.5 text-xs font-medium normal-case"
                           onClick={() => setCurrentPage(currentPage + 1)}
                           disabled={currentPage === totalPages}
                         >

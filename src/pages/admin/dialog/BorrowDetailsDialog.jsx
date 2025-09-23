@@ -399,6 +399,83 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
                                             </div>
                                         </div>
                                     )}
+
+                                    {/* Damage Photos Section - Show only when status is completed */}
+                                    {borrow.status === "completed" && equipmentItems && equipmentItems.some(item => item.damage_photos && item.damage_photos.length > 0) && (
+                                      <div>
+                                        <SectionHeader
+                                          title="รูปภาพความเสียหาย"
+                                          icon={
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                            </svg>
+                                          }
+                                        />
+                                        <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                                          <div className="p-6">
+                                            <div className="space-y-6">
+                                              {equipmentItems.map((item, index) => {
+                                                // Check if this item has damage photos
+                                                if (!item.damage_photos || !Array.isArray(item.damage_photos) || item.damage_photos.length === 0) {
+                                                  return null;
+                                                }
+                                                
+                                                return (
+                                                  <div key={item.item_id || index} className="border border-gray-200 rounded-lg p-4">
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                      <div className="font-semibold text-gray-800">{item.name}</div>
+                                                      <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs font-mono rounded-md">
+                                                        {item.item_code || item.code}
+                                                      </span>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                                      {item.damage_photos.map((photoUrl, photoIndex) => {
+                                                        // Construct full URL if needed
+                                                        let fullPhotoUrl;
+                                                        if (photoUrl && photoUrl.startsWith('http')) {
+                                                          fullPhotoUrl = photoUrl;
+                                                        } else if (photoUrl) {
+                                                          fullPhotoUrl = `${UPLOAD_BASE}${photoUrl.startsWith('/') ? photoUrl : `/${photoUrl}`}`;
+                                                        } else {
+                                                          fullPhotoUrl = '/lo.png';
+                                                        }
+                                                        
+                                                        return (
+                                                          <div key={photoIndex} className="relative group">
+                                                            <div className="aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center">
+                                                              <img
+                                                                src={fullPhotoUrl}
+                                                                alt={`Damage ${photoIndex + 1} for ${item.name}`}
+                                                                className="object-cover w-full h-full"
+                                                                onError={(e) => {
+                                                                  e.target.onerror = null;
+                                                                  e.target.src = '/lo.png';
+                                                                }}
+                                                                onClick={() => window.open(fullPhotoUrl, '_blank')}
+                                                              />
+                                                            </div>
+                                                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                                                              <button
+                                                                onClick={() => window.open(fullPhotoUrl, '_blank')}
+                                                                className="text-white bg-black/50 rounded-full p-2 hover:bg-black/70 transition-colors"
+                                                              >
+                                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                                                </svg>
+                                                              </button>
+                                                            </div>
+                                                          </div>
+                                                        );
+                                                      })}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })}
+                                            </div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
