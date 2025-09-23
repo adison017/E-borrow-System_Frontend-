@@ -132,6 +132,8 @@ function ManageEquipment() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [isExporting, setIsExporting] = useState(false);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedEquipmentForDetail, setSelectedEquipmentForDetail] = useState(null);
   const itemsPerPage = 5;
 
   // ฟังก์ชันรวมคำอธิบายแจ้งเตือน (เหมือน ManageUser.jsx)
@@ -452,6 +454,11 @@ function ManageEquipment() {
   const handlePrintQRCode = (equipment) => {
     setSelectedEquipmentForPrint(equipment);
     setPrintDialogOpen(true);
+  };
+
+  const handleRowClick = (equipment) => {
+    setSelectedEquipmentForDetail(equipment);
+    setDetailDialogOpen(true);
   };
 
     const handleDownloadQRCode = async () => {
@@ -2548,7 +2555,7 @@ function ManageEquipment() {
                   paginatedEquipment.map((item, index) => {
                     const { pic, item_code, name, category, quantity, status, unit } = item;
                     return (
-                      <tr key={item_code} className="hover:bg-gray-50">
+                      <tr key={item_code} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleRowClick(item)}>
                         <td className="px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
                             <img
@@ -2838,6 +2845,13 @@ function ManageEquipment() {
           isOpen={qrScannerOpen}
           onClose={() => setQrScannerOpen(false)}
           onEquipmentFound={handleQRScannerResult}
+        />
+
+        {/* Equipment Detail Dialog for Row Click */}
+        <EquipmentDetailDialog
+          open={detailDialogOpen}
+          onClose={() => setDetailDialogOpen(false)}
+          equipment={selectedEquipmentForDetail}
         />
 
         {/* Preview All QR Codes Dialog */}
