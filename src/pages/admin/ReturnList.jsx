@@ -1006,7 +1006,7 @@ const ReturnList = () => {
           onSubmit={handleDamageSubmit}
         />
 
-        
+
       </Card>
     </ThemeProvider>
   );

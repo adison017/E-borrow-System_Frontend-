@@ -40,7 +40,7 @@ export default function HistoryBorrow() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   // Pagination state
   const [page, setPage] = useState(1);
-  const rowsPerPage = 5;
+  const rowsPerPage = 5; // Fixed: Added 'const' declaration
   // Real-time update states
   const [isRealTimeConnected, setIsRealTimeConnected] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(null);
@@ -507,28 +507,28 @@ export default function HistoryBorrow() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                     รหัสคำขอ
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                     ผู้ขอยืม
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                     ครุภัณฑ์
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden md:table-cell">
                     วันที่ยืม
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden md:table-cell">
                     กำหนดคืน
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden md:table-cell">
                     วันคืนจริง
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
                     สถานะ
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
                     รายละเอียด
                   </th>
                 </tr>
@@ -536,12 +536,12 @@ export default function HistoryBorrow() {
               <tbody className="bg-white divide-y divide-gray-200 ">
                 {paginatedRequests.map((request) => (
                   <tr key={request.borrow_id || request.borrowId || request.borrow_code} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap ">
-                      <div className="text-gray-900 font-bold">{request.borrow_code || request.borrowId}</div>
+                    <td className="px-4 py-3 whitespace-nowrap ">
+                      <div className="text-gray-900 font-medium text-sm">{request.borrow_code || request.borrowId}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-12 w-12 overflow-hidden rounded-full bg-gray-100">
+                        <div className="flex-shrink-0 h-10 w-10 overflow-hidden rounded-full bg-gray-100">
                           <img
                             className="h-full w-full object-cover"
                             src={request.borrower?.avatar ? (typeof request.borrower.avatar === 'string' && request.borrower.avatar.startsWith('http') ? request.borrower.avatar : `${UPLOAD_BASE}/uploads/user/${request.borrower.avatar}`) : "/profile.png"}
@@ -549,22 +549,22 @@ export default function HistoryBorrow() {
                             onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
                           />
                         </div>
-                        <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">{request.borrower?.name}</div>
-                          <div className="text-xs text-gray-500">{request.borrower?.department}</div>
+                        <div className="ml-2 overflow-hidden">
+                          <div className="text-sm font-medium text-gray-900 truncate">{request.borrower?.name}</div>
+                          <div className="text-xs text-gray-500 truncate">{request.borrower?.department}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="space-y-1 overflow-hidden">
                         {Array.isArray(request.equipment) && request.equipment.length > 0 ? (
                           <>
                             <div className="flex items-center">
-                              <span className=" text-gray-900 break-words font-medium">
+                              <span className=" text-gray-900 break-words font-medium text-sm max-w-xs truncate">
                                 {request.equipment[0]?.name || '-'}
                               </span>
                               {request.equipment.length > 1 &&
-                                <span className="ml-2 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0">
+                                <span className="ml-1 bg-blue-100 text-blue-800 text-xs font-medium px-1.5 py-0.5 rounded-full flex-shrink-0">
                                   +{request.equipment.length - 1} รายการ
                                 </span>
                               }
@@ -574,23 +574,25 @@ export default function HistoryBorrow() {
                             </span>
                           </>
                         ) : (
-                          <span className="text-gray-400 text-sm">-</span>
+                          <span className="text-gray-400 text-xs">-</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-base text-gray-900">{formatDate(request.borrow_date || request.borrowDate)}</div>
+                    <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell">
+                      <div className="text-sm text-gray-900">{formatDate(request.borrow_date || request.borrowDate)}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-base text-gray-900">{formatDate(request.due_date || request.return_date || request.dueDate)}</div>
+                    <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell">
+                      <div className="text-sm text-gray-900">{formatDate(request.due_date || request.return_date || request.dueDate)}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-base text-gray-900">{formatDate(request.return_date)}</div>
+                    <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell">
+                      <div className="text-sm text-gray-900">{formatDate(request.return_date)}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      {getStatusBadge(request.status)}
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <div className="flex justify-center">
+                        {getStatusBadge(request.status)}
+                      </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm font-medium">
                       <button
                         onClick={() => handleOpenDialog(request)}
                         title="ดูรายละเอียด"
@@ -609,21 +611,21 @@ export default function HistoryBorrow() {
               {/* Pagination Footer */}
               <tfoot>
                 <tr>
-                  <td colSpan={8} className="bg-white px-6 py-4">
+                  <td colSpan={8} className="bg-white px-4 py-3">
                     <div className="flex flex-col sm:flex-row items-center justify-between">
-                      <span className="text-gray-600 mb-3 sm:mb-0 text-sm">
+                      <span className="text-gray-600 mb-2 sm:mb-0 text-xs">
                         แสดง {paginatedRequests.length > 0 ? (page - 1) * rowsPerPage + 1 : 0} ถึง {(page - 1) * rowsPerPage + paginatedRequests.length} จากทั้งหมด {filteredRequests.length} รายการ
                       </span>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1">
                         <button
-                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-md px-3 py-1.5 text-xs font-medium normal-case"
                           onClick={() => setPage(page - 1)}
                           disabled={page === 1}
                         >
                           ก่อนหน้า
                         </button>
                         <button
-                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                          className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-md px-3 py-1.5 text-xs font-medium normal-case"
                           onClick={() => setPage(page + 1)}
                           disabled={page === totalPages}
                         >

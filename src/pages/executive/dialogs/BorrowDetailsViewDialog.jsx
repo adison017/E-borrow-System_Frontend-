@@ -12,44 +12,88 @@ import DocumentViewer from '../../../components/DocumentViewer';
 import { UPLOAD_BASE } from '../../../utils/api';
 
 const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
+ 
   const [imageModal, setImageModal] = useState({
     isOpen: false,
     imageUrl: '',
+    title: ''
+  });
+  // Add state for carousel
+  const [carouselModal, setCarouselModal] = useState({
+    isOpen: false,
+    photos: [],
+    currentIndex: 0,
     title: ''
   });
 
   // ESC key handler for image modal
   useEffect(() => {
     const handleEscKey = (event) => {
-      if (event.key === 'Escape' && imageModal.isOpen) {
-        closeImageModal();
+      if (event.key === 'Escape') {
+        if (carouselModal.isOpen) {
+          closeCarouselModal();
+        } else if (imageModal.isOpen) {
+          closeImageModal();
+        }
       }
     };
 
-    if (imageModal.isOpen) {
+    if (imageModal.isOpen || carouselModal.isOpen) {
       document.addEventListener('keydown', handleEscKey);
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscKey);
     };
-  }, [imageModal.isOpen]);
-
-  if (!isOpen || !borrowItem) return null;
+  }, [imageModal.isOpen, carouselModal.isOpen]);
 
   const handleViewImage = (imagePath, title) => {
     if (!imagePath) return;
 
+    console.log('handleViewImage called with:', { imagePath, title });
+
     let fullImageUrl;
     if (imagePath.startsWith('http')) {
       fullImageUrl = imagePath;
+    } else if (title.includes('รูปถ่ายภาพบัตรนักศึกษา')) {
+      fullImageUrl = `${UPLOAD_BASE}/uploads/signature/${imagePath}`;
+    } else if (title === 'สลิป/หลักฐานการโอน') {
+      fullImageUrl = `${UPLOAD_BASE}/uploads/pay_slip/${imagePath}`;
+    } else if (title.includes('รูปถ่ายส่งมอบครุภัณฑ์')) {
+      fullImageUrl = `${UPLOAD_BASE}/uploads/handover/${imagePath}`;
+    } else if (title.includes('ภาพความเสียหาย')) {
+      // For damage photos, the imagePath should already be a full URL or relative path
+      if (imagePath.startsWith('/')) {
+        fullImageUrl = `${UPLOAD_BASE}${imagePath}`;
+      } else {
+        fullImageUrl = imagePath;
+      }
+    } else if (imagePath.startsWith('/')) {
+      // Handle absolute paths (like those from Cloudinary or damage photos)
+      fullImageUrl = imagePath;
     } else {
-      fullImageUrl = `${UPLOAD_BASE}/${imagePath}`;
+      // Handle relative paths
+      fullImageUrl = `${UPLOAD_BASE}/uploads/${imagePath}`;
     }
+
+    console.log('Constructed fullImageUrl:', fullImageUrl);
 
     setImageModal({
       isOpen: true,
       imageUrl: fullImageUrl,
+      title: title
+    });
+    console.log('setImageModal called with:', { isOpen: true, imageUrl: fullImageUrl, title });
+  };
+
+  // New function to handle carousel view for damage photos
+  const handleViewDamagePhotos = (photos, title) => {
+    if (!photos || photos.length === 0) return;
+    
+    setCarouselModal({
+      isOpen: true,
+      photos: photos,
+      currentIndex: 0,
       title: title
     });
   };
@@ -61,6 +105,53 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
       title: ''
     });
   };
+
+  const closeCarouselModal = () => {
+    setCarouselModal({
+      isOpen: false,
+      photos: [],
+      currentIndex: 0,
+      title: ''
+    });
+  };
+
+  // Carousel navigation functions
+  const nextPhoto = () => {
+    setCarouselModal(prev => ({
+      ...prev,
+      currentIndex: (prev.currentIndex + 1) % prev.photos.length
+    }));
+  };
+
+  const prevPhoto = () => {
+    setCarouselModal(prev => ({
+      ...prev,
+      currentIndex: prev.currentIndex === 0 ? prev.photos.length - 1 : prev.currentIndex - 1
+    }));
+  };
+
+  // Handle keyboard navigation in carousel
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (!carouselModal.isOpen) return;
+      
+      if (event.key === 'ArrowRight') {
+        nextPhoto();
+      } else if (event.key === 'ArrowLeft') {
+        prevPhoto();
+      } else if (event.key === 'Escape') {
+        closeCarouselModal();
+      }
+    };
+
+    if (carouselModal.isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [carouselModal.isOpen, carouselModal.currentIndex]);
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -80,6 +171,9 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
         return <span className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-gray-700 text-xs font-semibold">-</span>;
     }
   };
+
+  // Move the early return after all hooks and functions are declared
+  if (!isOpen || !borrowItem) return null;
 
   const equipmentItems = Array.isArray(borrowItem.equipment) ? borrowItem.equipment : [borrowItem.equipment];
 
@@ -260,54 +354,52 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                     </div>
 
                     <div className="space-y-3">
-                      {/*   รูปถ่ายภาพบัตรนักศึกษา */}
-                      {borrowItem?.signature_image && (
-                        <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3">
-                          <div className="flex items-center gap-3">
-                            <div className="bg-blue-600 p-2 rounded-full shadow-sm">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                              </svg>
+                      {/* Preview images section */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {borrowItem?.signature_image && (
+                          <div className="relative group">
+                            <div 
+                              className="w-full h-32 bg-gray-100 rounded-lg border border-gray-300 overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                              onClick={() => handleViewImage(borrowItem.signature_image, '  รูปถ่ายภาพบัตรนักศึกษา')}
+                            >
+                              <img 
+                                src={borrowItem.signature_image.startsWith('http') ? borrowItem.signature_image : `${UPLOAD_BASE}/uploads/signature/${borrowItem.signature_image}`}
+                                alt="Student ID Photo Preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = '/lo.png';
+                                }}
+                              />
                             </div>
-                            <h4 className="font-semibold text-gray-800 text-sm">  รูปถ่ายภาพบัตรนักศึกษา</h4>
-                          </div>
-                          <button
-                            onClick={() => handleViewImage(borrowItem.signature_image, '  รูปถ่ายภาพบัตรนักศึกษา')}
-                            className="bg-blue-500  text-white px-3 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
-                            title="ดูภาพ"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                            </svg>
-                            ดูภาพ
-                          </button>
-                        </div>
-                      )}
-
-                      {/* รูปถ่ายส่งมอบครุภัณฑ์ */}
-                      {borrowItem?.handover_photo && (
-                        <div className="flex items-center justify-between bg-gray-50 rounded-lg px-3">
-                          <div className="flex items-center gap-3">
-                            <div className="bg-blue-600 p-2 rounded-full shadow-sm">
-                              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                              </svg>
+                            <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                              บัตรนักศึกษา
                             </div>
-                            <h4 className="font-semibold text-gray-800 text-sm">รูปถ่ายส่งมอบครุภัณฑ์</h4>
                           </div>
-                          <button
-                            onClick={() => handleViewImage(borrowItem.handover_photo, 'รูปถ่ายส่งมอบครุภัณฑ์')}
-                            className="bg-blue-500  text-white px-3 py-1.5 rounded-full shadow-sm hover:shadow-md transition-all duration-200 hover:scale-105 flex items-center gap-1 font-medium text-xs"
-                            title="ดูภาพ"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
-                            </svg>
-                            ดูภาพ
-                          </button>
-                        </div>
-                      )}
+                        )}
+                        
+                        {borrowItem?.handover_photo && (
+                          <div className="relative group">
+                            <div 
+                              className="w-full h-32 bg-gray-100 rounded-lg border border-gray-300 overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                              onClick={() => handleViewImage(borrowItem.handover_photo, 'รูปถ่ายส่งมอบครุภัณฑ์')}
+                            >
+                              <img 
+                                src={borrowItem.handover_photo.startsWith('http') ? borrowItem.handover_photo : `${UPLOAD_BASE}/uploads/handover/${borrowItem.handover_photo}`}
+                                alt="Handover Photo Preview"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.onerror = null;
+                                  e.target.src = '/lo.png';
+                                }}
+                              />
+                            </div>
+                            <div className="absolute bottom-2 left-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                              ส่งมอบครุภัณฑ์
+                            </div>
+                          </div>
+                        )}
+                      </div>
 
                       {/* แสดงข้อความเมื่อไม่มีรูปภาพ */}
                       {!borrowItem?.signature_image && !borrowItem?.handover_photo && (
@@ -331,6 +423,107 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                     </div>
                   </div>
                 </div>
+
+                {/* Damage Photos Section - Show only when status is completed */}
+                {borrowItem.status === "completed" && (
+                  <div className="bg-white/80 backdrop-blur-sm border border-red-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
+                    <div className="p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-red-500 rounded-xl shadow-md">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h4 className="text-lg font-bold text-gray-800">ภาพความเสียหาย</h4>
+                          <div className="w-12 h-1 bg-red-500 rounded-full"></div>
+                        </div>
+                      </div>
+
+                      {borrowItem.return_items && borrowItem.return_items.some(item => item.damage_photos && item.damage_photos.length > 0) ? (
+                        <div className="space-y-6">
+                          {borrowItem.return_items.map((item, index) => {
+                            // Check if this item has damage photos
+                            if (!item.damage_photos || !Array.isArray(item.damage_photos) || item.damage_photos.length === 0) {
+                              return null;
+                            }
+                            
+                            // Calculate damage percentage if available
+                            const damagePercentage = item.damage_level ? `${item.damage_level}%` : 'ไม่ระบุ';
+                            
+                            return (
+                              <div key={item.item_id || index} className="border border-gray-200 rounded-lg p-4">
+                                <div className="flex items-center gap-3 mb-3 flex-wrap">
+                                  <div className="font-semibold text-gray-800">{item.equipment_name || item.name}</div>
+                                  <span className="inline-flex items-center px-2 py-1 bg-gray-100 text-gray-800 text-xs font-mono rounded-md">
+                                    {item.item_code}
+                                  </span>
+                                  {item.damage_level && (
+                                    <span className="inline-flex items-center px-2 py-1 bg-red-100 text-red-800 text-xs font-semibold rounded-md">
+                                      ความเสียหาย: {damagePercentage}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+                                  {item.damage_photos.map((photoUrl, photoIndex) => {
+                                    // Construct full URL if needed
+                                    let fullPhotoUrl;
+                                    if (photoUrl && photoUrl.startsWith('http')) {
+                                      fullPhotoUrl = photoUrl;
+                                    } else if (photoUrl) {
+                                      fullPhotoUrl = `${UPLOAD_BASE}${photoUrl.startsWith('/') ? photoUrl : `/${photoUrl}`}`;
+                                    } else {
+                                      fullPhotoUrl = '/lo.png';
+                                    }
+                                    
+                                    return (
+                                      <div
+                                        key={photoIndex}
+                                        className="relative group cursor-pointer"
+                                        onClick={() => {
+                                          // Get all damage photos for this item
+                                          const allPhotos = item.damage_photos.map(photoUrl => {
+                                            if (photoUrl && photoUrl.startsWith('http')) {
+                                              return photoUrl;
+                                            } else if (photoUrl) {
+                                              return `${UPLOAD_BASE}${photoUrl.startsWith('/') ? photoUrl : `/${photoUrl}`}`;
+                                            } else {
+                                              return '/lo.png';
+                                            }
+                                          });
+                                          handleViewDamagePhotos(allPhotos, `ภาพความเสียหายของ ${item.equipment_name || item.name}`);
+                                        }}
+                                      >
+                                        <div className="w-full aspect-square bg-gray-100 rounded-lg border border-gray-300 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200">
+                                          <img 
+                                            src={fullPhotoUrl} 
+                                            alt={`Damage ${photoIndex + 1} for ${item.equipment_name || item.name}`}
+                                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                            onError={(e) => {
+                                              e.target.onerror = null;
+                                              e.target.src = '/lo.png';
+                                            }}
+                                          />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mx-auto text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <p className="text-gray-500">ไม่มีภาพความเสียหายสำหรับรายการนี้</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Equipment List and Form */}
@@ -490,7 +683,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                         <div className="flex items-center gap-3 mb-4">
                           <div className="p-2 bg-blue-500 rounded-xl shadow-md">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h4m1 8l-4-4H5a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                           </div>
                           <div>
@@ -535,32 +728,33 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                       </div>
                     </div>
                   )}
-                </div>
 
-                {/* Approval Notes */}
-                {borrowItem.approvalNotes && (
-                  <div className="bg-blue-50 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 mb-3">
-                    <div className="p-6">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="p-2 bg-blue-500 rounded-xl shadow-md">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 10c-4.41 0-8-1.79-8-4V6c0-2.21 3.59-4 8-4s8 1.79 8 4v8c0 2.21-3.59 4-8 4z" />
-                          </svg>
+                  {/* Approval Notes */}
+                  {borrowItem.approvalNotes && (
+                    <div className="bg-blue-50 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 mb-3">
+                      <div className="p-6">
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className="p-2 bg-blue-500 rounded-xl shadow-md">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 10c-4.41 0-8-1.79-8-4V6c0-2.21 3.59-4 8-4s8 1.79 8 4v8c0 2.21-3.59 4-8 4z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h4 className="text-lg font-bold text-black">หมายเหตุการอนุมัติ</h4>
+                            <div className="w-12 h-1 bg-blue-500 rounded-full"></div>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="text-lg font-bold text-black">หมายเหตุการอนุมัติ</h4>
-                          <div className="w-12 h-1 bg-blue-500 rounded-full"></div>
+                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
+                          <p className="text-gray-700 whitespace-pre-line">{borrowItem.approvalNotes}</p>
                         </div>
-                      </div>
-                      <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-                        <p className="text-gray-700 whitespace-pre-line">{borrowItem.approvalNotes}</p>
                       </div>
                     </div>
-                  </div>
-                )}
+                  )}
+
+                </div>
+
               </div>
             </div>
-          </div>
           
           {/* Enhanced Footer */}
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-full sticky bottom-0">
@@ -583,9 +777,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
           </div>
         </div>
       </div>
-      <form method="dialog" className="modal-backdrop">
-        <button onClick={onClose}>close</button>
-      </form>
+    </div>
 
       {/* Image Modal */}
       {imageModal.isOpen && (
@@ -637,6 +829,72 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                 </svg>
                 <span>รูปภาพนี้เป็นส่วนหนึ่งของหลักฐานการยืม-คืนครุภัณฑ์</span>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Carousel Modal for Damage Photos */}
+      {carouselModal.isOpen && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md">
+          <div className="relative max-w-6xl max-h-[95vh] w-full h-full flex items-center justify-center">
+            {/* Close button */}
+            <button
+              onClick={closeCarouselModal}
+              className="absolute top-4 right-4 text-white hover:text-gray-300 transition-all duration-200 p-2 rounded-full hover:bg-white/10 z-10"
+            >
+              <MdClose className="w-8 h-8" />
+            </button>
+
+            {/* Navigation - Previous */}
+            {carouselModal.photos.length > 1 && (
+              <button
+                onClick={prevPhoto}
+                className="absolute left-4 text-white hover:text-gray-300 transition-all duration-200 p-3 rounded-full hover:bg-white/10 z-10"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+
+            {/* Main Image */}
+            <div className="flex items-center justify-center w-full h-full">
+              <div className="relative max-w-5xl max-h-[80vh] flex items-center justify-center">
+                <img
+                  src={carouselModal.photos[carouselModal.currentIndex]}
+                  alt={`${carouselModal.title} ${carouselModal.currentIndex + 1}`}
+                  className="max-w-full max-h-[70vh] object-contain rounded-2xl"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/lo.png';
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Navigation - Next */}
+            {carouselModal.photos.length > 1 && (
+              <button
+                onClick={nextPhoto}
+                className="absolute right-4 text-white hover:text-gray-300 transition-all duration-200 p-3 rounded-full hover:bg-white/10 z-10"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
+
+            {/* Photo Counter */}
+            {carouselModal.photos.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm">
+                {carouselModal.currentIndex + 1} / {carouselModal.photos.length}
+              </div>
+            )}
+
+            {/* Title */}
+            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-full text-sm max-w-md truncate">
+              {carouselModal.title}
             </div>
           </div>
         </div>

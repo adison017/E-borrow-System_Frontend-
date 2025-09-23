@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { StopCircleIcon as CancelIcon, CameraIcon as TakePictureIcon } from "@heroicons/react/24/solid"; // Using appropriate icons
+import { StopCircleIcon as CancelIcon, CameraIcon as TakePictureIcon, ArrowsUpDownIcon } from "@heroicons/react/24/solid"; // Using appropriate icons
 import { MdClose } from "react-icons/md";
 import Webcam from "react-webcam";
 import PermissionRequest from "../../../components/PermissionRequest";
@@ -13,6 +13,7 @@ const WebcamSignatureDialog = ({
     setCameraReady // Parent manages cameraReady state via setCameraReady
 }) => {
     const [showPermissionRequest, setShowPermissionRequest] = useState(false);
+    const [facingMode, setFacingMode] = useState("environment"); // Default to back camera for mobile
 
     if (!isOpen) return null;
 
@@ -28,6 +29,15 @@ const WebcamSignatureDialog = ({
             setShowPermissionRequest(false);
             setCameraReady(true);
         }
+    };
+
+    const toggleCamera = () => {
+        setFacingMode(prev => prev === "user" ? "environment" : "user");
+        setCameraReady(false); // Reset to re-acquire stream
+    };
+
+    const getCameraLabel = () => {
+        return facingMode === "user" ? "กล้องหน้า" : "กล้องหลัง";
     };
 
     return (
@@ -46,15 +56,28 @@ const WebcamSignatureDialog = ({
 
                 {/* Webcam View */}
                 <div className="p-6 space-y-5">
+                    {/* Camera Switch Button */}
+                    <div className="flex justify-center">
+                        <button
+                            onClick={toggleCamera}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                            title={`สลับเป็น ${getCameraLabel()}`}
+                        >
+                            <ArrowsUpDownIcon className="w-4 h-4" />
+                            <span>{getCameraLabel()}</span>
+                        </button>
+                    </div>
+
                     <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden shadow-inner mx-auto max-h-[60vh]">
                         <Webcam
+                            key={facingMode} // Force re-mount on facingMode change
                             audio={false}
                             ref={webcamRef}
                             screenshotFormat="image/jpeg"
                             videoConstraints={{
                                 width: { ideal: 1280 },
                                 height: { ideal: 720 },
-                                facingMode: "user",
+                                facingMode,
                                 aspectRatio: { ideal: 16/9 }
                             }}
                             onUserMedia={() => setCameraReady(true)}
