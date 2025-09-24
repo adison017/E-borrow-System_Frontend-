@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { MdClose } from 'react-icons/md';
-import { 
+import { MdClose, MdHistory } from 'react-icons/md';
+import {
   TagIcon,
   CubeIcon,
   InformationCircleIcon,
@@ -15,23 +15,55 @@ import {
 } from '@heroicons/react/24/outline';
 import { UPLOAD_BASE } from '../../../utils/api';
 import { getRepairRequestsByItemId } from '../../../utils/api';
+import axios from '../../../utils/axios';
 
 const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [roomImageModalOpen, setRoomImageModalOpen] = useState(false);
   const [repairRequests, setRepairRequests] = useState([]);
   const [loadingRepairRequests, setLoadingRepairRequests] = useState(false);
-  
+  const [borrowCount, setBorrowCount] = useState(equipment?.total_borrow_count || 0);
+  const [loadingBorrowCount, setLoadingBorrowCount] = useState(false);
+  const [borrowHistory, setBorrowHistory] = useState([]);
+  const [loadingBorrowHistory, setLoadingBorrowHistory] = useState(false);
+
   // Fetch repair requests when equipment changes
   useEffect(() => {
     if (open && equipment?.item_id) {
       fetchRepairRequests();
+      fetchBorrowHistory();
+      fetchBorrowCount();
     }
   }, [open, equipment?.item_id]);
 
+  const fetchBorrowCount = async () => {
+    // No longer needed, count derived from history
+    setLoadingBorrowCount(false);
+  };
+
+  const fetchBorrowHistory = async () => {
+    if (!equipment?.item_id) return;
+
+    try {
+      setLoadingBorrowHistory(true);
+      const response = await axios.get(`${UPLOAD_BASE}/borrows/equipment-history/${equipment.item_id}`);
+      setBorrowHistory(response.data || []);
+    } catch (error) {
+      console.error('Error fetching borrow history:', error);
+      setBorrowHistory([]);
+    } finally {
+      setLoadingBorrowHistory(false);
+    }
+  };
+
+  // Update borrow count when history changes
+  useEffect(() => {
+    setBorrowCount(borrowHistory.length);
+  }, [borrowHistory]);
+
   const fetchRepairRequests = async () => {
     if (!equipment?.item_id) return;
-    
+
     try {
       setLoadingRepairRequests(true);
       const requests = await getRepairRequestsByItemId(equipment.item_id);
@@ -62,6 +94,21 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
         return 'bg-blue-100 text-blue-800 border-blue-200';
       case 'ถูกยืม':
         return 'bg-purple-100 text-purple-800 border-purple-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getBorrowStatusClass = (status) => {
+    switch (status) {
+      case 'approved':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'carry':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'overdue':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'waiting_payment':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -99,8 +146,8 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
               {/* Equipment Image */}
               <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
                 <img
-                  src={equipment.pic?.startsWith('http') 
-                    ? equipment.pic 
+                  src={equipment.pic?.startsWith('http')
+                    ? equipment.pic
                     : `${UPLOAD_BASE}/equipment/${equipment.item_code}.jpg`
                   }
                   alt={equipment.name}
@@ -168,7 +215,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                     {equipment.quantity || 1}
                   </p>
                 </div>
-                
+
                 <div className="bg-teal-50 rounded-xl border border-teal-100 p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <DocumentTextIcon className="w-5 h-5 text-teal-600" />
@@ -217,7 +264,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                     <MapPinIcon className="w-5 h-5 text-orange-600" />
                     <h3 className="font-semibold text-gray-800">สถานที่จัดเก็บ</h3>
                   </div>
-                  
+
                   {/* Room Preview with Image */}
                   {equipment.room_name && (
                     <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-orange-200 mb-2">
@@ -226,15 +273,15 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                           if (!equipment.room_image_url) return "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
                           try {
                             const urls = JSON.parse(equipment.room_image_url);
-                            return Array.isArray(urls) && urls[0] 
-                              ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`) 
+                            return Array.isArray(urls) && urls[0]
+                              ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`)
                               : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
                           } catch {
-                            return equipment.room_image_url && equipment.room_image_url.startsWith('http') 
-                              ? equipment.room_image_url 
+                            return equipment.room_image_url && equipment.room_image_url.startsWith('http')
+                              ? equipment.room_image_url
                               : `${UPLOAD_BASE}${equipment.room_image_url}`;
                           }
-                        })()} 
+                        })()}
                         alt="room preview"
                         className="w-12 h-12 object-cover rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => setRoomImageModalOpen(true)}
@@ -253,19 +300,19 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Additional Location Info */}
                   {equipment.location && equipment.location !== equipment.room_name && (
                     <div className="bg-orange-25 rounded-lg p-2 border border-orange-100">
                       <span className="text-sm font-medium text-orange-700">
-                        ตำแหน่งเพิ่มเติม: 
+                        ตำแหน่งเพิ่มเติม:
                       </span>
                       <span className="text-sm text-orange-600">
                         {equipment.location}
                       </span>
                     </div>
                   )}
-                  
+
                   {/* Room Details */}
                   {equipment.room_detail && (
                     <div className="mt-2 text-xs text-gray-600">
@@ -292,6 +339,77 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                       minute: '2-digit'
                     })}
                   </p>
+                </div>
+              )}
+
+              {/* Total Borrow Count */}
+              <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <InformationCircleIcon className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-semibold text-gray-800">จำนวนครั้งที่ถูกยืม</h3>
+                </div>
+                <p className="text-lg text-emerald-600 font-medium">
+                  {loadingBorrowCount ? 'กำลังโหลด...' : `${equipment?.total_borrow_count || 0} ครั้ง`}
+                </p>
+              </div>
+              
+              {/* Borrowing History */}
+              {borrowHistory && borrowHistory.length > 0 && (
+                <div className="bg-blue-50 rounded-xl border border-blue-100 p-6 mt-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
+                    <MdHistory className="w-6 h-6 text-blue-600" />
+                    ประวัติการยืม
+                  </h3>
+                  <div className="space-y-4">
+                    {borrowHistory.map((record) => (
+                      <div key={record.borrow_id} className="bg-white rounded-lg border border-blue-200 p-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-400 to-purple-500 flex items-center justify-center text-white font-medium text-sm">
+                              {record.fullname ? record.fullname.charAt(0).toUpperCase() : '?'}
+                            </div>
+                            <span className="font-medium text-gray-800">{record.fullname}</span>
+                          </div>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBorrowStatusClass(record.status)}`}>
+                            {record.status === 'approved' ? 'อนุมัติแล้ว' :
+                             record.status === 'carry' ? 'กำลังใช้งาน' :
+                             record.status === 'overdue' ? 'เกินกำหนด' :
+                             record.status === 'waiting_payment' ? 'รอชำระเงิน' : 'สถานะไม่ทราบ'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-600">รหัส:</span>
+                            <span className="ml-2 text-gray-800">{record.borrow_code}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-600">วันที่ยืม:</span>
+                            <span className="ml-2 text-gray-800">
+                              {new Date(record.borrow_date).toLocaleDateString('th-TH', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-600">กำหนดคืน:</span>
+                            <span className="ml-2 text-gray-800">
+                              {new Date(record.return_date).toLocaleDateString('th-TH', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                          <div className="md:col-span-3">
+                            <span className="font-medium text-gray-600">วัตถุประสงค์:</span>
+                            <span className="ml-2 text-gray-800">{record.purpose}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -324,7 +442,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                       <div>
                         <span className="font-medium text-gray-600">วันที่อนุมัติ:</span>
                         <span className="ml-2 text-gray-800">
-                          {request.approval_date 
+                          {request.approval_date
                             ? new Date(request.approval_date).toLocaleDateString('th-TH', {
                                 year: 'numeric',
                                 month: 'short',
@@ -418,8 +536,8 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
               <MdClose className="w-8 h-8" />
             </button>
             <img
-              src={equipment.pic?.startsWith('http') 
-                ? equipment.pic 
+              src={equipment.pic?.startsWith('http')
+                ? equipment.pic
                 : `${UPLOAD_BASE}/equipment/${equipment.item_code}.jpg`
               }
               alt={equipment.name}
@@ -435,8 +553,8 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
             </div>
           </div>
           {/* Click outside to close */}
-          <div 
-            className="absolute inset-0 -z-10" 
+          <div
+            className="absolute inset-0 -z-10"
             onClick={() => setImageModalOpen(false)}
           />
         </div>
@@ -457,15 +575,15 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                 if (!equipment.room_image_url) return "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
                 try {
                   const urls = JSON.parse(equipment.room_image_url);
-                  return Array.isArray(urls) && urls[0] 
-                    ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`) 
+                  return Array.isArray(urls) && urls[0]
+                    ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`)
                     : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
                 } catch {
-                  return equipment.room_image_url && equipment.room_image_url.startsWith('http') 
-                    ? equipment.room_image_url 
+                  return equipment.room_image_url && equipment.room_image_url.startsWith('http')
+                    ? equipment.room_image_url
                     : `${UPLOAD_BASE}${equipment.room_image_url}`;
                 }
-              })()} 
+              })()}
               alt={equipment.room_name}
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
               onError={(e) => {
@@ -481,8 +599,8 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
             </div>
           </div>
           {/* Click outside to close */}
-          <div 
-            className="absolute inset-0 -z-10" 
+          <div
+            className="absolute inset-0 -z-10"
             onClick={() => setRoomImageModalOpen(false)}
           />
         </div>
