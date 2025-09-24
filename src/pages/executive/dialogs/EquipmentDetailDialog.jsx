@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MdClose } from 'react-icons/md';
-import { 
+import {
   TagIcon,
   CubeIcon,
   InformationCircleIcon,
@@ -15,7 +15,7 @@ import { UPLOAD_BASE } from '../../../utils/api';
 const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [roomImageModalOpen, setRoomImageModalOpen] = useState(false);
-  
+
   if (!open || !equipment) return null;
 
   const getStatusColor = (status) => {
@@ -67,8 +67,8 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
               {/* Equipment Image */}
               <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
                 <img
-                  src={equipment.pic?.startsWith('http') 
-                    ? equipment.pic 
+                  src={equipment.pic?.startsWith('http')
+                    ? equipment.pic
                     : `${UPLOAD_BASE}/equipment/${equipment.item_code}.jpg`
                   }
                   alt={equipment.name}
@@ -136,7 +136,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                     {equipment.quantity || 1}
                   </p>
                 </div>
-                
+
                 <div className="bg-teal-50 rounded-xl border border-teal-100 p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <DocumentTextIcon className="w-5 h-5 text-teal-600" />
@@ -185,7 +185,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                     <MapPinIcon className="w-5 h-5 text-orange-600" />
                     <h3 className="font-semibold text-gray-800">สถานที่จัดเก็บ</h3>
                   </div>
-                  
+
                   {/* Room Preview with Image */}
                   {equipment.room_name && (
                     <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-orange-200 mb-2">
@@ -194,15 +194,15 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                           if (!equipment.room_image_url) return "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
                           try {
                             const urls = JSON.parse(equipment.room_image_url);
-                            return Array.isArray(urls) && urls[0] 
-                              ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`) 
+                            return Array.isArray(urls) && urls[0]
+                              ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`)
                               : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
                           } catch {
-                            return equipment.room_image_url && equipment.room_image_url.startsWith('http') 
-                              ? equipment.room_image_url 
+                            return equipment.room_image_url && equipment.room_image_url.startsWith('http')
+                              ? equipment.room_image_url
                               : `${UPLOAD_BASE}${equipment.room_image_url}`;
                           }
-                        })()} 
+                        })()}
                         alt="room preview"
                         className="w-12 h-12 object-cover rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
                         onClick={() => setRoomImageModalOpen(true)}
@@ -221,19 +221,19 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Additional Location Info */}
                   {equipment.location && equipment.location !== equipment.room_name && (
                     <div className="bg-orange-25 rounded-lg p-2 border border-orange-100">
                       <span className="text-sm font-medium text-orange-700">
-                        ตำแหน่งเพิ่มเติม: 
+                        ตำแหน่งเพิ่มเติม:
                       </span>
                       <span className="text-sm text-orange-600">
                         {equipment.location}
                       </span>
                     </div>
                   )}
-                  
+
                   {/* Room Details */}
                   {equipment.room_detail && (
                     <div className="mt-2 text-xs text-gray-600">
@@ -262,6 +262,17 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                   </p>
                 </div>
               )}
+
+              {/* Total Borrow Count */}
+              <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <InformationCircleIcon className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-semibold text-gray-800">จำนวนครั้งที่ถูกยืม</h3>
+                </div>
+                <p className="text-lg text-emerald-600 font-medium">
+                  {equipment.total_borrow_count || 0} ครั้ง
+                </p>
+              </div>
             </div>
           </div>
 
@@ -333,8 +344,8 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
               <MdClose className="w-8 h-8" />
             </button>
             <img
-              src={equipment.pic?.startsWith('http') 
-                ? equipment.pic 
+              src={equipment.pic?.startsWith('http')
+                ? equipment.pic
                 : `${UPLOAD_BASE}/equipment/${equipment.item_code}.jpg`
               }
               alt={equipment.name}
@@ -350,8 +361,8 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
             </div>
           </div>
           {/* Click outside to close */}
-          <div 
-            className="absolute inset-0 -z-10" 
+          <div
+            className="absolute inset-0 -z-10"
             onClick={() => setImageModalOpen(false)}
           />
         </div>
@@ -372,15 +383,15 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                 if (!equipment.room_image_url) return "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
                 try {
                   const urls = JSON.parse(equipment.room_image_url);
-                  return Array.isArray(urls) && urls[0] 
-                    ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`) 
+                  return Array.isArray(urls) && urls[0]
+                    ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`)
                     : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
                 } catch {
-                  return equipment.room_image_url && equipment.room_image_url.startsWith('http') 
-                    ? equipment.room_image_url 
+                  return equipment.room_image_url && equipment.room_image_url.startsWith('http')
+                    ? equipment.room_image_url
                     : `${UPLOAD_BASE}${equipment.room_image_url}`;
                 }
-              })()} 
+              })()}
               alt={equipment.room_name}
               className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
               onError={(e) => {
@@ -396,8 +407,8 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
             </div>
           </div>
           {/* Click outside to close */}
-          <div 
-            className="absolute inset-0 -z-10" 
+          <div
+            className="absolute inset-0 -z-10"
             onClick={() => setRoomImageModalOpen(false)}
           />
         </div>

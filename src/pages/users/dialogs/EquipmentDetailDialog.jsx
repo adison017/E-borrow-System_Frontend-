@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MdClose } from 'react-icons/md';
 import { 
   TagIcon,
@@ -11,6 +11,7 @@ import {
   MapPinIcon
 } from '@heroicons/react/24/outline';
 import { UPLOAD_BASE } from '../../../utils/api';
+import axios from '../../../utils/axios';
 
 const EquipmentDetailDialog = ({
   showDetailDialog,
@@ -20,8 +21,33 @@ const EquipmentDetailDialog = ({
 }) => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [roomImageModalOpen, setRoomImageModalOpen] = useState(false);
+  const [borrowCount, setBorrowCount] = useState(0);
+  const [loading, setLoading] = useState(false);
   
   if (!showDetailDialog || !selectedEquipment) return null;
+
+  // Fetch borrow count when equipment changes
+  useEffect(() => {
+    if (selectedEquipment?.item_id) {
+      fetchBorrowCount();
+    }
+  }, [selectedEquipment?.item_id]);
+
+  const fetchBorrowCount = async () => {
+    if (!selectedEquipment?.item_id) return;
+    
+    try {
+      setLoading(true);
+      const response = await axios.get(`${UPLOAD_BASE}/dashboard/top-borrowed-equipment`);
+      const equipment = response.data.find(item => item.name === selectedEquipment.name);
+      setBorrowCount(equipment ? equipment.count : 0);
+    } catch (error) {
+      console.error('Error fetching borrow count:', error);
+      setBorrowCount(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -281,6 +307,17 @@ const EquipmentDetailDialog = ({
                   </p>
                 </div>
               )}
+
+              {/* Total Borrow Count */}
+              <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <InformationCircleIcon className="w-5 h-5 text-emerald-600" />
+                  <h3 className="font-semibold text-gray-800">จำนวนครั้งที่ถูกยืม</h3>
+                </div>
+                <p className="text-lg text-emerald-600 font-medium">
+                  {loading ? 'กำลังโหลด...' : `${borrowCount} ครั้ง`}
+                </p>
+              </div>
             </div>
           </div>
 
