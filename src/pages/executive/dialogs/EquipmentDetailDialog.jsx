@@ -45,17 +45,35 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/equipment/${equipment.item_code}/borrow-history`, {
-        headers: {
-          'Authorization': token ? `Bearer ${token}` : '',
-          'Content-Type': 'application/json'
-        }
-      });
-      
+      const url = `${API_BASE}/equipment/${equipment.item_code}/borrow-history`;
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      console.debug('[BorrowHistory] Fetching', url, token ? 'with auth' : 'without auth');
+      const response = await fetch(url, { headers });
+      console.debug('[BorrowHistory] Response status', response.status, response.statusText);
+
       if (response.ok) {
         const data = await response.json();
         setBorrowHistory(Array.isArray(data) ? data : []);
       } else {
+        // Try to read response body for diagnostics
+        let bodyText = '';
+        try { bodyText = await response.text(); } catch (e) { bodyText = '<unable to read body>'; }
+        console.error('[BorrowHistory] Non-OK response', response.status, response.statusText, bodyText);
+
+        // If 404, try to fetch host-info (helps determine if API base is reachable)
+        if (response.status === 404) {
+          try {
+            const hostBase = API_BASE.replace(/\/api$/, '');
+            const hostInfoRes = await fetch(`${hostBase}/host-info`);
+            const hostInfo = hostInfoRes.ok ? await hostInfoRes.json() : await hostInfoRes.text();
+            console.debug('[BorrowHistory] host-info:', hostInfo);
+          } catch (hostErr) {
+            console.error('[BorrowHistory] Failed to fetch host-info:', hostErr);
+          }
+        }
+
         setBorrowHistory([]);
       }
     } catch (error) {
