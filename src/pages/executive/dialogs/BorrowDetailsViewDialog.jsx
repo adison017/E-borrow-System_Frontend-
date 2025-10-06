@@ -9,10 +9,11 @@ import {
 import { MdClose } from "react-icons/md";
 import { useState, useEffect } from "react";
 import DocumentViewer from '../../../components/DocumentViewer';
-import { UPLOAD_BASE } from '../../../utils/api';
+import { UPLOAD_BASE, getBorrowById } from '../../../utils/api';
 
 const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
- 
+  const [detailedBorrowItem, setDetailedBorrowItem] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [imageModal, setImageModal] = useState({
     isOpen: false,
     imageUrl: '',
@@ -172,13 +173,35 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
     }
   };
 
+  // Fetch detailed borrow data when dialog opens
+  useEffect(() => {
+    if (isOpen && borrowItem?.borrow_id) {
+      setLoading(true);
+      getBorrowById(borrowItem.borrow_id)
+        .then(data => {
+          console.log('Detailed borrow data:', data);
+          setDetailedBorrowItem(data);
+        })
+        .catch(error => {
+          console.warn('Could not fetch detailed borrow data:', error);
+          setDetailedBorrowItem(borrowItem);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setDetailedBorrowItem(null);
+    }
+  }, [isOpen, borrowItem?.borrow_id]);
+
   // Move the early return after all hooks and functions are declared
   if (!isOpen || !borrowItem) return null;
 
-  const equipmentItems = Array.isArray(borrowItem.equipment) ? borrowItem.equipment : [borrowItem.equipment];
+  // Use detailed data if available, fallback to original borrowItem
+  const displayItem = detailedBorrowItem || borrowItem;
+  const equipmentItems = Array.isArray(displayItem.equipment) ? displayItem.equipment : [displayItem.equipment];
 
   return (
-    <div className="modal modal-open flex items-center justify-center">
+    <>
+      <div className="modal modal-open flex items-center justify-center">
       <div data-theme="light" className="max-w-8xl w-full h-full max-h-[95vh] rounded-2xl shadow-2xl bg-gradient-to-br from-blue-50 to-indigo-50">
         <div className="flex flex-col h-full">
           {/* Enhanced Header with gradient and status badge */}
@@ -200,7 +223,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                         </svg>
-                        รหัส: <span className="font-mono font-semibold text-white">{borrowItem.borrow_code || '-'}</span>
+                        รหัส: <span className="font-mono font-semibold text-white">{displayItem.borrow_code || '-'}</span>
                       </span>
                     </div>
                   </div>
@@ -223,8 +246,12 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
             </div>
           </div>
           <div className="overflow-y-auto p-6 flex-grow bg-gradient-to-b from-transparent to-blue-50/30">
-
-            {/* Content */}
+            {loading ? (
+              <div className="flex flex-col items-center justify-center h-64">
+                <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
+                <p className="text-blue-600 font-medium">กำลังโหลดข้อมูลเพิ่มเติม...</p>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Borrower Info */}
               <div className="space-y-6 lg:order-1">
@@ -249,21 +276,21 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                         <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-blue-200 shadow-lg bg-gradient-to-br from-blue-100 to-indigo-100">
                           <img
                             src={
-                              borrowItem.borrower?.avatar
-                                ? borrowItem.borrower.avatar.startsWith('http')
-                                  ? borrowItem.borrower.avatar
-                                  : `${UPLOAD_BASE}/uploads/user/${borrowItem.borrower.avatar}`
+                              displayItem.borrower?.avatar
+                                ? displayItem.borrower.avatar.startsWith('http')
+                                  ? displayItem.borrower.avatar
+                                  : `${UPLOAD_BASE}/uploads/user/${displayItem.borrower.avatar}`
                                 : '/profile.png'
                             }
-                            alt={borrowItem.borrower?.name}
+                            alt={displayItem.borrower?.name}
                             className="w-full h-full object-cover"
                             onClick={() => handleViewImage(
-                              borrowItem.borrower?.avatar
-                                ? borrowItem.borrower.avatar.startsWith('http')
-                                  ? borrowItem.borrower.avatar
-                                  : `${UPLOAD_BASE}/uploads/user/${borrowItem.borrower.avatar}`
+                              displayItem.borrower?.avatar
+                                ? displayItem.borrower.avatar.startsWith('http')
+                                  ? displayItem.borrower.avatar
+                                  : `${UPLOAD_BASE}/uploads/user/${displayItem.borrower.avatar}`
                                 : null,
-                              `รูปภาพนิสิต - ${borrowItem.borrower?.name}`
+                              `รูปภาพนิสิต - ${displayItem.borrower?.name}`
                             )}
                             onError={(e) => {
                               e.target.onerror = null;
@@ -276,48 +303,48 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                         </div>
                       </div>
                       <div className="text-center space-y-2">
-                        <h3 className="font-bold text-xl text-gray-800">{borrowItem.borrower?.name || '-'}</h3>
-                        {borrowItem.borrower?.position && (
-                          <p className="text-blue-600 font-medium">{borrowItem.borrower.position}</p>
+                        <h3 className="font-bold text-xl text-gray-800">{displayItem.borrower?.name || '-'}</h3>
+                        {displayItem.borrower?.position && (
+                          <p className="text-blue-600 font-medium">{displayItem.borrower.position}</p>
                         )}
-                        {borrowItem.borrower?.department && (
-                          <p className="text-gray-600 text-sm bg-gray-100 px-3 py-1 rounded-full inline-block">{borrowItem.borrower.department}</p>
+                        {displayItem.borrower?.department && (
+                          <p className="text-gray-600 text-sm bg-gray-100 px-3 py-1 rounded-full inline-block">{displayItem.borrower.department}</p>
                         )}
                       </div>
                     </div>
                     <div className="mt-6 space-y-3">
                       <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-blue-200 shadow-sm">
                         <span className="text-sm font-medium text-gray-600">รหัสการยืม</span>
-                        <span className="text-sm font-medium text-blue-700">{borrowItem.borrow_code || '-'}</span>
+                        <span className="text-sm font-medium text-blue-700">{displayItem.borrow_code || '-'}</span>
                       </div>
                       <div className="flex justify-between items-center gap-2 bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
                         <span className="text-gray-500">วันที่ยืม</span>
                         <span className="text-blue-700 text-sm font-medium">
-                          {borrowItem.borrow_date ? new Date(borrowItem.borrow_date).toLocaleDateString('th-TH') :
-                           borrowItem.borrowDate ? new Date(borrowItem.borrowDate).toLocaleDateString('th-TH') : '-'}
+                          {displayItem.borrow_date ? new Date(displayItem.borrow_date).toLocaleDateString('th-TH') :
+                           displayItem.borrowDate ? new Date(displayItem.borrowDate).toLocaleDateString('th-TH') : '-'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center gap-2 bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
                         <span className="text-gray-500">กำหนดคืน</span>
                         <span className=" text-blue-700 text-sm font-medium">
-                          {borrowItem.due_date ? new Date(borrowItem.due_date).toLocaleDateString('th-TH') :
-                           borrowItem.dueDate ? new Date(borrowItem.dueDate).toLocaleDateString('th-TH') : '-'}
+                          {displayItem.due_date ? new Date(displayItem.due_date).toLocaleDateString('th-TH') :
+                           displayItem.dueDate ? new Date(displayItem.dueDate).toLocaleDateString('th-TH') : '-'}
                         </span>
                       </div>
                       <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
                         <span className="text-sm font-medium text-gray-700">วันที่คืน</span>
-                        <span className="text-sm font-medium text-blue-700">{borrowItem.return_date ? new Date(borrowItem.return_date).toLocaleString('th-TH') : '-'}</span>
+                        <span className="text-sm font-medium text-blue-700">{displayItem.return_date ? new Date(displayItem.return_date).toLocaleString('th-TH') : '-'}</span>
                       </div>
                       <div className="flex justify-between items-center bg-white px-4 py-2 rounded-full border border-blue-200 shadow-sm">
                         <span className="text-sm font-medium text-gray-600">สถานะ</span>
-                        {getStatusBadge(borrowItem.status)}
+                        {getStatusBadge(displayItem.status)}
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Purpose Box */}
-                {borrowItem.purpose && (
+                {displayItem.purpose && (
                   <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
                     <div className="p-6">
                       <div className="flex items-center gap-3 mb-4">
@@ -332,7 +359,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                         </div>
                       </div>
                       <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-                        <p className="text-gray-700 whitespace-pre-line">{borrowItem.purpose}</p>
+                        <p className="text-gray-700 whitespace-pre-line">{displayItem.purpose}</p>
                       </div>
                     </div>
                   </div>
@@ -356,14 +383,14 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                     <div className="space-y-3">
                       {/* Preview images section */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {borrowItem?.signature_image && (
+                        {displayItem?.signature_image && (
                           <div className="relative group">
                             <div 
                               className="w-full h-32 bg-gray-100 rounded-lg border border-gray-300 overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow"
-                              onClick={() => handleViewImage(borrowItem.signature_image, '  รูปถ่ายภาพบัตรนักศึกษา')}
+                              onClick={() => handleViewImage(displayItem.signature_image, '  รูปถ่ายภาพบัตรนักศึกษา')}
                             >
                               <img 
-                                src={borrowItem.signature_image.startsWith('http') ? borrowItem.signature_image : `${UPLOAD_BASE}/uploads/signature/${borrowItem.signature_image}`}
+                                src={displayItem.signature_image.startsWith('http') ? displayItem.signature_image : `${UPLOAD_BASE}/uploads/signature/${displayItem.signature_image}`}
                                 alt="Student ID Photo Preview"
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
@@ -378,14 +405,14 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                           </div>
                         )}
                         
-                        {borrowItem?.handover_photo && (
+                        {displayItem?.handover_photo && (
                           <div className="relative group">
                             <div 
                               className="w-full h-32 bg-gray-100 rounded-lg border border-gray-300 overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow"
-                              onClick={() => handleViewImage(borrowItem.handover_photo, 'รูปถ่ายส่งมอบครุภัณฑ์')}
+                              onClick={() => handleViewImage(displayItem.handover_photo, 'รูปถ่ายส่งมอบครุภัณฑ์')}
                             >
                               <img 
-                                src={borrowItem.handover_photo.startsWith('http') ? borrowItem.handover_photo : `${UPLOAD_BASE}/uploads/handover/${borrowItem.handover_photo}`}
+                                src={displayItem.handover_photo.startsWith('http') ? displayItem.handover_photo : `${UPLOAD_BASE}/uploads/handover/${displayItem.handover_photo}`}
                                 alt="Handover Photo Preview"
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
@@ -402,7 +429,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                       </div>
 
                       {/* แสดงข้อความเมื่อไม่มีรูปภาพ */}
-                      {!borrowItem?.signature_image && !borrowItem?.handover_photo && (
+                      {!displayItem?.signature_image && !displayItem?.handover_photo && (
                         <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-emerald-200">
                           <div className="bg-gradient-to-r from-emerald-100 to-teal-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -416,7 +443,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                       {/* เอกสารสำคัญที่แนบ */}
                       <div className="mt-4 pt-3">
                         <DocumentViewer
-                          documents={borrowItem.important_documents || []}
+                          documents={displayItem.important_documents || []}
                           title="เอกสารสำคัญที่แนบ"
                         />
                       </div>
@@ -425,7 +452,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                 </div>
 
                 {/* Damage Photos Section - Show only when status is completed */}
-                {borrowItem.status === "completed" && (
+                {displayItem.status === "completed" && (
                   <div className="bg-white/80 backdrop-blur-sm border border-red-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
                     <div className="p-6">
                       <div className="flex items-center gap-3 mb-4">
@@ -440,9 +467,9 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                         </div>
                       </div>
 
-                      {borrowItem.return_items && borrowItem.return_items.some(item => item.damage_photos && item.damage_photos.length > 0) ? (
+                      {displayItem.return_items && displayItem.return_items.some(item => item.damage_photos && item.damage_photos.length > 0) ? (
                         <div className="space-y-6">
-                          {borrowItem.return_items.map((item, index) => {
+                          {displayItem.return_items.map((item, index) => {
                             // Check if this item has damage photos
                             if (!item.damage_photos || !Array.isArray(item.damage_photos) || item.damage_photos.length === 0) {
                               return null;
@@ -620,7 +647,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                 {/* Loan Details & Return Status */}
                 <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
                   {/* Section: Payment Details (always show) */}
-                  {(borrowItem.fine_amount > 0 || borrowItem.pay_status || borrowItem.payment_method) && (
+                  {(displayItem.fine_amount > 0 || displayItem.pay_status || displayItem.payment_method) && (
                     <div className="bg-blue-50 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 mb-3">
                       <div className="p-6">
                         <div className="flex items-center gap-3 mb-4">
@@ -635,21 +662,21 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                           </div>
                         </div>
                         <div className="space-y-3">
-                          {borrowItem.pay_status && (
+                          {displayItem.pay_status && (
                             <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm font-medium text-sm">
                               <span className="text-sm text-gray-600">สถานะชำระเงิน</span>
                               {(() => {
                                 let badgeClass = 'bg-yellow-100 text-yellow-800 text-sm p-2';
                                 let label = 'รอยืนยันชำระ';
-                                if (borrowItem.pay_status === 'paid') { 
+                                if (displayItem.pay_status === 'paid') { 
                                   badgeClass = 'bg-green-100 text-green-700 text-sm p-2'; 
                                   label = 'ชำระแล้ว'; 
                                 }
-                                if (borrowItem.pay_status === 'failed') { 
+                                if (displayItem.pay_status === 'failed') { 
                                   badgeClass = 'bg-red-100 text-red-700 text-sm p-2'; 
                                   label = 'การชำระผิดพลาด'; 
                                 }
-                                if (borrowItem.pay_status === 'pending') { 
+                                if (displayItem.pay_status === 'pending') { 
                                   badgeClass = 'bg-blue-100 text-blue-700 text-sm p-2'; 
                                   label = 'รอชำระ'; 
                                 }
@@ -659,16 +686,16 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                               })()}
                             </div>
                           )}
-                          {borrowItem.payment_method && (
+                          {displayItem.payment_method && (
                             <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-blue-200 shadow-sm">
                               <span className="text-sm font-medium text-gray-700">วิธีชำระเงิน</span>
-                              <span className="font-semibold text-blue-700">{borrowItem.payment_method}</span>
+                              <span className="font-semibold text-blue-700">{displayItem.payment_method}</span>
                             </div>
                           )}
-                          {borrowItem.fine_amount > 0 && (
+                          {displayItem.fine_amount > 0 && (
                             <div className="flex justify-between items-center bg-white px-3 py-2 rounded-full border border-amber-200 shadow-sm">
                               <span className="text-sm text-gray-600">จำนวนค่าปรับ</span>
-                              <span className="font-medium text-amber-800">{borrowItem.fine_amount} บาท</span>
+                              <span className="font-medium text-amber-800">{displayItem.fine_amount} บาท</span>
                             </div>
                           )}
                         </div>
@@ -677,7 +704,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                   )}
 
                   {/* Slip Image Section */}
-                  {borrowItem.proof_image && (
+                  {displayItem.proof_image && (
                     <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
                       <div className="p-6">
                         <div className="flex items-center gap-3 mb-4">
@@ -695,7 +722,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-sm font-semibold text-gray-800">สลิป/หลักฐานการโอน</span>
                             <button
-                              onClick={() => handleViewImage(borrowItem.proof_image.startsWith('http') ? borrowItem.proof_image : `${UPLOAD_BASE}/uploads/pay_slip/${borrowItem.proof_image}`, 'สลิป/หลักฐานการโอน')}
+                              onClick={() => handleViewImage(displayItem.proof_image.startsWith('http') ? displayItem.proof_image : `${UPLOAD_BASE}/uploads/pay_slip/${displayItem.proof_image}`, 'สลิป/หลักฐานการโอน')}
                               className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-3 py-1.5 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105 flex items-center gap-1 font-semibold text-xs"
                               title="ดูภาพ"
                             >
@@ -706,9 +733,9 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                             </button>
                           </div>
                           <div className="w-full flex justify-center">
-                            <div className="relative group cursor-pointer" onClick={() => handleViewImage(borrowItem.proof_image.startsWith('http') ? borrowItem.proof_image : `${UPLOAD_BASE}/uploads/pay_slip/${borrowItem.proof_image}`, 'สลิป/หลักฐานการโอน')}>
+                            <div className="relative group cursor-pointer" onClick={() => handleViewImage(displayItem.proof_image.startsWith('http') ? displayItem.proof_image : `${UPLOAD_BASE}/uploads/pay_slip/${displayItem.proof_image}`, 'สลิป/หลักฐานการโอน')}>
                               <img
-                                src={borrowItem.proof_image.startsWith('http') ? borrowItem.proof_image : `${UPLOAD_BASE}/uploads/pay_slip/${borrowItem.proof_image}`}
+                                src={displayItem.proof_image.startsWith('http') ? displayItem.proof_image : `${UPLOAD_BASE}/uploads/pay_slip/${displayItem.proof_image}`}
                                 alt="slip"
                                 className="max-h-60 object-contain rounded-lg border transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
                                 onError={(e) => { e.target.onerror = null; e.target.src = '/lo.png'; }}
@@ -730,7 +757,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                   )}
 
                   {/* Approval Notes */}
-                  {borrowItem.approvalNotes && (
+                  {displayItem.approvalNotes && (
                     <div className="bg-blue-50 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 mb-3">
                       <div className="p-6">
                         <div className="flex items-center gap-3 mb-4">
@@ -745,7 +772,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
                           </div>
                         </div>
                         <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-                          <p className="text-gray-700 whitespace-pre-line">{borrowItem.approvalNotes}</p>
+                          <p className="text-gray-700 whitespace-pre-line">{displayItem.approvalNotes}</p>
                         </div>
                       </div>
                     </div>
@@ -755,6 +782,8 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
 
               </div>
             </div>
+            )}
+          </div>
           
           {/* Enhanced Footer */}
           <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-full sticky bottom-0">
@@ -899,7 +928,7 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
