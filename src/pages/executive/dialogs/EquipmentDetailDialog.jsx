@@ -17,7 +17,7 @@ import {
 import { useEffect, useState } from 'react';
 import { MdClose } from 'react-icons/md';
 import { RiShoppingBasketFill } from "react-icons/ri";
-import { UPLOAD_BASE } from '../../../utils/api';
+import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
 import BorrowDetailsViewDialog from './BorrowDetailsViewDialog';
 
 const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
@@ -45,7 +45,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${UPLOAD_BASE}/api/equipment/${equipment.item_code}/borrow-history`, {
+      const response = await fetch(`${API_BASE}/equipment/${equipment.item_code}/borrow-history`, {
         headers: {
           'Authorization': token ? `Bearer ${token}` : '',
           'Content-Type': 'application/json'
@@ -281,7 +281,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                     }}
                   />
                   {/* Status Badge */}
-                  <div className="absolute top-1 left-1">
+                  <div className="absolute top-1 left-0">
                     <span className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg border ${
                       equipment.status === 'พร้อมใช้งาน' ? 'bg-green-100 text-green-800 border-green-300' :
                       equipment.status === 'ชำรุด' ? 'bg-red-100 text-red-800 border-red-300' :
@@ -293,9 +293,9 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                     </span>
                   </div>
                   {/* Borrow Count Badge */}
-                  <div className="absolute top-1 right-1">
+                  <div className="absolute top-1 right-0">
                     <div className="bg-white px-3 py-1.5 rounded-full shadow-lg border border-gray-200 flex items-center gap-2">
-                      <ClockIcon className="w-4 h-4 text-gray-600" />
+                      <p className="text-xs font-semibold text-gray-800">จำนวนการยืม</p>
                       <span className="text-xs font-semibold text-gray-800">{borrowHistory.filter(item => item.status === 'completed').length}</span>
                     </div>
                   </div>
