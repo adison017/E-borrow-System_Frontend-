@@ -17,7 +17,7 @@ import {
 import { useEffect, useState } from 'react';
 import { MdClose } from 'react-icons/md';
 import { RiShoppingBasketFill } from "react-icons/ri";
-import { API_BASE, UPLOAD_BASE } from '../../../utils/api';
+import { API_BASE, UPLOAD_BASE, authFetch } from '../../../utils/api';
 import BorrowDetailsViewDialog from './BorrowDetailsViewDialog';
 
 const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
@@ -41,39 +41,29 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
 
   const fetchBorrowHistory = async () => {
     if (!equipment?.item_code) return;
-    
+
     setLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      const url = `${API_BASE}/equipment/${equipment.item_code}/borrow-history`;
-      const headers = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      const protectedUrl = `${API_BASE}/equipment/${equipment.item_code}/borrow-history`;
 
-      console.debug('[BorrowHistory] Fetching', url, token ? 'with auth' : 'without auth');
-      const response = await fetch(url, { headers });
-      console.debug('[BorrowHistory] Response status', response.status, response.statusText);
+      // Use shared authFetch which attaches the JWT token and credentials
+      let response = await authFetch(protectedUrl);
 
-      if (response.ok) {
+      // If protected route fails (unauthorized/not found), try the temporary public diagnostic endpoint
+      if (!response.ok && (response.status === 401 || response.status === 403 || response.status === 404)) {
+        const publicUrl = `${API_BASE}/equipment/public/borrow-history/${equipment.item_code}`;
+        try {
+          response = await fetch(publicUrl, { headers: { 'Content-Type': 'application/json' } });
+        } catch (err) {
+          console.error('Public fallback fetch failed:', err);
+        }
+      }
+
+      if (response && response.ok) {
         const data = await response.json();
         setBorrowHistory(Array.isArray(data) ? data : []);
       } else {
-        // Try to read response body for diagnostics
-        let bodyText = '';
-        try { bodyText = await response.text(); } catch (e) { bodyText = '<unable to read body>'; }
-        console.error('[BorrowHistory] Non-OK response', response.status, response.statusText, bodyText);
-
-        // If 404, try to fetch host-info (helps determine if API base is reachable)
-        if (response.status === 404) {
-          try {
-            const hostBase = API_BASE.replace(/\/api$/, '');
-            const hostInfoRes = await fetch(`${hostBase}/host-info`);
-            const hostInfo = hostInfoRes.ok ? await hostInfoRes.json() : await hostInfoRes.text();
-            console.debug('[BorrowHistory] host-info:', hostInfo);
-          } catch (hostErr) {
-            console.error('[BorrowHistory] Failed to fetch host-info:', hostErr);
-          }
-        }
-
+        console.warn('Failed to fetch borrow history', response && response.status);
         setBorrowHistory([]);
       }
     } catch (error) {
