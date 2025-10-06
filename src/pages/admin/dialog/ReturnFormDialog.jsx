@@ -1,9 +1,9 @@
-import { AiFillAlert } from "react-icons/ai"; 
+import { AiFillAlert } from "react-icons/ai";
 import { ExclamationTriangleIcon, InformationCircleIcon, ExclamationCircleIcon, XCircleIcon, PhotoIcon } from "@heroicons/react/24/outline";
 import { ArrowPathIcon, CheckCircleIcon as CheckCircleSolidIcon, ClipboardDocumentListIcon, DocumentCheckIcon } from "@heroicons/react/24/solid";
 import { useState, useEffect } from "react";
 import { MdClose } from "react-icons/md";
-import { FaCheckCircle, FaInfoCircle, FaExclamationTriangle, FaExclamationCircle, FaTimesCircle } from "react-icons/fa";
+import { FaCheckCircle, FaInfoCircle, FaExclamationTriangle, FaExclamationCircle, FaTimesCircle, FaCamera, FaTrash } from "react-icons/fa";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
@@ -37,6 +37,7 @@ const ReturnFormDialog = ({
   const [isVerifyingSlip, setIsVerifyingSlip] = useState(false);
   const [slipVerifyResult, setSlipVerifyResult] = useState(null);
   const [itemConditions, setItemConditions] = useState({}); // เก็บสภาพรายชิ้น
+  const [damagePhotos, setDamagePhotos] = useState({}); // เก็บรูปภาพความเสียหายรายชิ้น
 
   // Image modal states
   const [imageModal, setImageModal] = useState({
@@ -68,14 +69,19 @@ const ReturnFormDialog = ({
       .then(res => res.json())
       .then(data => {
         // FRONTEND: Received damage levels
+        console.log('[DEBUG] Damage levels API response:', data);
         // ตรวจสอบว่า data เป็น array หรือมี data property
         if (Array.isArray(data)) {
+          console.log('[DEBUG] Setting damage levels from array:', data);
           setDamageLevels(data);
         } else if (data && data.success && Array.isArray(data.data)) {
+          console.log('[DEBUG] Setting damage levels from data.data:', data.data);
           setDamageLevels(data.data);
         } else {
+          console.log('[DEBUG] No valid damage levels data found, setting empty array');
           setDamageLevels([]);
         }
+        console.log('[DEBUG] Final damageLevels state:', damageLevels);
       })
       .catch(err => {
         // FRONTEND: Error fetching damage levels
@@ -159,8 +165,27 @@ const ReturnFormDialog = ({
       setIsVerifyingSlip(false);
       setSlipVerifyResult(null);
       setItemConditions({}); // รีเซ็ตสภาพรายชิ้นเมื่อเปิด dialog
+      setDamagePhotos({}); // รีเซ็ตรูปภาพความเสียหายเมื่อเปิด dialog
     }
+
+    // Cleanup object URLs when dialog closes
+    return () => {
+      Object.values(damagePhotos).forEach(photos => {
+        if (Array.isArray(photos)) {
+          photos.forEach(photo => {
+            if (photo.preview) {
+              URL.revokeObjectURL(photo.preview);
+            }
+          });
+        }
+      });
+    };
   }, [isOpen]);
+
+  // Debug useEffect to monitor damageLevels state changes
+  useEffect(() => {
+    console.log('[DEBUG] damageLevels state updated:', damageLevels);
+  }, [damageLevels]);
 
   if (!isOpen || !borrowedItem) return null;
 
@@ -190,8 +215,8 @@ const ReturnFormDialog = ({
   ];
 
   const paymentMethods = [
-    { 
-      value: "cash", 
+    {
+      value: "cash",
       label: "เงินสด",
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -199,8 +224,8 @@ const ReturnFormDialog = ({
         </svg>
       )
     },
-    { 
-      value: "online", 
+    {
+      value: "online",
       label: "ออนไลน์",
       icon: (
         <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -272,6 +297,39 @@ const ReturnFormDialog = ({
       alert('กรุณาเลือกสภาพครุภัณฑ์ให้ครบทุกชิ้น');
       return;
     }
+
+    // Check if damage photos are required but missing
+    const missingDamagePhotos = equipmentItems.filter(eq => {
+      const cond = itemConditions[eq.item_id];
+      if (!cond || !cond.damageLevelId) return false;
+
+      const level = damageLevels.find(dl => String(dl.damage_id) === String(cond.damageLevelId));
+      const hasSignificantDamage = level && level.fine_percent !== undefined && Number(level.fine_percent) > 1;
+
+      if (!hasSignificantDamage) return false;
+
+      const currentDamagePhotos = damagePhotos[eq.item_id] || [];
+      const existingDamagePhotos = (cond.damage_photos || []);
+      const hasPhotos = currentDamagePhotos.length > 0 || existingDamagePhotos.length > 0;
+
+      // Debug information
+      console.log(`[DEBUG] Checking damage photos for ${eq.item_code}:`, {
+        hasSignificantDamage,
+        currentDamagePhotos: currentDamagePhotos.length,
+        existingDamagePhotos: existingDamagePhotos.length,
+        hasPhotos
+      });
+
+      return !hasPhotos;
+    });
+
+    if (missingDamagePhotos.length > 0) {
+      notify('กรุณาอัปโหลดรูปภาพความเสียหายสำหรับครุภัณฑ์ที่มีความเสียหายมากกว่า 1%', 'error');
+      alert('กรุณาอัปโหลดรูปภาพความเสียหายสำหรับครุภัณฑ์ที่มีความเสียหายมากกว่า 1%');
+      setIsSubmitting(false);
+      return;
+    }
+
     setIsSubmitting(true);
     // หา damage level object
     const selectedDamageLevel = damageLevels.find(dl => dl.damage_id === Number(selectedDamageLevelId) || dl.id === Number(selectedDamageLevelId));
@@ -295,34 +353,87 @@ const ReturnFormDialog = ({
         fine = Math.round(price * percent * (eq.quantity || 1));
         // FRONTEND: Calculated fine
       }
+
+      // Add damage photos to the condition
+      // For new photos, we'll store just the file objects for now
+      // For existing photos from backend, we already have URLs
+      const existingPhotos = cond.damage_photos || [];
       itemConditionsWithFine[eq.item_id] = {
         ...cond,
-        fine_amount: fine
+        fine_amount: fine,
+        damage_photos: existingPhotos
       };
     });
     // FRONTEND: Final itemConditionsWithFine
     // === จบ logic ===
 
-    const payload = {
-      borrow_id: borrowedItem.borrow_id,
-      return_date: getThailandNowString(),
-      return_by: returnById, // ผู้ตรวจรับ
-      user_id: userId,      // ผู้ยืม
-      // condition_level_id, condition_text ไม่ต้องส่งถ้าใช้ per-item
-      fine_amount: fineAmountValue + lateFineAmount, // ใช้ค่ารวม per-item + ค่าปรับล่าช้า
-      damage_fine: fineAmountValue,                  // ใช้ค่ารวม per-item จริง
-      late_fine: lateFineAmount,
-      late_days: overdayCount,
-      proof_image: proofImage || null,
-      status: 'pending',
-      notes: returnNotes || '',
-      pay_status: (paymentMethod === 'online') ? 'pending' : 'paid',
-      paymentMethod,
-      item_conditions: itemConditionsWithFine, // ส่งแบบใหม่
-    };
     // submit payload
     notify('กำลังส่งข้อมูลการคืน... ดู log เพิ่มเติมใน console', 'info');
     try {
+      // First, upload damage photos
+      const itemConditionsWithPhotos = { ...itemConditionsWithFine };
+
+      for (const eq of equipmentItems) {
+        const photos = damagePhotos[eq.item_id];
+        if (photos && photos.length > 0) {
+          const photoUrls = [];
+
+          // Upload each photo individually
+          for (let i = 0; i < photos.length; i++) {
+            const photo = photos[i];
+            if (photo.file) {
+              const formData = new FormData();
+              formData.append('damage_photo', photo.file);
+              formData.append('borrow_code', borrowedItem.borrow_code);
+              formData.append('item_code', eq.item_code);
+              formData.append('photo_index', i + 1);
+
+              try {
+                const uploadRes = await authFetch(`${API_BASE}/returns/upload-damage-photo`, {
+                  method: 'POST',
+                  body: formData
+                });
+
+                if (uploadRes.ok) {
+                  const uploadData = await uploadRes.json();
+                  if (uploadData.url) {
+                    photoUrls.push(uploadData.url);
+                  }
+                }
+              } catch (uploadError) {
+                console.error('Error uploading damage photo:', uploadError);
+              }
+            }
+          }
+
+          // Update item conditions with uploaded photo URLs
+          if (photoUrls.length > 0) {
+            itemConditionsWithPhotos[eq.item_id] = {
+              ...itemConditionsWithPhotos[eq.item_id],
+              damage_photos: photoUrls
+            };
+          }
+        }
+      }
+
+      const payload = {
+        borrow_id: borrowedItem.borrow_id,
+        return_date: getThailandNowString(),
+        return_by: returnById, // ผู้ตรวจรับ
+        user_id: userId,      // ผู้ยืม
+        // condition_level_id, condition_text ไม่ต้องส่งถ้าใช้ per-item
+        fine_amount: fineAmountValue + lateFineAmount, // ใช้ค่ารวม per-item + ค่าปรับล่าช้า
+        damage_fine: fineAmountValue,                  // ใช้ค่ารวม per-item จริง
+        late_fine: lateFineAmount,
+        late_days: overdayCount,
+        proof_image: proofImage || null,
+        status: 'pending',
+        notes: returnNotes || '',
+        pay_status: (paymentMethod === 'online') ? 'pending' : 'paid',
+        paymentMethod,
+        item_conditions: itemConditionsWithPhotos, // ส่งแบบใหม่
+      };
+
       const res = await authFetch(`${API_BASE}/returns`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -437,6 +548,46 @@ const ReturnFormDialog = ({
       isOpen: false,
       imageUrl: '',
       title: ''
+    });
+  };
+
+  // Damage photo handling functions
+  const handleDamagePhotoUpload = (itemId, files) => {
+    if (!files || files.length === 0) return;
+
+    // Limit to 10 photos
+    const filesArray = Array.from(files).slice(0, 10);
+
+    console.log(`[DEBUG] Uploading ${filesArray.length} damage photos for item ${itemId}`);
+
+    const newPhotos = filesArray.map(file => ({
+      file,
+      preview: URL.createObjectURL(file),
+      name: file.name
+    }));
+
+    setDamagePhotos(prev => ({
+      ...prev,
+      [itemId]: [...(prev[itemId] || []), ...newPhotos]
+    }));
+  };
+
+  const removeDamagePhoto = (itemId, photoIndex) => {
+    console.log(`[DEBUG] Removing damage photo at index ${photoIndex} for item ${itemId}`);
+    setDamagePhotos(prev => {
+      const itemPhotos = [...(prev[itemId] || [])];
+      const removedPhoto = itemPhotos.splice(photoIndex, 1)[0];
+
+      // Revoke the preview URL to free memory
+      if (removedPhoto.preview) {
+        URL.revokeObjectURL(removedPhoto.preview);
+      }
+
+      console.log(`[DEBUG] Updated damage photos for item ${itemId}:`, itemPhotos);
+      return {
+        ...prev,
+        [itemId]: itemPhotos
+      };
     });
   };
 
@@ -586,7 +737,7 @@ const ReturnFormDialog = ({
                       <div className="flex items-center gap-3">
                         <div className="bg-blue-600 p-2 rounded-full shadow-sm">
                           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                         </div>
                         <h4 className="font-semibold text-gray-800 text-sm">  รูปถ่ายภาพบัตรนักศึกษา</h4>
@@ -765,7 +916,7 @@ const ReturnFormDialog = ({
                     >
                       <div className="flex items-center gap-3 mb-2">
                         <div className="bg-blue-200 rounded-full p-2 shadow-sm">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
                         </div>
                         <div>
                           <div className="font-bold text-blue-900 text-base leading-tight">{eq.name}</div>
@@ -803,6 +954,10 @@ const ReturnFormDialog = ({
                             else if (dl.name?.includes('ปานกลาง')) badge = '🟠';
                             else if (dl.name?.includes('หนัก')) badge = '🔴';
                             else if (dl.name?.includes('สูญหาย')) badge = '⚫';
+
+                            // Debug log for each damage level option
+                            console.log('[DEBUG] Rendering damage level option:', dl);
+
                             return (
                               <option key={dl.damage_id} value={dl.damage_id}>
                                 {badge} {dl.name} {dl.fine_percent !== undefined && dl.fine_percent !== null ? `${dl.fine_percent}%` : ''}
@@ -841,6 +996,107 @@ const ReturnFormDialog = ({
                           }
                         }))}
                       />
+                      {/* Damage Photos Upload - Only show when damage percentage > 1% */}
+                      {(() => {
+                        // Check if the selected damage level has percentage > 1%
+                        const selectedId = itemConditions[eq.item_id]?.damageLevelId;
+                        const selectedLevel = Array.isArray(damageLevels) ? damageLevels.find(dl => String(dl.damage_id) === String(selectedId)) : null;
+                        const hasSignificantDamage = selectedLevel && selectedLevel.fine_percent !== undefined && Number(selectedLevel.fine_percent) > 1;
+
+                        // Debug information
+                        console.log(`[DEBUG] Item: ${eq.item_code}, Selected ID: ${selectedId}, Selected Level:`, selectedLevel);
+                        console.log(`[DEBUG] Has significant damage: ${hasSignificantDamage}, Damage Levels:`, damageLevels);
+
+                        // ตรวจสอบว่ามีรูปภาพหรือไม่
+                        const currentDamagePhotos = damagePhotos[eq.item_id] || [];
+                        const existingDamagePhotos = (itemConditions[eq.item_id]?.damage_photos || []);
+                        const hasPhotos = currentDamagePhotos.length > 0 || existingDamagePhotos.length > 0;
+
+                        return hasSignificantDamage ? (
+                          <div className="mt-3 border border-blue-200 rounded-xl p-3 bg-blue-50">
+                            <div className="flex items-center gap-2 mb-1">
+                              <label className="block text-xs font-medium text-gray-700">รูปภาพความเสียหาย</label>
+                              {hasSignificantDamage && !hasPhotos && (
+                                <span className="text-red-500 text-xs font-bold">*</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mb-2">
+                              <input
+                                type="file"
+                                id={`damage-photos-${eq.item_id}`}
+                                className="hidden"
+                                multiple
+                                accept="image/*"
+                                onChange={(e) => handleDamagePhotoUpload(eq.item_id, e.target.files)}
+                              />
+                              <label
+                                htmlFor={`damage-photos-${eq.item_id}`}
+                                className="flex items-center gap-1 px-3 py-2 bg-blue-500 text-white rounded-lg cursor-pointer hover:bg-blue-600 transition-colors shadow-sm"
+                              >
+                                <FaCamera className="w-4 h-4" />
+                                <span className="text-sm font-medium">เลือกรูปภาพความเสียหาย</span>
+                              </label>
+                              {hasSignificantDamage ? (
+                                <span className="text-xs text-red-500 font-bold">
+                                  จำเป็นต้องมีรูปภาพ (สูงสุด 10 รูป)
+                                </span>
+                              ) : (
+                                <span className="text-xs text-gray-500">
+                                  สูงสุด 10 รูป
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Preview Damage Photos */}
+                            {damagePhotos[eq.item_id] && damagePhotos[eq.item_id].length > 0 && (
+                              <div className="grid grid-cols-3 gap-2 mt-3">
+                                {damagePhotos[eq.item_id].map((photo, photoIndex) => (
+                                  <div key={photoIndex} className="relative group">
+                                    <img
+                                      src={photo.preview || photo.url}
+                                      alt={`Damage ${photoIndex + 1}`}
+                                      className="w-full h-24 object-cover rounded-lg border-2 border-blue-200 shadow-sm"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => removeDamagePhoto(eq.item_id, photoIndex)}
+                                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-600"
+                                      title="ลบภาพนี้"
+                                    >
+                                      <FaTrash className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Display existing damage photos from backend (if any) */}
+                            {itemConditions[eq.item_id]?.damage_photos && itemConditions[eq.item_id].damage_photos.length > 0 && (
+                              <div className="mt-3 pt-3 border-t border-blue-100">
+                                <label className="block text-xs font-medium text-gray-600 mb-2">รูปภาพความเสียหายที่มีอยู่</label>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {itemConditions[eq.item_id].damage_photos.map((photoUrl, index) => (
+                                    <div key={index} className="relative group cursor-pointer">
+                                      <img
+                                        src={photoUrl}
+                                        alt={'Existing Damage ' + (index + 1)}
+                                        className="w-full h-24 object-cover rounded-lg border-2 border-blue-100 shadow-sm hover:border-blue-300 transition-colors"
+                                        onClick={() => handleViewImage(photoUrl, 'รูปภาพความเสียหาย ' + (index + 1))}
+                                      />
+                                      <div className="absolute inset-0 bg-black/0 hover:bg-black/10 rounded-lg flex items-center justify-center transition-colors">
+                                        <svg className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   ))}
                   {/* ค่าปรับ */}
@@ -928,7 +1184,7 @@ const ReturnFormDialog = ({
                     <p className="text-xs text-white">กรุณาตรวจสอบข้อมูลก่อนยืนยัน</p>
                   </div>
                 </div>
-                
+
                 {/* Action buttons on right */}
                 <div className="flex justify-end gap-3">
                   <button

@@ -30,6 +30,9 @@ const PersonalInfoEdit = () => {
     password: ""
   });
 
+  // Store initial form data for comparison
+  const [initialFormData, setInitialFormData] = useState({});
+
   // Add validation state for real-time feedback
   const [validation, setValidation] = useState({
     email: null,
@@ -37,6 +40,19 @@ const PersonalInfoEdit = () => {
     phone: null,
     username: null
   });
+
+  // Track which fields have been touched/edited
+  const [touchedFields, setTouchedFields] = useState({});
+
+  // Helper function to check if a field has been modified
+  const isFieldModified = (fieldName) => {
+    return touchedFields[fieldName] && formData[fieldName] !== initialFormData[fieldName];
+  };
+
+  // Helper function to check if a field should be validated (touched and modified)
+  const shouldValidateField = (fieldName) => {
+    return touchedFields[fieldName] && isFieldModified(fieldName);
+  };
 
   const [positions, setPositions] = useState([]);
   const [branches, setBranches] = useState([]);
@@ -120,8 +136,7 @@ const PersonalInfoEdit = () => {
 
     if (globalUserData) {
       const avatarPath = getAvatarUrl(globalUserData.avatar);
-
-      setFormData({
+      const initialData = {
         user_id: globalUserData.user_id,
         user_code: globalUserData.user_code,
         username: globalUserData.username,
@@ -141,7 +156,9 @@ const PersonalInfoEdit = () => {
         parish: globalUserData.parish || '',
         postal_no: globalUserData.postal_no || '',
         password: ''
-      });
+      };
+      setFormData(initialData);
+      setInitialFormData(initialData);
       setPreviewImage(avatarPath);
     }
   }, []); // <--- Only run once
@@ -267,7 +284,7 @@ const PersonalInfoEdit = () => {
         const isDuplicate = res.data && res.data.user_id !== currentUserId;
         setValidation(prev => ({ ...prev, email: isDuplicate ? 'duplicate' : 'ok' }));
       } else if (name === 'user_code' && value.length >= 5) {
-        const res = await axios.get(`${API_BASE}/users/username/${value}`);
+        const res = await axios.get(`${API_BASE}/users/user_code/${value}`);
         // Check if data exists and belongs to a different user
         const isDuplicate = res.data && res.data.user_id !== currentUserId;
         setValidation(prev => ({ ...prev, user_code: isDuplicate ? 'duplicate' : 'ok' }));
@@ -317,9 +334,16 @@ const PersonalInfoEdit = () => {
       setFormData(prev => ({ ...prev, [name]: value }));
     }
 
-    // Real-time validation for email, user_code, username, and phone
+    // Mark field as touched when changed
     if (['email', 'user_code', 'username', 'phone'].includes(name)) {
-      validateField(name, value);
+      setTouchedFields(prev => ({ ...prev, [name]: true }));
+      // Real-time validation only for touched and modified fields
+      if (isFieldModified(name)) {
+        validateField(name, value);
+      } else {
+        // Clear validation if field is reset to original value
+        setValidation(prev => ({ ...prev, [name]: null }));
+      }
     }
   };
 
@@ -356,11 +380,11 @@ const PersonalInfoEdit = () => {
     setIsLoading(true);
 
     try {
-      // Pre-submission validation for duplicates
+      // Pre-submission validation for duplicates - only for touched and modified fields
       const currentUserId = formData.user_id;
 
-      // Check for duplicate email (excluding current user)
-      if (formData.email) {
+      // Check for duplicate email (excluding current user) - only if touched and modified
+      if (shouldValidateField('email') && formData.email) {
         try {
           const emailRes = await axios.get(`${API_BASE}/users/email/${formData.email}`);
           if (emailRes.data && emailRes.data.user_id !== currentUserId) {
@@ -373,10 +397,10 @@ const PersonalInfoEdit = () => {
         }
       }
 
-      // Check for duplicate user_code (excluding current user)
-      if (formData.user_code) {
+      // Check for duplicate user_code (excluding current user) - only if touched and modified
+      if (shouldValidateField('user_code') && formData.user_code) {
         try {
-          const userCodeRes = await axios.get(`${API_BASE}/users/username/${formData.user_code}`);
+          const userCodeRes = await axios.get(`${API_BASE}/users/user_code/${formData.user_code}`);
           if (userCodeRes.data && userCodeRes.data.user_id !== currentUserId) {
             showErrorDialog('รหัสนิสิต/บุคลากรนี้ถูกใช้ไปแล้ว กรุณาใช้รหัสอื่น');
             setIsLoading(false);
@@ -387,8 +411,8 @@ const PersonalInfoEdit = () => {
         }
       }
 
-      // Check for duplicate username (excluding current user)
-      if (formData.username) {
+      // Check for duplicate username (excluding current user) - only if touched and modified
+      if (shouldValidateField('username') && formData.username) {
         try {
           const usernameRes = await axios.get(`${API_BASE}/users/username/${formData.username}`);
           if (usernameRes.data && usernameRes.data.user_id !== currentUserId) {
@@ -401,12 +425,12 @@ const PersonalInfoEdit = () => {
         }
       }
 
-      // Check for duplicate phone (excluding current user)
-      if (formData.phone) {
+      // Check for duplicate phone (excluding current user) - only if touched and modified
+      if (shouldValidateField('phone') && formData.phone) {
         try {
           const phoneRes = await axios.get(`${API_BASE}/users/phone/${formData.phone}`);
           if (phoneRes.data && phoneRes.data.user_id !== currentUserId) {
-            showErrorDialog('เบอร์โทรศัพท์นี้ถูกใช้ไปแล้ว กรุณาใช้เบอร์อื่น');
+            showErrorDialog('เบอร์โทรศัพที่นี้ถูกใช้ไปแล้ว กรุณาใช้เบอร์อื่น');
             setIsLoading(false);
             return;
           }
@@ -576,8 +600,7 @@ const PersonalInfoEdit = () => {
         });
         if (!res.ok) return;
         const user = await res.json();
-        setFormData(prev => ({
-          ...prev,
+        const userData = {
           user_id: user.user_id,
           user_code: user.user_code,
           username: user.username,
@@ -595,8 +618,11 @@ const PersonalInfoEdit = () => {
           district: user.district,
           province: user.province,
           postal_no: user.postal_no,
-          pic: user.avatar
-        }));
+          pic: user.avatar,
+          password: ''
+        };
+        setFormData(userData);
+        setInitialFormData(userData);
       } catch (e) {
         // ignore
       }

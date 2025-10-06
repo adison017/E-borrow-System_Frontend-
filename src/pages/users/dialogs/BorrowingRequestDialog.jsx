@@ -136,7 +136,7 @@ const mapStatusToLabel = (status) => {
     case "completed":
       return "เสร็จสิ้น";
     case "waiting_payment":
-      return "ค้างชำระเงิน";
+      return "รอชำระเงิน";
     case "rejected":
       return "ปฏิเสธ";
     case "pending_approval":
@@ -524,8 +524,8 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
                       <p className="text-xs text-amber-700">กรุณาชำระค่าปรับเพื่อดำเนินการต่อ</p>
                     </div>
                   </div>
-                  <span className="bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm font-medium">
-                    รอชำระเงิน
+                  <span className={`bg-amber-100 text-amber-800 px-3 py-1 rounded-full text-sm font-medium ${request.pay_status === 'failed' ? 'bg-red-100 text-red-800' : ''}`}>
+                    {request.pay_status === 'failed' ? 'การชำระผิดพลาด' : 'รอชำระเงิน'}
                   </span>
                 </div>
 

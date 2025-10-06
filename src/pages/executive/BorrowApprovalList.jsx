@@ -228,25 +228,25 @@ export default function BorrowApprovalList() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gradient-to-r from-indigo-950 to-blue-700">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                     รหัสคำขอ
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                     อุปกรณ์
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider">
                     ผู้ขอยืม
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden md:table-cell">
                     วันที่ยืม
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-white uppercase tracking-wider hidden md:table-cell">
                     กำหนดคืน
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
                     สถานะ
                   </th>
-                  <th scope="col" className="px-6 py-3 text-center text-sm font-medium text-white uppercase tracking-wider">
+                  <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-white uppercase tracking-wider">
                     การจัดการ
                   </th>
                 </tr>
@@ -254,36 +254,36 @@ export default function BorrowApprovalList() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {paginatedRequests.map((request) => (
                   <tr key={request.borrow_id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-gray-900 font-bold">{request.borrow_code}</div>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <div className="text-gray-900 font-medium text-sm">{request.borrow_code}</div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-3">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-15 w-15 rounded-lg">
+                        <div className="flex-shrink-0 h-12 w-12 rounded-lg">
                           <img
                             className="h-full w-full object-contain"
                             src={Array.isArray(request.equipment) && request.equipment[0]?.pic ? `${request.equipment[0].pic.startsWith('http') ? request.equipment[0].pic : '/lo.png'}` : '/placeholder-equipment.png'}
                             alt={Array.isArray(request.equipment) && request.equipment[0]?.name}
                           />
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
                             {Array.isArray(request.equipment) && request.equipment.length > 0 ? request.equipment[0].name : '-'}
                             {Array.isArray(request.equipment) && request.equipment.length > 1 && (
-                              <span className="ml-1 bg-blue-100 text-blue-800 text-xs font-medium px-2 py-0.5 rounded-full flex-shrink-0">
+                              <span className="ml-1 bg-blue-100 text-blue-800 text-xs font-medium px-1.5 py-0.5 rounded-full flex-shrink-0">
                                 +{request.equipment.length - 1} รายการ
                               </span>
                             )}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs text-gray-500 truncate">
                             {Array.isArray(request.equipment) && request.equipment[0]?.item_code}
                           </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-12 w-12">
+                        <div className="flex-shrink-0 h-10 w-10">
                           <img
                             className="h-full w-full rounded-full bg-white shadow-sm"
                             src={
@@ -297,25 +297,25 @@ export default function BorrowApprovalList() {
                             onError={e => { e.target.onerror = null; e.target.src = '/profile.png'; }}
                           />
                         </div>
-                        <div className="ml-3 overflow-hidden">
+                        <div className="ml-2 overflow-hidden">
                           <div className="text-sm font-medium text-gray-900 truncate">{request.borrower?.name}</div>
-                          <div className="text-xs text-gray-500">{request.borrower?.department}</div>
+                          <div className="text-xs text-gray-500 truncate">{request.borrower?.department}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-base text-gray-900">{request.borrow_date ? new Date(request.borrow_date).toLocaleDateString('th-TH') : '-'}</div>
+                    <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell">
+                      <div className="text-sm text-gray-900">{request.borrow_date ? new Date(request.borrow_date).toLocaleDateString('th-TH') : '-'}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-base text-gray-900">{request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH') : '-'}</div>
+                    <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell">
+                      <div className="text-sm text-gray-900">{request.due_date ? new Date(request.due_date).toLocaleDateString('th-TH') : '-'}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                      <span className={`px-3 py-1 inline-flex text-xs flex-center justify-center leading-5 font-semibold rounded-full border ${statusBadgeStyle[request.status]}`}>
+                    <td className="px-4 py-3 whitespace-nowrap text-center">
+                      <span className={`px-2 py-1 inline-flex text-xs flex-center justify-center leading-4 font-semibold rounded-full border ${statusBadgeStyle[request.status]}`}>
                         {statusTranslation[request.status]}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                      <div className="flex flex-wrap items-center justify-center gap-2">
+                    <td className="px-4 py-3 whitespace-nowrap text-center text-sm font-medium">
+                      <div className="flex flex-wrap items-center justify-center gap-1">
                         <Tooltip content="ดูรายละเอียด" placement="top">
                           <IconButton
                             variant="text"
@@ -323,7 +323,7 @@ export default function BorrowApprovalList() {
                             className="bg-green-50 hover:bg-green-100 shadow-sm transition-all duration-200 p-2"
                             onClick={() => handleOpenDialog(request)}
                           >
-                            <CheckCircleIcon className="h-6 w-6" />
+                            <CheckCircleIcon className="h-5 w-5" />
                           </IconButton>
                         </Tooltip>
                         {/* ปุ่มยกเลิกการยืมถูกลบตามคำขอ */}
@@ -335,21 +335,21 @@ export default function BorrowApprovalList() {
             {/* Pagination Footer */}
             <tfoot>
               <tr>
-                <td colSpan={7} className="bg-white px-6 py-4">
+                <td colSpan={7} className="bg-white px-4 py-3">
                   <div className="flex flex-col sm:flex-row items-center justify-between">
-                    <span className="text-gray-600 mb-3 sm:mb-0 text-sm">
+                    <span className="text-gray-600 mb-2 sm:mb-0 text-xs">
                       แสดง {paginatedRequests.length > 0 ? (page - 1) * rowsPerPage + 1 : 0} ถึง {(page - 1) * rowsPerPage + paginatedRequests.length} จากทั้งหมด {filteredRequests.length} รายการ
                     </span>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
                       <button
-                        className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                        className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-md px-3 py-1.5 text-xs font-medium normal-case"
                         onClick={() => setPage(page - 1)}
                         disabled={page === 1}
                       >
                         ก่อนหน้า
                       </button>
                       <button
-                        className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg px-4 py-2 text-sm font-medium normal-case"
+                        className="text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-md px-3 py-1.5 text-xs font-medium normal-case"
                         onClick={() => setPage(page + 1)}
                         disabled={page === totalPages}
                       >

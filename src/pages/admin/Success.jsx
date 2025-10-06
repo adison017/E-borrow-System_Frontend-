@@ -122,7 +122,8 @@ function Success() {
       proof_image: borrow.proof_image,
       pay_status: borrow.pay_status || 'paid',
       payment_method: borrow.payment_method || 'cash',
-      important_documents: borrow.important_documents || []
+      important_documents: borrow.important_documents || [],
+      return_items: borrow.return_items || [] // Add return_items for damage photos
     };
 
     setSelectedBorrow(returnItem);

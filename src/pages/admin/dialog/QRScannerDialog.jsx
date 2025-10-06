@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { XCircleIcon as ErrorIcon, MagnifyingGlassIcon, QrCodeIcon } from "@heroicons/react/24/solid";
-import { BrowserMultiFormatReader, ChecksumException, FormatException, NotFoundException } from "@zxing/library";
+import { XCircleIcon as ErrorIcon, MagnifyingGlassIcon, QrCodeIcon, ArrowsUpDownIcon } from "@heroicons/react/24/solid";
 import { MdClose } from "react-icons/md";
 import { FaCamera, FaSearch } from "react-icons/fa";
+import { BrowserMultiFormatReader, ChecksumException, FormatException, NotFoundException } from "@zxing/library";
 import { getEquipment } from '../../../utils/api';
 import PermissionRequest from '../../../components/PermissionRequest';
 
@@ -13,6 +13,7 @@ const QRScannerDialog = ({ isOpen, onClose, onEquipmentFound }) => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPermissionRequest, setShowPermissionRequest] = useState(false);
+  const [preferredFacingMode, setPreferredFacingMode] = useState("environment"); // Default to back camera
   const codeReader = useRef(null);
   const videoRef = useRef(null);
   const handlingScanRef = useRef(false);
@@ -26,9 +27,9 @@ const QRScannerDialog = ({ isOpen, onClose, onEquipmentFound }) => {
     return () => {
       stopScanner();
     };
-  }, [isOpen]);
+  }, [isOpen, preferredFacingMode]);
 
-  const initializeScanner = async () => {
+  const initializeScanner = async (preferredMode = preferredFacingMode) => {
     if (scanning) return;
     setScanning(true);
     setError(null);
@@ -51,7 +52,7 @@ const QRScannerDialog = ({ isOpen, onClose, onEquipmentFound }) => {
 
       try {
         await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" } }
+          video: { facingMode: { ideal: preferredMode } }
         }).then(stream => {
           stream.getTracks().forEach(track => track.stop());
         });
@@ -72,11 +73,23 @@ const QRScannerDialog = ({ isOpen, onClose, onEquipmentFound }) => {
         throw new Error("ไม่พบอุปกรณ์กล้อง กรุณาตรวจสอบการเชื่อมต่อกล้อง");
       }
 
-      const rearCameraKeywords = ['back', 'rear', 'environment', 'facing back', 'camera2 0'];
+      // Adjust keywords based on preferred mode
+      let keywords = [];
+      if (preferredMode === "environment") {
+        keywords = ['back', 'rear', 'environment', 'facing back', 'camera2 0'];
+      } else {
+        keywords = ['front', 'selfie', 'user', 'facing front', 'camera1 0'];
+      }
+
       const candidates = [];
-      const rear = devices.find(d => rearCameraKeywords.some(k => d.label.toLowerCase().includes(k)));
-      if (rear) candidates.push(rear.deviceId);
-      if (devices.length > 1) candidates.push(devices[devices.length - 1].deviceId);
+      const preferred = devices.find(d => keywords.some(k => d.label.toLowerCase().includes(k)));
+      if (preferred) candidates.push(preferred.deviceId);
+
+      // Fallback to other devices
+      if (devices.length > 1) {
+        const fallback = devices.find(d => d.deviceId !== preferred?.deviceId);
+        if (fallback) candidates.push(fallback.deviceId);
+      }
       devices.forEach(d => { if (!candidates.includes(d.deviceId)) candidates.push(d.deviceId); });
 
       let selectedDeviceId = null;
@@ -229,6 +242,17 @@ const QRScannerDialog = ({ isOpen, onClose, onEquipmentFound }) => {
     }
   };
 
+  const toggleCamera = async () => {
+    const newMode = preferredFacingMode === "environment" ? "user" : "environment";
+    setPreferredFacingMode(newMode);
+    await stopScanner();
+    setTimeout(() => initializeScanner(newMode), 500);
+  };
+
+  const getCameraLabel = () => {
+    return preferredFacingMode === "environment" ? "กล้องหลัง" : "กล้องหน้า";
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -275,13 +299,25 @@ const QRScannerDialog = ({ isOpen, onClose, onEquipmentFound }) => {
                 </button>
                 <button
                   className="px-3 py-1.5 text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors"
-                  onClick={() => { initializeScanner(); }}
+                  onClick={() => { initializeScanner(preferredFacingMode); }}
                 >
                   ลองอีกครั้ง
                 </button>
               </div>
             </div>
           )}
+
+          {/* Camera Switch Button */}
+          <div className="flex justify-center">
+            <button
+              onClick={toggleCamera}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors shadow-sm"
+              title={`สลับเป็น ${getCameraLabel()}`}
+            >
+              <ArrowsUpDownIcon className="w-4 h-4" />
+              <span>{getCameraLabel()}</span>
+            </button>
+          </div>
 
           {/* Scanner Frame */}
           <div className="relative">
