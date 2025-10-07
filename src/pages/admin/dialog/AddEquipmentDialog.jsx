@@ -16,7 +16,16 @@ export default function AddEquipmentDialog({
   onClose,
   initialFormData,
   onSave,
-  equipmentData
+  equipmentData,
+  imageUrls,
+  setImageUrls,
+  uploadedFiles,
+  setUploadedFiles,
+  onAddImageUrl,
+  onRemoveImageUrl,
+  onUpdateImageUrl,
+  onFileUpload,
+  onRemoveUploadedFile
 }) {
   // Use item_code as the canonical equipment code
   const [formData, setFormData] = useState(initialFormData || {
@@ -38,6 +47,7 @@ export default function AddEquipmentDialog({
   const [rooms, setRooms] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const hasInitialized = useRef(false);
 
   const statusConfig = {
@@ -158,6 +168,7 @@ export default function AddEquipmentDialog({
 
   const handleSubmit = async () => {
     try {
+      setIsSubmitting(true);
       // ตรวจสอบฟิลด์ที่จำเป็น (ยกเว้น description)
       const requiredFields = [
         { key: 'item_code', label: 'รหัสครุภัณฑ์' },
@@ -186,16 +197,10 @@ export default function AddEquipmentDialog({
 
       let dataToSave = { ...formData };
 
-      // อัปโหลดรูปภาพไปยัง Cloudinary ถ้ามีไฟล์ใหม่
-      if (dataToSave.pic instanceof File) {
-        setIsUploading(true);
-        try {
-          dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
-          setUploadSuccess(true);
-          setTimeout(() => setUploadSuccess(false), 3000); // แสดงข้อความ 3 วินาที
-        } finally {
-          setIsUploading(false);
-        }
+      // จัดการรูปภาพหลายรูป
+      if (uploadedFiles.length > 0 || imageUrls.some(url => url && url.trim() !== '')) {
+        // จัดการอัปโหลดรูปภาพหลายรูปไว้ที่หน้า ManageEquipment เพื่อหลีกเลี่ยงการอัปโหลดซ้ำ
+        // ที่นี่ไม่ทำการอัปโหลดไฟล์และไม่แก้ไข dataToSave.pic
       }
 
       // Use item_id for updating equipment instead of item_code
@@ -219,6 +224,8 @@ export default function AddEquipmentDialog({
     } catch (error) {
       // Error during submit
       setMissingFields([`เกิดข้อผิดพลาด: ${error.message}`]);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -244,6 +251,14 @@ export default function AddEquipmentDialog({
   return (
     <div className="modal modal-open">
       <div className="modal-box relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-[150vh] w-full p-5 z-50 overflow-y-auto max-h-[90vh]">
+        {isSubmitting && (
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="flex flex-col items-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+              <div className="text-emerald-700 font-medium">กำลังเพิ่มครุภัณฑ์...</div>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-100">
           <h3 className="text-2xl font-bold text-gray-800 flex items-center tracking-tight">
@@ -255,8 +270,9 @@ export default function AddEquipmentDialog({
             เพิ่มครุภัณฑ์ใหม่
           </h3>
           <button
-            onClick={onClose}
+            onClick={isSubmitting ? undefined : onClose}
             className="text-gray-500 hover:text-gray-800 transition-colors duration-150 hover:bg-gray-100 p-2 rounded-full"
+            disabled={isSubmitting}
           >
             <MdClose className="w-5 h-5" />
           </button>
@@ -264,60 +280,126 @@ export default function AddEquipmentDialog({
 
         {/* Form Content */}
         <div className="space-y-6">
-          {/* Prominent Image Upload */}
-          <div className="flex flex-col items-center mb-6">
-            <div
-              className="w-44 h-44 bg-gradient-to-br from-emerald-50 to-white rounded-2xl border-2 border-dashed border-emerald-200 flex items-center justify-center cursor-pointer relative overflow-hidden group shadow-lg hover:shadow-xl transition-all duration-300"
-              onClick={() => fileInputRef.current.click()}
-            >
-              <img
-                src={
-                  previewImage ||
-                  (typeof formData.pic === 'string'
-                    ? (formData.pic.startsWith('http') || formData.pic.startsWith('/uploads'))
-                      ? formData.pic
-                      : formData.pic.startsWith('https://res.cloudinary.com')
-                      ? formData.pic
-                      : `/uploads/${formData.pic}`
-                    : formData.pic)
+          {/* รูปภาพหลายรูป */}
+          <div className="space-y-4">
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              รูปภาพครุภัณฑ์ (สูงสุด 10 รูป)
+            </label>
+            
+
+
+            {/* อัปโหลดไฟล์ */}
+            <div 
+              className="relative border-2 border-dashed border-emerald-300 rounded-xl p-8 bg-gradient-to-br from-emerald-50 to-green-50 hover:from-emerald-100 hover:to-green-100 transition-all duration-300 cursor-pointer group"
+              onClick={() => document.getElementById('file-upload').click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.add('border-emerald-500', 'bg-emerald-100');
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove('border-emerald-500', 'bg-emerald-100');
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove('border-emerald-500', 'bg-emerald-100');
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0) {
+                  const event = { target: { files } };
+                  onFileUpload(event);
                 }
-                alt={formData.name}
-                className="max-h-40 max-w-40 object-contain z-10 transform group-hover:scale-105 transition-transform duration-300"
-                onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 flex items-center justify-center transition-all duration-300 z-20">
-                <div className="bg-white/95 p-3 rounded-full opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 shadow-lg">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              }}
+            >
+              <div className="text-center">
+                <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-emerald-200 transition-colors duration-300">
+                  <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                 </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-800 group-hover:text-emerald-600 transition-colors duration-300">
+                    อัปโหลดรูปภาพ
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    คลิกเพื่อเลือกไฟล์ หรือ <span className="font-medium text-emerald-600">ลากและวางที่นี่</span>
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    รองรับ PNG, JPG, GIF • สูงสุด 5MB ต่อไฟล์ • เลือกได้หลายไฟล์
+                  </p>
+                </div>
+                <input
+                  id="file-upload"
+                  name="file-upload"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={onFileUpload}
+                  className="sr-only"
+                />
+              </div>
+              
+              {/* Decorative elements */}
+              <div className="absolute top-4 right-4 opacity-20 group-hover:opacity-30 transition-opacity duration-300">
+                <svg className="w-6 h-6 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="absolute bottom-4 left-4 opacity-20 group-hover:opacity-30 transition-opacity duration-300">
+                <svg className="w-4 h-4 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
               </div>
             </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-            <span className="text-sm font-medium text-gray-600 mt-4 px-4 py-2 rounded-full ">คลิกที่รูปเพื่ออัพโหลดรูปภาพ</span>
-            {formData.pic?.name && (
-              <p className="text-sm mt-2 text-emerald-600 truncate max-w-[300px]">{formData.pic.name}</p>
+
+            {/* แสดงไฟล์ที่อัปโหลด */}
+            {uploadedFiles && uploadedFiles.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-700">ไฟล์ที่เลือก:</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => onRemoveUploadedFile(index)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                      >
+                        ×
+                      </button>
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-lg truncate">
+                        {file.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* แสดงตัวอย่างรูปภาพจาก URL */}
+            {imageUrls && imageUrls.some(url => url && url.trim() !== '') && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-700">ตัวอย่างรูปภาพจาก URL:</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {imageUrls.filter(url => url && url.trim() !== '').map((url, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={url}
+                        alt={`URL Preview ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                        onError={(e) => {
+                          e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
+                        }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
-          {/* แสดง error ถ้าอัปโหลดไฟล์ผิดประเภท */}
-          {imageError && (
-            <div className="text-red-600 text-sm font-semibold mt-2 text-center">{imageError}</div>
-          )}
-          {uploadSuccess && (
-            <div className="text-emerald-600 text-sm font-semibold mt-2 text-center flex items-center justify-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              อัปโหลดรูปภาพสำเร็จแล้ว
-            </div>
-          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="group">
@@ -534,18 +616,18 @@ export default function AddEquipmentDialog({
           </button>
           <button
             className={`px-6 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-all duration-300 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ${
-              isUploading
+              (isUploading || isSubmitting)
                 ? 'bg-emerald-400 cursor-not-allowed'
                 : 'bg-emerald-600 hover:bg-emerald-700'
             }`}
             onClick={handleSubmit}
-            disabled={isUploading}
+            disabled={isUploading || isSubmitting}
             type="button"
           >
-            {isUploading ? (
+            {isUploading || isSubmitting ? (
               <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                กำลังอัปโหลด...
+                กำลังบันทึก...
               </div>
             ) : (
               'เพิ่มครุภัณฑ์'

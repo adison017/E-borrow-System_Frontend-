@@ -3,6 +3,7 @@ import { XCircleIcon as ErrorIcon, MagnifyingGlassIcon, ExclamationTriangleIcon,
 import { BrowserMultiFormatReader, ChecksumException, FormatException, NotFoundException } from "@zxing/library";
 import { MdClose, MdRefresh } from "react-icons/md";
 import { checkCameraSupport, requestCameraPermission, troubleshootCamera } from "../utils/cameraUtils";
+import { checkCameraAvailability, getHttpWarningMessage, isSecureContext } from "../utils/securityUtils";
 import PermissionRequest from "./PermissionRequest";
 
 const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
@@ -39,6 +40,12 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
     setError(null);
 
     try {
+      // ตรวจสอบ secure context ก่อน
+      const availability = checkCameraAvailability();
+      if (!availability.available) {
+        throw new Error(availability.reason);
+      }
+
       if (!videoRef.current) {
         console.warn("Video element not ready for scanner initialization.");
         setScanning(false);
@@ -155,8 +162,12 @@ const ScannerDialog = ({ isOpen, onClose, onScanComplete, onManualInput }) => {
         } catch (e) {
       console.error("Scanner initialization error:", e);
 
-      // แสดง Permission Request Dialog สำหรับ permission errors
-      if (e.name === 'NotAllowedError' || e.message.includes('อนุญาต')) {
+      // ตรวจสอบว่าเป็นปัญหา HTTP หรือไม่
+      if (!isSecureContext() && (e.name === 'NotAllowedError' || e.name === 'SecurityError' || e.message.includes('HTTPS'))) {
+        const warning = getHttpWarningMessage('camera');
+        setError(warning.message);
+        setShowPermissionRequest(true);
+      } else if (e.name === 'NotAllowedError' || e.message.includes('อนุญาต')) {
         setShowPermissionRequest(true);
       } else if (e.name === 'NotReadableError') {
         // กล้องถูกใช้งานโดยแอปอื่น - แสดง dialog ให้ผู้ใช้เลือก

@@ -2,6 +2,8 @@ import { BiMessageSquareDetail } from "react-icons/bi";
 import {
   BuildingOfficeIcon,
   CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
   ClockIcon,
   CurrencyDollarIcon,
   DocumentTextIcon,
@@ -14,6 +16,7 @@ import { API_BASE, UPLOAD_BASE, authFetch } from '../../../utils/api';
 
 const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [roomImageModalOpen, setRoomImageModalOpen] = useState(false);
   const [borrowHistory, setBorrowHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -60,6 +63,43 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
 
   
   if (!open || !equipment) return null;
+
+  // Build image list (support multiple images in pic: JSON array or single URL)
+  const getImageUrls = () => {
+    const fallback = `${UPLOAD_BASE}/equipment/${equipment.item_code || equipment.code}.jpg`;
+    const pic = equipment.pic || equipment.image;
+    if (!pic) return [fallback];
+    if (typeof pic === 'string') {
+      // Try parse JSON array
+      if (pic.trim().startsWith('[') || pic.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(pic);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed
+              .filter(Boolean)
+              .map(u => {
+                if (typeof u !== 'string') return null;
+                if (u.startsWith('http')) return u;
+                if (u.startsWith('/uploads')) return `${UPLOAD_BASE}${u}`;
+                // Normalize common local uploads patterns
+                const clean = u.replace(/^\/?uploads\//, '');
+                return `${UPLOAD_BASE}/uploads/${clean}`;
+              })
+              .filter(Boolean);
+          }
+        } catch (e) {
+          // fallthrough
+        }
+      }
+      // Single string URL or local path
+      if (pic.startsWith('http')) return [pic];
+      if (pic.startsWith('/uploads')) return [`${UPLOAD_BASE}${pic}`];
+      return [fallback];
+    }
+    return [fallback];
+  };
+
+  const imageUrls = getImageUrls();
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -133,31 +173,55 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
         <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-140px)] bg-white">
         {/* Image Section */}
               <div className="rounded-2xl p-3 sm:p-6 transition-all duration-300 mb-6 w-full mx-auto shadow-2xl">
-                <div className="bg-white rounded-xl overflow-hidden group relative" style={{ height: '400px' }}>
-                  <img
-                    src={equipment.pic?.startsWith('http')
-                      ? equipment.pic
-                      : equipment.image || `${UPLOAD_BASE}/equipment/${equipment.item_code || equipment.code}.jpg`
-                    }
-                    alt={equipment.name}
-                    className="w-full h-full object-contain cursor-pointer group-hover:scale-105 transition-all duration-500 filter group-hover:brightness-110"
-                    onClick={() => setImageModalOpen(true)}
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/lo.png';
-                    }}
-                  />
-                  {/* Status Badge */}
-                  <div className="absolute top-1 left-0">
-                    <span className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg border ${
-                      equipment.status === 'พร้อมใช้งาน' ? 'bg-green-100 text-green-800 border-green-300' :
-                      equipment.status === 'ชำรุด' ? 'bg-red-100 text-red-800 border-red-300' :
-                      equipment.status === 'กำลังซ่อม' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                      equipment.status === 'รออนุมัติซ่อม' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                      equipment.status === 'ถูกยืม' ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-gray-100 text-gray-800 border-gray-300'
-                    }`}>
-                      {equipment.status || 'ไม่ระบุสถานะ'}
-                    </span>
+                <div className="bg-white rounded-xl overflow-hidden group relative h-[260px] sm:h-[340px] md:h-[400px] flex">
+                  {/* Left vertical thumbnails */}
+                  {imageUrls.length > 1 && (
+                    <div className="w-20 sm:w-24 md:w-28 h-full border-r border-gray-200 bg-white/60 p-2 overflow-y-auto">
+                      <div className="flex flex-col gap-2">
+                        {imageUrls.map((url, idx) => (
+                          <button
+                            key={idx}
+                            className={`relative group rounded-md overflow-hidden border ${idx === currentImageIndex ? 'border-blue-500' : 'border-gray-200'} hover:border-blue-400`}
+                            onClick={() => { setCurrentImageIndex(idx); }}
+                            title={`ดูภาพที่ ${idx + 1}`}
+                          >
+                            <img
+                              src={url}
+                              alt={`preview-${idx + 1}`}
+                              className="w-full h-14 object-cover"
+                              onError={(e) => { e.target.onerror = null; e.target.src = '/lo.png'; }}
+                            />
+                            <span className="absolute bottom-1 right-1 bg-black/50 text-white text-[10px] px-1 rounded">{idx + 1}/{imageUrls.length}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Main image area */}
+                  <div className="flex-1 relative">
+                    <img
+                      src={imageUrls[currentImageIndex]}
+                      alt={equipment.name}
+                      className="w-full h-full object-contain cursor-pointer group-hover:scale-105 transition-all duration-500 filter group-hover:brightness-110"
+                      onClick={() => setImageModalOpen(true)}
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/lo.png';
+                      }}
+                    />
+                    {/* Status Badge */}
+                    <div className="absolute top-1 left-1">
+                      <span className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg border ${
+                        equipment.status === 'พร้อมใช้งาน' ? 'bg-green-100 text-green-800 border-green-300' :
+                        equipment.status === 'ชำรุด' ? 'bg-red-100 text-red-800 border-red-300' :
+                        equipment.status === 'กำลังซ่อม' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                        equipment.status === 'รออนุมัติซ่อม' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                        equipment.status === 'ถูกยืม' ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-gray-100 text-gray-800 border-gray-300'
+                      }`}>
+                        {equipment.status || 'ไม่ระบุสถานะ'}
+                      </span>
+                    </div>
                   </div>
                 </div>
                 <div className="text-center mt-4">
@@ -352,21 +416,30 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
             >
               <MdClose className="w-8 h-8" />
             </button>
+            {/* Carousel controls */}
+            <button
+              className="absolute left-0 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 p-2 rounded-full"
+              onClick={() => setCurrentImageIndex((prev) => (prev - 1 + imageUrls.length) % imageUrls.length)}
+              aria-label="previous"
+            >
+              <ChevronLeftIcon className="w-6 h-6" />
+            </button>
             <img
-              src={equipment.pic?.startsWith('http')
-                ? equipment.pic
-                : equipment.image || `${UPLOAD_BASE}/equipment/${equipment.item_code || equipment.code}.jpg`
-              }
+              src={imageUrls[currentImageIndex]}
               alt={equipment.name}
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/lo.png';
-              }}
+              className="max-w-[85vw] max-h-[75vh] object-contain rounded-lg shadow-2xl"
+              onError={(e) => { e.target.onerror = null; e.target.src = '/lo.png'; }}
             />
+            <button
+              className="absolute right-0 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 p-2 rounded-full"
+              onClick={() => setCurrentImageIndex((prev) => (prev + 1) % imageUrls.length)}
+              aria-label="next"
+            >
+              <ChevronRightIcon className="w-6 h-6" />
+            </button>
             <div className="absolute -bottom-16 left-0 right-0 text-center">
               <p className="text-white text-lg font-medium">{equipment.name}</p>
-              <p className="text-gray-300 text-sm">{equipment.item_code || equipment.code}</p>
+              <p className="text-gray-300 text-sm">{equipment.item_code || equipment.code} • ภาพ {currentImageIndex + 1}/{imageUrls.length}</p>
             </div>
           </div>
           {/* Click outside to close */}
@@ -374,6 +447,20 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
             className="absolute inset-0 -z-10" 
             onClick={() => setImageModalOpen(false)}
           />
+          {/* Thumbnails in modal */}
+          {imageUrls.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/40 rounded-xl p-2 flex gap-2 max-w-[90vw] overflow-x-auto">
+              {imageUrls.map((url, idx) => (
+                <button
+                  key={idx}
+                  className={`w-14 h-14 rounded-md overflow-hidden border ${idx === currentImageIndex ? 'border-white' : 'border-transparent'} hover:opacity-80`}
+                  onClick={() => setCurrentImageIndex(idx)}
+                >
+                  <img src={url} alt={`thumb-${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
