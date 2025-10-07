@@ -1,3 +1,4 @@
+import { CgFileDocument } from "react-icons/cg"; 
 import {
   ArrowPathIcon,
   CalendarIcon,
@@ -52,7 +53,8 @@ export default function RepairApprovalDialog({
     equipment_category: typeof repairRequest?.equipment_category === 'string'
       ? repairRequest.equipment_category
       : repairRequest?.equipment?.category || '',
-    avatar: repairRequest?.avatar || repairRequest?.requester?.avatar || null
+    avatar: repairRequest?.avatar || repairRequest?.requester?.avatar || null,
+    equipment_pic: repairRequest?.equipment_pic || repairRequest?.equipment?.image || repairRequest?.equipment?.pic || null
   };
 
   const [notes, setNotes] = useState('')
@@ -583,7 +585,13 @@ export default function RepairApprovalDialog({
                         <div className="flex flex-col items-center gap-4">
                           <div className="w-30 h-30 rounded-xl overflow-hidden flex items-center justify-center border-2 border-blue-200 shadow-sm">
                             <img
-                              src={repairRequest.equipment?.image ? (typeof repairRequest.equipment.image === 'string' && repairRequest.equipment.image.startsWith('http') ? repairRequest.equipment.image : `${UPLOAD_BASE}/uploads/equipment/${repairRequest.equipment.image}`) : (repairRequest.equipment_pic_filename ? `${UPLOAD_BASE}/uploads/equipment/${repairRequest.equipment_pic_filename}` : "/lo.png")}
+                              src={normalizedRepairRequest.equipment_pic ? 
+                                (normalizedRepairRequest.equipment_pic.startsWith('http') ? 
+                                  normalizedRepairRequest.equipment_pic : 
+                                  `${UPLOAD_BASE}/uploads/equipment/${normalizedRepairRequest.equipment_pic}`) : 
+                                (normalizedRepairRequest.equipment_code ? 
+                                  `${UPLOAD_BASE}/equipment/${normalizedRepairRequest.equipment_code}.jpg` : 
+                                  "/lo.png")}
                               alt={normalizedRepairRequest.equipment_name}
                               className="max-w-full max-h-full object-contain p-2"
                               onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
@@ -704,9 +712,12 @@ export default function RepairApprovalDialog({
                     />
                     <div className="bg-white/80 backdrop-blur-sm border border-blue-200 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300">
                       <div className="p-6">
-                        <div className="bg-gray-100 p-8 rounded-lg flex flex-col items-center justify-center">
-                          <DocumentCheckIcon className="text-gray-400 text-3xl mb-2" />
-                          <p className="text-gray-500">ไม่มีรูปภาพความเสียหาย</p>
+                        <div className="bg-gray-100 p-12 rounded-lg flex flex-col items-center justify-center">
+                          <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+                            <CgFileDocument  className="w-10 h-10 text-gray-400" />
+                          </div>
+                          <p className="text-gray-600 font-medium text-lg">ไม่มีรูปภาพความเสียหาย</p>
+                          <p className="text-gray-500 text-sm mt-2">ไม่มีรูปภาพแนบมากับคำขอนี้</p>
                         </div>
                       </div>
                     </div>

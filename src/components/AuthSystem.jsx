@@ -1107,7 +1107,7 @@ const AuthSystem = (props) => {
 
                     {/* แสดงจำนวนครั้งที่เหลือ */}
                     {loginAttempts.remaining < 3 && (
-                      <div className={`mt-4 p-3 rounded-lg border-2 ${
+                      <div className={`mt-4 p-3 rounded-full border-2 ${
                         loginAttempts.remaining <= 1
                           ? 'bg-red-50 border-red-200 text-red-700'
                           : loginAttempts.remaining <= 2

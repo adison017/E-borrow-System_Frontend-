@@ -1,82 +1,275 @@
-import React, { useState, useEffect } from 'react';
-import { MdClose, MdHistory } from 'react-icons/md';
+import { BiMessageSquareDetail } from "react-icons/bi"; 
 import {
-  TagIcon,
-  CubeIcon,
-  InformationCircleIcon,
-  CalendarIcon,
+  ArrowPathIcon,
   BuildingOfficeIcon,
+  CalendarIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ClockIcon,
   CurrencyDollarIcon,
-  HashtagIcon,
   DocumentTextIcon,
-  MapPinIcon,
-  WrenchIcon,
-  CheckCircleIcon
+  FunnelIcon,
+  MapPinIcon
 } from '@heroicons/react/24/outline';
-import { UPLOAD_BASE } from '../../../utils/api';
-import { getRepairRequestsByItemId } from '../../../utils/api';
-import axios from '../../../utils/axios';
+import {
+  BanknotesIcon,
+  CheckCircleIcon as CheckCircleSolidIcon,
+  ExclamationTriangleIcon
+} from '@heroicons/react/24/solid';
+import { useEffect, useState } from 'react';
+import { MdClose } from 'react-icons/md';
+import { RiShoppingBasketFill } from "react-icons/ri";
+import { API_BASE, UPLOAD_BASE, authFetch } from '../../../utils/api';
+import BorrowDetailsViewDialog from '../../executive/dialogs/BorrowDetailsViewDialog';
+import RepairApprovalDialog from '../../executive/dialogs/RepairApprovalDialog';
 
 const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [roomImageModalOpen, setRoomImageModalOpen] = useState(false);
-  const [repairRequests, setRepairRequests] = useState([]);
-  const [loadingRepairRequests, setLoadingRepairRequests] = useState(false);
-  const [borrowCount, setBorrowCount] = useState(equipment?.total_borrow_count || 0);
-  const [loadingBorrowCount, setLoadingBorrowCount] = useState(false);
   const [borrowHistory, setBorrowHistory] = useState([]);
-  const [loadingBorrowHistory, setLoadingBorrowHistory] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [borrowerFilter, setBorrowerFilter] = useState('');
+  const [dateRange, setDateRange] = useState({ start: '', end: '' });
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedBorrow, setSelectedBorrow] = useState(null);
+  const [showBorrowDialog, setShowBorrowDialog] = useState(false);
+  const [repairHistory, setRepairHistory] = useState([]);
+  const [loadingRepair, setLoadingRepair] = useState(false);
+  const [selectedRepair, setSelectedRepair] = useState(null);
+  const [showRepairDialog, setShowRepairDialog] = useState(false);
+  const [repairStatusFilter, setRepairStatusFilter] = useState('all');
+  const [showRepairFilters, setShowRepairFilters] = useState(false);
 
-  // Fetch repair requests when equipment changes
   useEffect(() => {
-    if (open && equipment?.item_id) {
-      fetchRepairRequests();
+    if (open && equipment?.item_code) {
       fetchBorrowHistory();
-      fetchBorrowCount();
+      fetchRepairHistory();
     }
-  }, [open, equipment?.item_id]);
-
-  const fetchBorrowCount = async () => {
-    // No longer needed, count derived from history
-    setLoadingBorrowCount(false);
-  };
+  }, [open, equipment?.item_code]);
 
   const fetchBorrowHistory = async () => {
-    if (!equipment?.item_id) return;
+    if (!equipment?.item_code) return;
 
+    setLoading(true);
     try {
-      setLoadingBorrowHistory(true);
-      const response = await axios.get(`${UPLOAD_BASE}/borrows/equipment-history/${equipment.item_id}`);
-      setBorrowHistory(response.data || []);
+      const protectedUrl = `${API_BASE}/equipment/${equipment.item_code}/borrow-history`;
+
+      // Use shared authFetch which attaches the JWT token and credentials
+      let response = await authFetch(protectedUrl);
+
+      // If protected route fails (unauthorized/not found), try the temporary public diagnostic endpoint
+      if (!response.ok && (response.status === 401 || response.status === 403 || response.status === 404)) {
+        const publicUrl = `${API_BASE}/equipment/public/borrow-history/${equipment.item_code}`;
+        try {
+          response = await fetch(publicUrl, { headers: { 'Content-Type': 'application/json' } });
+        } catch (err) {
+          console.error('Public fallback fetch failed:', err);
+        }
+      }
+
+      if (response && response.ok) {
+        const data = await response.json();
+        setBorrowHistory(Array.isArray(data) ? data : []);
+      } else {
+        console.warn('Failed to fetch borrow history', response && response.status);
+        setBorrowHistory([]);
+      }
     } catch (error) {
       console.error('Error fetching borrow history:', error);
       setBorrowHistory([]);
     } finally {
-      setLoadingBorrowHistory(false);
+      setLoading(false);
     }
   };
 
-  // Update borrow count when history changes
-  useEffect(() => {
-    setBorrowCount(borrowHistory.length);
-  }, [borrowHistory]);
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "completed":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-green-50 text-green-800 border-green-200">
+            <CheckCircleSolidIcon className="w-3 h-3" /> เสร็จสิ้น
+          </span>
+        );
+      case "overdue":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-red-50 text-red-800 border-red-200">
+            <ExclamationTriangleIcon className="w-3 h-3" /> เกินกำหนด
+          </span>
+        );
+      case "approved":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-green-50 text-green-800 border-green-200">
+            <CheckCircleSolidIcon className="w-3 h-3" /> ส่งมอบแล้ว
+          </span>
+        );
+      case "carry":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-yellow-50 text-yellow-800 border-yellow-200">
+            <ClockIcon className="w-3 h-3" /> รอส่งมอบ
+          </span>
+        );
+      case "rejected":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-red-50 text-red-800 border-red-200">
+            <ExclamationTriangleIcon className="w-3 h-3" /> ไม่อนุมัติ
+          </span>
+        );
+      case "waiting_payment":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-blue-50 text-blue-800 border-blue-200 animate-pulse">
+            <BanknotesIcon className="w-3 h-3" /> รอชำระเงิน
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full border bg-gray-50 text-gray-800 border-gray-200">
+            {status}
+          </span>
+        );
+    }
+  };
 
-  const fetchRepairRequests = async () => {
-    if (!equipment?.item_id) return;
+  const filterHistory = (history) => {
+    let filtered = [...history];
+    
+    // Time filter
+    if (timeFilter !== 'all') {
+      const now = new Date();
+      filtered = filtered.filter(item => {
+        const borrowDate = new Date(item.borrow_date);
+        
+        switch (timeFilter) {
+          case 'day':
+            return borrowDate.toDateString() === now.toDateString();
+          case 'week':
+            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            return borrowDate >= weekAgo;
+          case 'month':
+            return borrowDate.getMonth() === now.getMonth() && borrowDate.getFullYear() === now.getFullYear();
+          case 'year':
+            return borrowDate.getFullYear() === now.getFullYear();
+          default:
+            return true;
+        }
+      });
+    }
+    
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(item => item.status === statusFilter);
+    }
+    
+    // Borrower filter
+    if (borrowerFilter.trim()) {
+      filtered = filtered.filter(item => 
+        item.borrower?.name?.toLowerCase().includes(borrowerFilter.toLowerCase()) ||
+        item.borrow_code?.toLowerCase().includes(borrowerFilter.toLowerCase())
+      );
+    }
+    
+    // Date range filter
+    if (dateRange.start && dateRange.end) {
+      const startDate = new Date(dateRange.start);
+      const endDate = new Date(dateRange.end);
+      endDate.setHours(23, 59, 59, 999); // Include the entire end date
+      
+      filtered = filtered.filter(item => {
+        const borrowDate = new Date(item.borrow_date);
+        return borrowDate >= startDate && borrowDate <= endDate;
+      });
+    }
+    
+    return filtered;
+  };
 
+  const clearFilters = () => {
+    setTimeFilter('all');
+    setStatusFilter('all');
+    setBorrowerFilter('');
+    setDateRange({ start: '', end: '' });
+  };
+
+  const getUniqueStatuses = () => {
+    const statuses = [...new Set(borrowHistory.map(item => item.status))];
+    return statuses.filter(status => status);
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (timeFilter !== 'all') count++;
+    if (statusFilter !== 'all') count++;
+    if (borrowerFilter.trim()) count++;
+    if (dateRange.start && dateRange.end) count++;
+    return count;
+  };
+
+  const handleBorrowClick = (borrowItem) => {
+    setSelectedBorrow(borrowItem);
+    setShowBorrowDialog(true);
+  };
+
+  const fetchRepairHistory = async () => {
+    if (!equipment?.item_code) return;
+
+    setLoadingRepair(true);
     try {
-      setLoadingRepairRequests(true);
-      const requests = await getRepairRequestsByItemId(equipment.item_id);
-      // Ensure we're working with an array
-      const requestsArray = Array.isArray(requests) ? requests : [requests];
-      // Filter for approved repair requests (though backend now only returns approved ones)
-      const approvedRequests = requestsArray.filter(request => request.status === 'approved');
-      setRepairRequests(approvedRequests);
+      const url = `${API_BASE}/equipment/${equipment.item_code}/repair-history`;
+      const response = await authFetch(url);
+
+      if (response && response.ok) {
+        const data = await response.json();
+        setRepairHistory(Array.isArray(data) ? data : []);
+      } else {
+        console.warn('Failed to fetch repair history', response && response.status);
+        setRepairHistory([]);
+      }
     } catch (error) {
-      console.error('Error fetching repair requests:', error);
-      setRepairRequests([]);
+      console.error('Error fetching repair history:', error);
+      setRepairHistory([]);
     } finally {
-      setLoadingRepairRequests(false);
+      setLoadingRepair(false);
+    }
+  };
+
+  const handleRepairClick = (repairItem) => {
+    setSelectedRepair(repairItem);
+    setShowRepairDialog(true);
+  };
+
+  const getRepairStatusBadge = (status) => {
+    switch (status) {
+      case "approved":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-blue-50 text-blue-800 border-blue-200">
+            <ArrowPathIcon className="w-3 h-3" /> กำลังซ่อม
+          </span>
+        );
+      case "completed":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-green-50 text-green-800 border-green-200">
+            <CheckCircleSolidIcon className="w-3 h-3" /> เสร็จสิ้น
+          </span>
+        );
+      case "incomplete":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-gray-50 text-gray-800 border-gray-200">
+            <ExclamationTriangleIcon className="w-3 h-3" /> ไม่สำเร็จ
+          </span>
+        );
+      case "rejected":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-red-50 text-red-800 border-red-200">
+            <ExclamationTriangleIcon className="w-3 h-3" /> ปฏิเสธ
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full border bg-gray-50 text-gray-800 border-gray-200">
+            {status}
+          </span>
+        );
     }
   };
 
@@ -99,429 +292,529 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
     }
   };
 
-  const getBorrowStatusClass = (status) => {
-    switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'carry':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'overdue':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'waiting_payment':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4 animate-in fade-in duration-300">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden transform animate-in slide-in-from-bottom-4 duration-500">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-950 to-blue-700 p-6 text-white">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-white/20 rounded-xl">
-                <CubeIcon className="w-8 h-8" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">รายละเอียดครุภัณฑ์</h2>
-                <p className="text-blue-100 mt-1">ข้อมูลจากการสแกน QR Code</p>
-              </div>
-            </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-white/20 rounded-full transition-colors"
-            >
-              <MdClose className="w-6 h-6" />
-            </button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Column - Image and Status */}
-            <div className="space-y-6">
-              {/* Equipment Image */}
-              <div className="bg-white rounded-xl border border-gray-200 p-6 text-center">
+        <div className="bg-blue-600 py-3 px-4 sm:py-4 sm:px-8 relative rounded-2xl">
+          <div className="flex justify-between items-center relative z-10">
+            <div className="flex items-start gap-3 sm:gap-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-full overflow-hidden shadow-lg backdrop-blur-sm border border-white/30">
                 <img
                   src={equipment.pic?.startsWith('http')
                     ? equipment.pic
                     : `${UPLOAD_BASE}/equipment/${equipment.item_code}.jpg`
                   }
                   alt={equipment.name}
-                  className="w-full max-w-sm mx-auto h-64 object-contain rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => setImageModalOpen(true)}
+                  className="w-full h-full object-cover"
                   onError={(e) => {
                     e.target.onerror = null;
                     e.target.src = '/lo.png';
                   }}
                 />
-                <p className="text-xs text-gray-500 mt-2">คลิกเพื่อขยายดูรูปภาพ</p>
               </div>
-
-              {/* Status Badge */}
-              <div className="text-center">
-                <span className={`inline-flex items-center px-6 py-3 rounded-full text-lg font-semibold border ${getStatusColor(equipment.status)}`}>
-                  {equipment.status || 'ไม่ระบุสถานะ'}
-                </span>
-              </div>
-
-              {/* QR Code Information */}
-              <div className="bg-blue-50 rounded-xl border border-blue-100 p-4 text-center">
-                <div className="flex items-center justify-center gap-3 mb-2">
-                  <TagIcon className="w-5 h-5 text-blue-600" />
-                  <h3 className="font-semibold text-gray-800">รหัส QR Code</h3>
+              <div className="text-white flex-1">
+                <h1 className="text-xl sm:text-3xl font-bold drop-shadow-sm ">{equipment.name}</h1>
+                <div className="flex items-center gap-2 mb-2 w-fit ml-1">
+                  <span className="text-xs sm:text-sm font-mono font-semibold">{equipment.item_code}</span>
                 </div>
-                <p className="text-2xl font-mono font-bold text-blue-600">
-                  {equipment.item_code}
-                </p>
-              </div>
-            </div>
-
-            {/* Right Column - Detailed Information */}
-            <div className="space-y-4">
-              {/* Equipment Name */}
-              <div className="bg-gray-50 rounded-xl border border-gray-100 p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <CubeIcon className="w-5 h-5 text-gray-600" />
-                  <h3 className="font-semibold text-gray-800">ชื่อครุภัณฑ์</h3>
-                </div>
-                <p className="text-lg text-gray-700 font-medium">{equipment.name}</p>
-              </div>
-
-              {/* Category */}
-              {equipment.category_name && (
-                <div className="bg-purple-50 rounded-xl border border-purple-100 p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <BuildingOfficeIcon className="w-5 h-5 text-purple-600" />
-                    <h3 className="font-semibold text-gray-800">หมวดหมู่</h3>
-                  </div>
-                  <p className="text-lg text-purple-600 font-medium">
-                    {equipment.category_name}
-                  </p>
-                </div>
-              )}
-
-              {/* Quantity and Unit */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-green-50 rounded-xl border border-green-100 p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <InformationCircleIcon className="w-5 h-5 text-green-600" />
-                    <h3 className="font-semibold text-gray-800">จำนวน</h3>
-                  </div>
-                  <p className="text-lg text-green-600 font-medium">
-                    {equipment.quantity || 1}
-                  </p>
-                </div>
-
-                <div className="bg-teal-50 rounded-xl border border-teal-100 p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <DocumentTextIcon className="w-5 h-5 text-teal-600" />
-                    <h3 className="font-semibold text-gray-800">หน่วย</h3>
-                  </div>
-                  <p className="text-lg text-teal-600 font-medium">
-                    {equipment.unit || 'ชิ้น'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Price */}
-              {equipment.price && (
-                <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <CurrencyDollarIcon className="w-5 h-5 text-emerald-600" />
-                    <h3 className="font-semibold text-gray-800">ราคา</h3>
-                  </div>
-                  <p className="text-lg text-emerald-600 font-medium">
-                    {Number(equipment.price).toLocaleString('th-TH')} บาท
-                  </p>
-                </div>
-              )}
-
-              {/* Purchase Date */}
-              {equipment.purchaseDate && (
-                <div className="bg-blue-50 rounded-xl border border-blue-100 p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <CalendarIcon className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-semibold text-gray-800">วันที่จัดซื้อ</h3>
-                  </div>
-                  <p className="text-lg text-blue-600 font-medium">
-                    {new Date(equipment.purchaseDate).toLocaleDateString('th-TH', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
-                  </p>
-                </div>
-              )}
-
-              {/* Storage Location */}
-              {(equipment.room_name || equipment.location) && (
-                <div className="bg-orange-50 rounded-xl border border-orange-100 p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <MapPinIcon className="w-5 h-5 text-orange-600" />
-                    <h3 className="font-semibold text-gray-800">สถานที่จัดเก็บ</h3>
-                  </div>
-
-                  {/* Room Preview with Image */}
-                  {equipment.room_name && (
-                    <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-orange-200 mb-2">
-                      <img
-                        src={(() => {
-                          if (!equipment.room_image_url) return "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
-                          try {
-                            const urls = JSON.parse(equipment.room_image_url);
-                            return Array.isArray(urls) && urls[0]
-                              ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`)
-                              : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
-                          } catch {
-                            return equipment.room_image_url && equipment.room_image_url.startsWith('http')
-                              ? equipment.room_image_url
-                              : `${UPLOAD_BASE}${equipment.room_image_url}`;
-                          }
-                        })()}
-                        alt="room preview"
-                        className="w-12 h-12 object-cover rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
-                        onClick={() => setRoomImageModalOpen(true)}
-                        onError={(e) => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
-                      />
-                      <div className="flex flex-col">
-                        <span className="text-lg text-orange-600 font-medium">
-                          {equipment.room_name}
-                        </span>
-                        {equipment.room_address && (
-                          <span className="text-xs text-gray-500">
-                            {equipment.room_address}
-                          </span>
-                        )}
-                        <span className="text-xs text-gray-400 mt-1">คลิกรูปเพื่อขยายดู</span>
-                      </div>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                  {equipment.category_name && (
+                    <div className="flex items-center gap-2 bg-white/20 backdrop-blur-sm px-2 sm:px-4 py-1 sm:py-2 rounded-full border border-white/30">
+                      <BuildingOfficeIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="text-xs sm:text-sm font-medium">{equipment.category_name}</span>
                     </div>
                   )}
-
-                  {/* Additional Location Info */}
-                  {equipment.location && equipment.location !== equipment.room_name && (
-                    <div className="bg-orange-25 rounded-lg p-2 border border-orange-100">
-                      <span className="text-sm font-medium text-orange-700">
-                        ตำแหน่งเพิ่มเติม:
-                      </span>
-                      <span className="text-sm text-orange-600">
-                        {equipment.location}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Room Details */}
-                  {equipment.room_detail && (
-                    <div className="mt-2 text-xs text-gray-600">
-                      <span className="font-medium">รายละเอียดห้อง: </span>
-                      {equipment.room_detail}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Created Date */}
-              {equipment.created_at && (
-                <div className="bg-gray-50 rounded-xl border border-gray-100 p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <CalendarIcon className="w-5 h-5 text-gray-600" />
-                    <h3 className="font-semibold text-gray-800">วันที่เพิ่มเข้าระบบ</h3>
-                  </div>
-                  <p className="text-lg text-gray-700 font-medium">
-                    {new Date(equipment.created_at).toLocaleDateString('th-TH', {
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-              )}
-
-              {/* Total Borrow Count */}
-              <div className="bg-emerald-50 rounded-xl border border-emerald-100 p-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <InformationCircleIcon className="w-5 h-5 text-emerald-600" />
-                  <h3 className="font-semibold text-gray-800">จำนวนครั้งที่ถูกยืม</h3>
-                </div>
-                <p className="text-lg text-emerald-600 font-medium">
-                  {loadingBorrowCount ? 'กำลังโหลด...' : `${equipment?.total_borrow_count || 0} ครั้ง`}
-                </p>
-              </div>
-              
-              {/* Borrowing History */}
-              {borrowHistory && borrowHistory.length > 0 && (
-                <div className="bg-blue-50 rounded-xl border border-blue-100 p-6 mt-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
-                    <MdHistory className="w-6 h-6 text-blue-600" />
-                    ประวัติการยืม
-                  </h3>
-                  <div className="space-y-4">
-                    {borrowHistory.map((record) => (
-                      <div key={record.borrow_id} className="bg-white rounded-lg border border-blue-200 p-4 shadow-sm">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-400 to-purple-500 flex items-center justify-center text-white font-medium text-sm">
-                              {record.fullname ? record.fullname.charAt(0).toUpperCase() : '?'}
-                            </div>
-                            <span className="font-medium text-gray-800">{record.fullname}</span>
-                          </div>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getBorrowStatusClass(record.status)}`}>
-                            {record.status === 'approved' ? 'อนุมัติแล้ว' :
-                             record.status === 'carry' ? 'กำลังใช้งาน' :
-                             record.status === 'overdue' ? 'เกินกำหนด' :
-                             record.status === 'waiting_payment' ? 'รอชำระเงิน' : 'สถานะไม่ทราบ'}
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                          <div>
-                            <span className="font-medium text-gray-600">รหัส:</span>
-                            <span className="ml-2 text-gray-800">{record.borrow_code}</span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-600">วันที่ยืม:</span>
-                            <span className="ml-2 text-gray-800">
-                              {new Date(record.borrow_date).toLocaleDateString('th-TH', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="font-medium text-gray-600">กำหนดคืน:</span>
-                            <span className="ml-2 text-gray-800">
-                              {new Date(record.return_date).toLocaleDateString('th-TH', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </span>
-                          </div>
-                          <div className="md:col-span-3">
-                            <span className="font-medium text-gray-600">วัตถุประสงค์:</span>
-                            <span className="ml-2 text-gray-800">{record.purpose}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="flex items-center gap-2 bg-yellow-400/90 backdrop-blur-sm px-2 sm:px-4 py-1 sm:py-2 rounded-full border-2 border-yellow-300 shadow-lg">
+                    <RiShoppingBasketFill className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-900" />
+                    <span className="text-xs sm:text-sm font-bold text-yellow-900">{equipment.quantity || 1} {equipment.unit || 'ชิ้น'}</span>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Repair Approval Information */}
-          {repairRequests.length > 0 && (
-            <div className="mt-8 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl border border-amber-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
-                <WrenchIcon className="w-6 h-6 text-amber-600" />
-                ข้อมูลการอนุมัติซ่อม
-              </h3>
-              <div className="space-y-4">
-                {repairRequests.map((request, index) => (
-                  <div key={request.id} className="bg-white rounded-lg border border-amber-100 p-4 shadow-sm">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium text-gray-800">คำขอซ่อม #{request.repair_code || request.id}</h4>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                        <CheckCircleIcon className="w-3 h-3 mr-1" />
-                        อนุมัติแล้ว
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <span className="font-medium text-gray-600">งบประมาณที่อนุมัติ:</span>
-                        <span className="ml-2 text-gray-800">
-                          {Number(request.budget || 0).toLocaleString('th-TH')} บาท
-                        </span>
-                      </div>
-                      <div>
-                        <span className="font-medium text-gray-600">วันที่อนุมัติ:</span>
-                        <span className="ml-2 text-gray-800">
-                          {request.approval_date
-                            ? new Date(request.approval_date).toLocaleDateString('th-TH', {
-                                year: 'numeric',
-                                month: 'short',
-                                day: 'numeric'
-                              })
-                            : 'ไม่ระบุ'}
-                        </span>
-                      </div>
-                      <div className="md:col-span-2">
-                        <span className="font-medium text-gray-600">ผู้รับผิดชอบ:</span>
-                        <span className="ml-2 text-gray-800">{request.responsible_person || 'ไม่ระบุ'}</span>
-                      </div>
-                      {request.note && (
-                        <div className="md:col-span-2">
-                          <span className="font-medium text-gray-600">หมายเหตุ:</span>
-                          <span className="ml-2 text-gray-800">{request.note}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
-          )}
-
-          {/* Description - Full Width */}
-          {equipment.description && (
-            <div className="mt-8 bg-blue-50 rounded-xl border border-blue-100 p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <DocumentTextIcon className="w-6 h-6 text-blue-600" />
-                <h3 className="text-lg font-semibold text-gray-800">รายละเอียด</h3>
-              </div>
-              <p className="text-gray-700 leading-relaxed text-base">{equipment.description}</p>
-            </div>
-          )}
-
-          {/* Additional Information */}
-          <div className="mt-8 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-xl border border-indigo-100 p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-3">
-              <InformationCircleIcon className="w-6 h-6 text-indigo-600" />
-              ข้อมูลเพิ่มเติม
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-              <div>
-                <span className="font-medium">รหัสหมวดหมู่:</span>
-                <span className="ml-2">{equipment.category_id || 'ไม่ระบุ'}</span>
-              </div>
-              <div>
-                <span className="font-medium">รหัสห้องจัดเก็บ:</span>
-                <span className="ml-2">{equipment.room_id || 'ไม่ระบุ'}</span>
-              </div>
-              {equipment.updated_at && (
-                <div>
-                  <span className="font-medium">วันที่อัปเดตล่าสุด:</span>
-                  <span className="ml-2">
-                    {new Date(equipment.updated_at).toLocaleDateString('th-TH', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
-                  </span>
-                </div>
-              )}
-              <div>
-                <span className="font-medium">รูปแบบข้อมูล:</span>
-                <span className="ml-2">ข้อมูลจากการสแกน QR Code</span>
-              </div>
+            <div className="flex items-center">
+              <button
+                onClick={onClose}
+                className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-all duration-200 hover:scale-105 backdrop-blur-sm border border-white/30"
+              >
+                <MdClose className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="bg-gray-50 px-6 py-4 flex justify-end border-t border-gray-200">
-          <button
-            onClick={onClose}
-            className="px-8 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-sm"
-          >
-            ปิด
-          </button>
+        {/* Content */}
+        <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-140px)] bg-white">
+        {/* Image Section */}
+              <div className="rounded-2xl p-3 sm:p-6 transition-all duration-300 mb-6 w-full mx-auto shadow-2xl">
+                <div className="bg-white rounded-xl overflow-hidden group relative" style={{ height: '400px' }}>
+                  <img
+                    src={equipment.pic?.startsWith('http')
+                      ? equipment.pic
+                      : `${UPLOAD_BASE}/equipment/${equipment.item_code}.jpg`
+                    }
+                    alt={equipment.name}
+                    className="w-full h-full object-contain cursor-pointer group-hover:scale-105 transition-all duration-500 filter group-hover:brightness-110"
+                    onClick={() => setImageModalOpen(true)}
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = '/lo.png';
+                    }}
+                  />
+                  {/* Status Badge */}
+                  <div className="absolute top-1 left-0">
+                    <span className={`px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg border ${
+                      equipment.status === 'พร้อมใช้งาน' ? 'bg-green-100 text-green-800 border-green-300' :
+                      equipment.status === 'ชำรุด' ? 'bg-red-100 text-red-800 border-red-300' :
+                      equipment.status === 'กำลังซ่อม' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
+                      equipment.status === 'รออนุมัติซ่อม' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                      equipment.status === 'ถูกยืม' ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-gray-100 text-gray-800 border-gray-300'
+                    }`}>
+                      {equipment.status || 'ไม่ระบุสถานะ'}
+                    </span>
+                  </div>
+                  {/* Borrow Count Badge */}
+                  <div className="absolute top-1 right-0">
+                    <div className="bg-white px-3 py-1.5 rounded-full shadow-lg border border-gray-200 flex items-center gap-2">
+                      <p className="text-xs font-semibold text-gray-800">จำนวนการยืม</p>
+                      <span className="text-xs font-semibold text-gray-800">{borrowHistory.filter(item => item.status === 'completed').length}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center mt-4">
+                  <p className="text-sm text-gray-600 bg-white px-4 py-2 rounded-full inline-flex items-center gap-2 shadow-sm">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    คลิกเพื่อขยายดูรูปภาพ
+                  </p>
+                </div>
+              </div>
+
+          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
+            {/* Left Side - Equipment Details */}
+            <div className="flex-1 space-y-4 sm:space-y-6">
+              {/* Equipment Information */}
+              <div className="bg-white rounded-2xl border-4 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="p-6">
+                  <div className="flex items-center gap-2 justify-center bg-blue-600 p-3 rounded-2xl mb-3">
+                    <BiMessageSquareDetail className="text-white w-5 h-5" />
+                    <h3 className="text-lg font-bold text-white">
+                      รายละเอียดครุภัณฑ์
+                    </h3>
+                  </div>
+                  <div className="space-y-4">
+                    {/* Price */}
+                    {equipment.price && (
+                      <div className="px-4">
+                        <div className="flex items-center gap-3 mb-1">
+                          <CurrencyDollarIcon className="w-5 h-5 text-blue-600" />
+                          <span className="text-sm font-semibold text-blue-800">มูลค่า</span>
+                        </div>
+                        <p className="text-2xl font-bold text-blue-900 ml-8 ">฿{Number(equipment.price).toLocaleString('th-TH')}</p>
+                      </div>
+                    )}
+
+                    {/* Purchase Date */}
+                    {equipment.purchaseDate && (
+                      <div className="px-4">
+                        <div className="flex items-center gap-3 mb-2">
+                          <CalendarIcon className="w-5 h-5 text-blue-600" />
+                          <span className="text-sm font-semibold text-blue-800">วันที่จัดซื้อ</span>
+                        </div>
+                        <p className="text-base font-semibold text-blue-900 ml-8">
+                          {new Date(equipment.purchaseDate).toLocaleDateString('th-TH')}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Description */}
+                    {equipment.description && (
+                      <div className="px-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+                          <span className="text-sm font-semibold text-blue-800">รายละเอียด</span>
+                        </div>
+                        <p className="text-sm text-gray-800 leading-relaxed ml-8">{equipment.description}</p>
+                      </div>
+                    )}
+
+                    {/* Moved to bottom */}
+                    {equipment.room_name && (
+                      <div className="px-4 pt-4 bg-blue-50 p-5 rounded-4xl shadow-lg border-2 border-blue-200">
+                        <div className="flex items-center justify-center gap-3 mb-3">
+                          <MapPinIcon className="w-5 h-5 text-blue-600" />
+                          <span className="text-sm font-semibold text-blue-800">สถานที่จัดเก็บ</span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-blue-200 shadow-md mb-3">
+                            <img
+                              src={(() => {
+                                if (!equipment.room_image_url) return "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
+                                try {
+                                  const urls = JSON.parse(equipment.room_image_url);
+                                  return Array.isArray(urls) && urls[0]
+                                    ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`)
+                                    : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
+                                } catch {
+                                  return equipment.room_image_url && equipment.room_image_url.startsWith('http')
+                                    ? equipment.room_image_url
+                                    : `${UPLOAD_BASE}${equipment.room_image_url}`;
+                                }
+                              })()}
+                              alt="room"
+                              className="w-full h-full object-cover cursor-pointer hover:scale-110 transition-transform duration-300"
+                              onClick={() => setRoomImageModalOpen(true)}
+                              onError={(e) => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
+                            />
+                          </div>
+                          <div className="text-center">
+                            <p className="font-semibold text-blue-900 text-base">{equipment.room_name}</p>
+                            {equipment.room_address && (
+                              <p className="text-sm text-blue-700 mt-1">{equipment.room_address}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Borrow & Repair History */}
+            <div className="flex-1 lg:flex-2 space-y-4 sm:space-y-6">
+              {/* Borrow History Section */}
+              <div className="bg-blue-50 rounded-2xl border border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="p-3 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+                    <h3 className="text-base sm:text-lg font-bold text-blue-900 flex items-center gap-2 sm:gap-3">
+                      <ClockIcon className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+                      ประวัติการยืม
+                    </h3>
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="bg-white border border-blue-300 hover:border-blue-400 hover:bg-white px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-blue-800 flex items-center gap-2 relative shadow-md hover:shadow-lg transition-all duration-300 group"
+                      >
+                        <FunnelIcon className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                        กรอง
+                        {getActiveFiltersCount() > 0 && (
+                          <span className="absolute -top-2 -right-2 w-5 h-5 bg-blue-500 text-white text-xs rounded-full flex items-center justify-center shadow-lg animate-pulse">
+                            {getActiveFiltersCount()}
+                          </span>
+                        )}
+                        {showFilters ? <ChevronUpIcon className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" /> : <ChevronDownIcon className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />}
+                      </button>
+                
+                      {showFilters && (
+                        <div className="absolute  sm:left-auto sm:right-0 mt-3 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-blue-200 z-10 animate-in slide-in-from-top-2 duration-300">
+                          <div className="p-6 space-y-4">
+                            {/* Header */}
+                            <div className="flex items-center justify-between border-b border-blue-200 pb-3">
+                              <h4 className="font-bold text-blue-900 text-lg flex items-center gap-2">
+                                <FunnelIcon className="w-4 h-4 text-blue-600" />
+                                ตัวกรอง
+                              </h4>
+                              <button
+                                onClick={clearFilters}
+                                className="text-sm text-blue-600 hover:text-blue-800 bg-blue-100 hover:bg-blue-200 px-3 py-1 rounded-full transition-all duration-200 font-medium"
+                              >
+                                ล้างทั้งหมด
+                              </button>
+                            </div>
+                      
+                      {/* Time Filter */}
+                      <div>
+                        <label className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                          ช่วงเวลา
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { value: 'all', label: 'ทั้งหมด' },
+                            { value: 'day', label: 'วันนี้' },
+                            { value: 'week', label: 'สัปดาห์นี้' },
+                            { value: 'month', label: 'เดือนนี้' },
+                            { value: 'year', label: 'ปีนี้' },
+                            { value: 'custom', label: 'กำหนดเอง' }
+                          ].map(option => (
+                            <button
+                              key={option.value}
+                              onClick={() => setTimeFilter(option.value)}
+                              className={`px-3 py-2 text-xs rounded-xl border transition-all duration-200 font-medium hover:scale-105 ${
+                                timeFilter === option.value 
+                                  ? 'bg-blue-100 text-blue-700 border-blue-300 shadow-md' 
+                                  : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:shadow-sm'
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      {/* Custom Date Range */}
+                      {timeFilter === 'custom' && (
+                        <div className="grid grid-cols-2 gap-3 bg-blue-50 p-3 rounded-xl border border-blue-200">
+                          <div>
+                            <label className="block text-xs font-semibold text-blue-700 mb-2">วันที่เริ่มต้น</label>
+                            <input
+                              type="date"
+                              value={dateRange.start}
+                              onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                              className="w-full px-3 py-2 text-xs border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-semibold text-blue-700 mb-2">วันที่สิ้นสุด</label>
+                            <input
+                              type="date"
+                              value={dateRange.end}
+                              onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                              className="w-full px-3 py-2 text-xs border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200"
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {/* Borrower Filter */}
+                      <div>
+                        <label className="text-sm font-semibold text-gray-700 pb-3 flex items-center gap-2">
+                          <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                          ผู้ยืม / รหัสการยืม
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="ค้นหาชื่อผู้ยืมหรือรหัสการยืม..."
+                            value={borrowerFilter}
+                            onChange={(e) => setBorrowerFilter(e.target.value)}
+                            className="w-full px-4 py-3 pl-10 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white transition-all duration-200 hover:shadow-md"
+                          />
+                          <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                          </svg>
+                        </div>
+                      </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+            
+                  {loading ? (
+                    <div className="text-center py-8">
+                      <div className="w-8 h-8 border-3 border-blue-300 border-t-blue-600 rounded-full animate-spin mx-auto mb-3 shadow-lg"></div>
+                      <p className="text-blue-700 text-sm font-medium bg-white/60 px-4 py-2 rounded-full inline-block">กำลังโหลดประวัติ...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-60 sm:max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-100">
+                      {filterHistory(borrowHistory).filter(item => item.status === 'completed').length > 0 ? (
+                        filterHistory(borrowHistory).filter(item => item.status === 'completed').map((item, index) => (
+                          <div 
+                            key={item.borrow_id || index}
+                            onClick={() => handleBorrowClick(item)}
+                            className="bg-white px-3 sm:px-7 py-3 sm:py-4 rounded-2xl sm:rounded-4xl border border-blue-200 hover:border-blue-300 transition-all duration-300 cursor-pointer group "
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  <img
+                                    src={item.borrower?.avatar ? 
+                                      (item.borrower.avatar.startsWith('http') ? item.borrower.avatar : `${UPLOAD_BASE}/uploads/user/${item.borrower.avatar}`) 
+                                      : '/profile.png'
+                                    }
+                                    alt={item.borrower?.name}
+                                    className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md group-hover:scale-110 transition-transform duration-300"
+                                    onError={(e) => { e.target.src = '/profile.png'; }}
+                                  />
+                                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-900 text-sm group-hover:text-blue-700 transition-colors duration-300">{item.borrower?.name || 'ไม่ระบุ'}</p>
+                                  <p className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full font-mono">{item.borrow_code}</p>
+                                </div>
+                              </div>
+
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs mb-3">
+                              <div className="bg-blue-50 px-7 sm:px-7 py-2 sm:py-3 rounded-full border border-blue-200">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                  <span className="text-blue-700 font-semibold">วันที่ยืม</span>
+                                </div>
+                                <span className="font-semibold text-blue-900">{new Date(item.borrow_date).toLocaleDateString('th-TH')}</span>
+                              </div>
+                              <div className="bg-amber-50 px-7 sm:px-7 py-2 sm:py-3 rounded-full border border-amber-200">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                  <span className="text-amber-700 font-semibold">กำหนดคืน</span>
+                                </div>
+                                <span className="font-semibold text-blue-900">{new Date(item.due_date).toLocaleDateString('th-TH')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12">
+                          <div className="w-16 h-16 bg-blue-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                            <ClockIcon className="w-8 h-8 text-blue-600" />
+                          </div>
+                          <p className="text-blue-700 text-base font-semibold mb-2">ไม่พบประวัติการยืม</p>
+                          <p className="text-blue-600 text-sm mb-4">ลองปรับตัวกรองหรือเพิ่มข้อมูลใหม่</p>
+                          {getActiveFiltersCount() > 0 && (
+                            <button
+                              onClick={clearFilters}
+                              className="px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-semibold hover:bg-blue-600 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+                            >
+                              ล้างตัวกรอง
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+              </div>
+
+              {/* Repair History Section */}
+              <div className="bg-amber-50 rounded-2xl border border-amber-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="p-3 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+                    <h3 className="text-base sm:text-lg font-bold text-amber-900 flex items-center gap-2 sm:gap-3">
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      ประวัติการซ่อม
+                    </h3>
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowRepairFilters(!showRepairFilters)}
+                        className="bg-white border border-amber-300 hover:border-amber-400 hover:bg-white px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-amber-800 flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-300 group"
+                      >
+                        <FunnelIcon className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                        กรอง
+                        {showRepairFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+                      </button>
+                      
+                      {showRepairFilters && (
+                        <div className="absolute sm:left-auto sm:right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-amber-200 z-10 animate-in slide-in-from-top-2 duration-300">
+                          <div className="p-4 space-y-2">
+                            <div className="flex items-center justify-between border-b border-amber-200 pb-2 mb-2">
+                              <h4 className="font-bold text-amber-900 text-sm">สถานะ</h4>
+                              {repairStatusFilter !== 'all' && (
+                                <button
+                                  onClick={() => setRepairStatusFilter('all')}
+                                  className="text-xs text-amber-600 hover:text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-1 rounded-full transition-all duration-200"
+                                >
+                                  ล้าง
+                                </button>
+                              )}
+                            </div>
+                            {[
+                              { value: 'all', label: 'ทั้งหมด', color: 'gray' },
+                              { value: 'approved', label: 'กำลังซ่อม', color: 'blue' },
+                              { value: 'completed', label: 'เสร็จสิ้น', color: 'green' },
+                              { value: 'incomplete', label: 'ไม่สำเร็จ', color: 'gray' }
+                            ].map(option => (
+                              <button
+                                key={option.value}
+                                onClick={() => setRepairStatusFilter(option.value)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl transition-all duration-200 hover:scale-105 ${
+                                  repairStatusFilter === option.value 
+                                    ? `bg-${option.color}-100 text-${option.color}-700 font-semibold shadow-md` 
+                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span className={`h-2.5 w-2.5 rounded-full bg-${option.color}-500`}></span>
+                                <span>{option.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+            
+                  {loadingRepair ? (
+                    <div className="text-center py-8">
+                      <div className="w-8 h-8 border-3 border-amber-300 border-t-amber-600 rounded-full animate-spin mx-auto mb-3 shadow-lg"></div>
+                      <p className="text-amber-700 text-sm font-medium bg-white/60 px-4 py-2 rounded-full inline-block">กำลังโหลดประวัติ...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-60 sm:max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-amber-300 scrollbar-track-amber-100">
+                      {repairHistory.filter(item => {
+                        const validStatuses = ['approved', 'completed', 'incomplete'].includes(item.status);
+                        const matchesFilter = repairStatusFilter === 'all' || item.status === repairStatusFilter;
+                        return validStatuses && matchesFilter;
+                      }).length > 0 ? (
+                        repairHistory.filter(item => {
+                          const validStatuses = ['approved', 'completed', 'incomplete'].includes(item.status);
+                          const matchesFilter = repairStatusFilter === 'all' || item.status === repairStatusFilter;
+                          return validStatuses && matchesFilter;
+                        }).map((item, index) => (
+                          <div 
+                            key={item.id || index}
+                            onClick={() => handleRepairClick(item)}
+                            className="bg-white px-3 sm:px-7 py-3 sm:py-4 rounded-2xl sm:rounded-4xl border border-amber-200 hover:border-amber-300 transition-all duration-300 cursor-pointer group "
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  <img
+                                    src={item.requester?.avatar ? 
+                                      (item.requester.avatar.startsWith('http') ? item.requester.avatar : `${UPLOAD_BASE}/uploads/user/${item.requester.avatar}`) 
+                                      : '/profile.png'
+                                    }
+                                    alt={item.requester?.name}
+                                    className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md group-hover:scale-110 transition-transform duration-300"
+                                    onError={(e) => { e.target.src = '/profile.png'; }}
+                                  />
+                                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-amber-500 rounded-full border-2 border-white"></div>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-900 text-sm group-hover:text-amber-700 transition-colors duration-300">{item.requester?.name || 'ไม่ระบุ'}</p>
+                                  <p className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full font-mono">{item.repair_code}</p>
+                                </div>
+                              </div>
+                              {getRepairStatusBadge(item.status)}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs mb-3">
+                              <div className="bg-amber-50 px-7 sm:px-7 py-2 sm:py-3 rounded-full border border-amber-200">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                  <span className="text-amber-700 font-semibold">วันที่แจ้งซ่อม</span>
+                                </div>
+                                <span className="font-semibold text-amber-900">{new Date(item.request_date).toLocaleDateString('th-TH')}</span>
+                              </div>
+                              <div className="bg-green-50 px-7 sm:px-7 py-2 sm:py-3 rounded-full border border-green-200">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span className="text-green-700 font-semibold">ค่าใช้จ่าย</span>
+                                </div>
+                                <span className="font-semibold text-green-900">฿{Number(item.estimated_cost || 0).toLocaleString('th-TH')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12">
+                          <div className="w-16 h-16 bg-amber-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                            <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <p className="text-amber-700 text-base font-semibold mb-2">ไม่พบประวัติการซ่อม</p>
+                          <p className="text-amber-600 text-sm">ครุภัณฑ์นี้ยังไม่เคยมีการแจ้งซ่อม</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -605,7 +898,36 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
           />
         </div>
       )}
-    </div>
+
+      {/* Borrow Details Dialog */}
+      <BorrowDetailsViewDialog
+        borrowItem={selectedBorrow}
+        isOpen={showBorrowDialog}
+        onClose={() => {
+          setShowBorrowDialog(false);
+          setSelectedBorrow(null);
+        }}
+      />
+
+      {/* Repair Details Dialog */}
+      <RepairApprovalDialog
+        open={showRepairDialog}
+        onClose={() => {
+          setShowRepairDialog(false);
+          setSelectedRepair(null);
+        }}
+        repairRequest={selectedRepair}
+        onApprove={() => {
+          fetchRepairHistory();
+          setShowRepairDialog(false);
+        }}
+        onReject={() => {
+          fetchRepairHistory();
+          setShowRepairDialog(false);
+        }}
+      />
+      </div>
+      </div>
   );
 };
 

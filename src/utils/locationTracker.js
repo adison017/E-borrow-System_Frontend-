@@ -91,19 +91,24 @@ class LocationTracker {
   }
 
   // แปลงพิกัดเป็นที่อยู่
-  async reverseGeocode(latitude, longitude) {
+  async reverseGeocode(latitude, longitude, retries = 2) {
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
         {
           headers: {
-            'Accept-Language': 'th,en'
+            'Accept-Language': 'th,en',
+            'User-Agent': 'LocationTrackerApp/1.0'
           }
         }
       );
       
       if (!response.ok) {
-        throw new Error('Failed to fetch address');
+        if (response.status === 503 && retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return this.reverseGeocode(latitude, longitude, retries - 1);
+        }
+        throw new Error(`API error: ${response.status}`);
       }
       
       const data = await response.json();
@@ -152,7 +157,7 @@ class LocationTracker {
       
       return addressParts.join(', ');
     } catch (error) {
-      console.error('Reverse geocoding error:', error);
+      console.warn('Reverse geocoding failed:', error.message);
       return null;
     }
   }
