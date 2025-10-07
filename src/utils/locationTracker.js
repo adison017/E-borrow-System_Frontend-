@@ -1,4 +1,5 @@
 // Location Tracking Utility
+import { checkGeolocationAvailability, isSecureContext } from './securityUtils';
 
 class LocationTracker {
   constructor() {
@@ -13,10 +14,13 @@ class LocationTracker {
     console.log('=== LocationTracker.startTracking Debug ===');
     console.log('Active borrow IDs:', activeBorrowIds);
     console.log('Current tracking state:', this.isTracking);
+    console.log('Secure context:', isSecureContext());
     
-    if (!navigator.geolocation) {
-      console.error('GPS not supported');
-      onError('GPS ไม่รองรับในอุปกรณ์นี้');
+    // ตรวจสอบความพร้อมใช้งาน
+    const availability = checkGeolocationAvailability();
+    if (!availability.available) {
+      console.error('Geolocation not available:', availability.reason);
+      onError(availability.reason);
       return;
     }
 

@@ -1,12 +1,14 @@
 // Camera utilities for mobile device support
+import { checkCameraAvailability, requestCameraAccess, isSecureContext } from './securityUtils';
 
 export const checkCameraSupport = async () => {
   try {
-    // Check if MediaDevices API is supported
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    // ตรวจสอบ secure context ก่อน
+    const availability = checkCameraAvailability();
+    if (!availability.available) {
       return {
         supported: false,
-        message: "เบราว์เซอร์ของคุณไม่รองรับการใช้งานกล้อง"
+        message: availability.reason
       };
     }
 
@@ -24,7 +26,8 @@ export const checkCameraSupport = async () => {
     return {
       supported: true,
       cameras: videoDevices,
-      message: `พบกล้อง ${videoDevices.length} ตัว`
+      message: `พบกล้อง ${videoDevices.length} ตัว`,
+      isSecure: isSecureContext()
     };
   } catch (error) {
     console.error('Camera support check failed:', error);
@@ -37,16 +40,18 @@ export const checkCameraSupport = async () => {
 
 export const requestCameraPermission = async (facingMode = 'environment') => {
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: facingMode },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
-      }
-    });
+    // ใช้ฟังก์ชันจาก securityUtils ที่จัดการ HTTP/HTTPS แล้ว
+    const result = await requestCameraAccess();
+    
+    if (!result.success) {
+      return {
+        granted: false,
+        message: result.error
+      };
+    }
 
     // Clean up the test stream
-    stream.getTracks().forEach(track => track.stop());
+    result.stream.getTracks().forEach(track => track.stop());
 
     return {
       granted: true,

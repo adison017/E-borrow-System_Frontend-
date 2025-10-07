@@ -3,7 +3,6 @@ import {
   FunnelIcon,
   MagnifyingGlassIcon,
   QrCodeIcon,
-  TrashIcon,
   CurrencyDollarIcon
 } from "@heroicons/react/24/outline";
 import { useEffect, useState } from "react";
@@ -34,7 +33,6 @@ import {
 
 
 // Import components
-import ConfirmDialog from "../../components/ConfirmDialog";
 import Notification from "../../components/Notification";
 import ScannerDialog from "../../components/ScannerDialog";
 import ReturnFormDialog from "./dialog/ReturnFormDialog";
@@ -148,7 +146,6 @@ const ReturnList = () => {
   const [isOpeningScanner, setIsOpeningScanner] = useState(false);
   const [isReturnFormOpen, setIsReturnFormOpen] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
 
   // Payment settings dialog states
@@ -169,7 +166,6 @@ const ReturnList = () => {
   // Current data states
   const [selectedBorrowedItem, setSelectedBorrowedItem] = useState(null);
   const [selectedReturnItem, setSelectedReturnItem] = useState(null);
-  const [selectedReturnId, setSelectedReturnId] = useState(null);
 
   // Return processing states
   const [returnStatus, setReturnStatus] = useState({
@@ -447,26 +443,6 @@ const ReturnList = () => {
     }
     setSelectedReturnItem(enriched);
     setIsDetailsOpen(true);
-  };
-
-  const handleDeleteReturn = (returnId) => {
-    setSelectedReturnId(returnId);
-    setIsDeleteConfirmOpen(true);
-  };
-
-  const confirmDelete = () => {
-    // Find the deleted return item
-    const deletedItem = returns.find(item => item.borrow_id === selectedReturnId);
-
-    // Filter out the deleted item
-    const updatedReturns = returns.filter(item => item.borrow_id !== selectedReturnId);
-    setReturns(updatedReturns);
-
-    // Close confirm dialog
-    setIsDeleteConfirmOpen(false);
-
-    // Show success notification
-    showNotification("ลบรายการคืนเรียบร้อยแล้ว", "success");
   };
 
 
@@ -796,11 +772,6 @@ const ReturnList = () => {
                               </IconButton>
                             </Tooltip>
                           )}
-                          <Tooltip content="ลบ" placement="top">
-                            <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100 shadow-sm transition-all duration-200 p-2" onClick={() => handleDeleteReturn(item.borrow_id)}>
-                              <TrashIcon className="h-4 w-4" />
-                            </IconButton>
-                          </Tooltip>
                         </div>
                       </td>
                     </tr>
@@ -882,15 +853,6 @@ const ReturnList = () => {
           onClose={() => setIsDetailsOpen(false)}
           returnItem={selectedReturnItem}
           paymentDetails={selectedReturnItem?.paymentDetails}
-        />
-
-        {/* Delete Confirm Dialog */}
-        <ConfirmDialog
-          isOpen={isDeleteConfirmOpen}
-          onClose={() => setIsDeleteConfirmOpen(false)}
-          onConfirm={confirmDelete}
-          title="ยืนยันการลบ"
-          message="คุณต้องการลบรายการคืนนี้ใช่หรือไม่? การดำเนินการนี้ไม่สามารถย้อนกลับได้"
         />
 
         {/* Payment Settings Dialog (inline) */}

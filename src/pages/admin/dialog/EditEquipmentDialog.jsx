@@ -3,6 +3,8 @@ import dayjs from "dayjs";
 import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
 import { getCategories, uploadImage, getRooms, UPLOAD_BASE } from "../../../utils/api";
+import axios from "../../../utils/axios.js";
+import { API_BASE } from "../../../utils/api";
 
 // ย้าย normalizeDate ออกมาอยู่นอก useEffect เพื่อให้ทุกฟังก์ชันเข้าถึงได้
 function normalizeDate(val) {
@@ -27,7 +29,17 @@ export default function EditEquipmentDialog({
   open,
   onClose,
   equipmentData,
-  onSave
+  onSave,
+  imageUrls,
+  setImageUrls,
+  uploadedFiles,
+  setUploadedFiles,
+  onAddImageUrl,
+  onRemoveImageUrl,
+  onUpdateImageUrl,
+  onFileUpload,
+  onRemoveUploadedFile,
+  onRemoveOldImage
 }) {
   // Use item_code as the canonical equipment code
   const [formData, setFormData] = useState({
@@ -48,6 +60,8 @@ export default function EditEquipmentDialog({
   const [rooms, setRooms] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingRemoved, setPendingRemoved] = useState([]);
 
   const statusConfig = {
     "พร้อมใช้งาน": { color: "green", icon: "CheckCircleIcon" },
@@ -110,6 +124,20 @@ export default function EditEquipmentDialog({
       setPreviewImage("https://cdn-icons-png.flaticon.com/512/3474/3474360.png");
     }
 
+    // หากมี pic เป็น JSON string และยังไม่มี imageUrls จาก props ให้ดึงมาแสดงเป็นรูปภาพปัจจุบัน
+    try {
+      if (open && equipmentData?.pic && (!imageUrls || imageUrls.length === 0)) {
+        if (typeof equipmentData.pic === 'string' && (equipmentData.pic.startsWith('[') || equipmentData.pic.startsWith('{'))) {
+          const urls = JSON.parse(equipmentData.pic);
+          if (Array.isArray(urls) && urls.length > 0) {
+            setImageUrls(urls.filter(Boolean));
+          }
+        }
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+
     // ไม่ต้อง map id เป็น item_code แล้ว เพราะเราต้องการให้ user กรอกเอง
   }, [equipmentData, open]);
 
@@ -162,6 +190,7 @@ export default function EditEquipmentDialog({
 
   const handleSubmit = async () => {
     try {
+      setIsSubmitting(true);
       // ตรวจสอบฟิลด์ที่จำเป็น (ยกเว้น description)
       const requiredFields = [
         { key: 'item_code', label: 'รหัสครุภัณฑ์' },
@@ -190,25 +219,30 @@ export default function EditEquipmentDialog({
 
       let dataToSave = { ...formData };
 
-      // อัปโหลดรูปภาพไปยัง Cloudinary ถ้ามีไฟล์ใหม่
-      if (dataToSave.pic instanceof File) {
-        setIsUploading(true);
-        try {
-          dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
-          setUploadSuccess(true);
-          setTimeout(() => setUploadSuccess(false), 3000); // แสดงข้อความ 3 วินาที
-        } finally {
-          setIsUploading(false);
+      // ลบรูปภาพจาก Cloud เฉพาะที่ถูกกดกากบาท โดยจะทำจริงเมื่อกดบันทึกเท่านั้น
+      if (pendingRemoved.length > 0 && equipmentData?.item_code) {
+        const token = localStorage.getItem('token');
+        for (const { idx } of pendingRemoved) {
+          try {
+            await axios.delete(`${API_BASE}/equipment/${equipmentData.item_code}/images/image_${idx + 1}`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+          } catch (e) {
+            // ถ้าลบไม่สำเร็จ ให้ข้ามไป เพื่อไม่บล็อกการบันทึก
+            console.error('Failed to delete image from Cloudinary:', e?.message || e);
+          }
         }
       }
 
       // Include item_id for updating equipment
       const payload = { ...dataToSave, item_id: equipmentData.item_id };
-      onSave(payload);
+      await onSave(payload);
       onClose();
     } catch (error) {
       // Error during submit
       setMissingFields([`เกิดข้อผิดพลาด: ${error.message}`]);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -234,6 +268,14 @@ export default function EditEquipmentDialog({
   return (
     <div className="modal modal-open">
       <div className="modal-box relative bg-white rounded-2xl shadow-2xl border border-gray-200 max-w-[150vh] w-full p-5 z-50 overflow-y-auto max-h-[90vh]">
+        {isSubmitting && (
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="flex flex-col items-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="text-blue-700 font-medium">กำลังบันทึกการเปลี่ยนแปลง...</div>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="flex justify-between items-center pb-3 mb-4 border-b border-gray-100">
           <h3 className="text-2xl font-bold text-gray-800 flex items-center tracking-tight">
@@ -245,8 +287,9 @@ export default function EditEquipmentDialog({
             แก้ไขครุภัณฑ์
           </h3>
           <button
-            onClick={onClose}
+            onClick={isSubmitting ? undefined : onClose}
             className="text-gray-500 hover:text-gray-800 transition-colors duration-150 hover:bg-gray-100 p-2 rounded-full"
+            disabled={isSubmitting}
           >
             <MdClose className="w-5 h-5" />
           </button>
@@ -254,55 +297,140 @@ export default function EditEquipmentDialog({
 
         {/* Form Content */}
         <div className="space-y-5">
-          {/* Prominent Image Upload */}
-          <div className="flex flex-col items-center mb-5">
-            <div
-              className="w-40 h-40 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer relative overflow-hidden group shadow-sm"
-              onClick={() => fileInputRef.current.click()}
+          {/* รูปภาพหลายรูป */}
+          <div className="space-y-4">
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              รูปภาพครุภัณฑ์ (สูงสุด 10 รูป)
+            </label>
+            
+
+
+          {/* รูปภาพปัจจุบัน (หลายรูป) */}
+          {imageUrls && imageUrls.some(url => url && url.trim() !== '') && (
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-gray-700">รูปภาพปัจจุบัน</h4>
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2 md:gap-3">
+                {imageUrls.filter(url => url && url.trim() !== '').map((url, index) => (
+                  <div key={index} className="relative w-28 h-28 md:w-32 md:h-32 rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                    <img
+                      src={url}
+                      alt={`Current Image ${index + 1}`}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.src = 'https://cdn-icons-png.flaticon.com/512/3474/3474360.png';
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // ทำเครื่องหมายว่าจะลบภาพนี้ และลบออกจากการแสดงผลชั่วคราว
+                        setPendingRemoved(prev => [...prev, { idx: index, url }]);
+                        setImageUrls(prev => prev.filter((_, i) => i !== index));
+                      }}
+                      className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors z-10 shadow-md"
+                      title="ลบรูปภาพ"
+                    >
+                      <MdClose className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500">หมายเหตุ: ภาพจะถูกลบออกจากระบบจริงเมื่อกด "บันทึกการเปลี่ยนแปลง" เท่านั้น</p>
+            </div>
+          )}
+
+            {/* อัปโหลดไฟล์ */}
+            <div 
+              className="relative border-2 border-dashed border-blue-300 rounded-xl p-8 bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 transition-all duration-300 cursor-pointer group"
+              onClick={() => document.getElementById('edit-file-upload').click()}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.add('border-blue-500', 'bg-blue-100');
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove('border-blue-500', 'bg-blue-100');
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove('border-blue-500', 'bg-blue-100');
+                const files = Array.from(e.dataTransfer.files);
+                if (files.length > 0) {
+                  const event = { target: { files } };
+                  onFileUpload(event);
+                }
+              }}
             >
-                <img
-                  src={
-                    previewImage ||
-                    (typeof formData.pic === 'string'
-                      ? (formData.pic.startsWith('http') || formData.pic.startsWith('/uploads'))
-                        ? formData.pic
-                        : formData.pic.startsWith('https://res.cloudinary.com')
-                        ? formData.pic
-                        : `/uploads/${formData.pic}`
-                      : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png")
-                  }
-                  alt={formData.name}
-                  className="max-h-36 max-w-36 object-contain z-10"
-                  onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
-                />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 flex items-center justify-center transition-all duration-200 z-20">
-                <div className="bg-white/90 p-2 rounded-full opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-200 shadow-md">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              <div className="text-center">
+                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors duration-300">
+                  <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                   </svg>
                 </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 transition-colors duration-300">
+                    อัปโหลดรูปภาพ
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    คลิกเพื่อเลือกไฟล์ หรือ <span className="font-medium text-blue-600">ลากและวางที่นี่</span>
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    รองรับ PNG, JPG, GIF • สูงสุด 5MB ต่อไฟล์ • เลือกได้หลายไฟล์
+                  </p>
+                </div>
+                <input
+                  id="edit-file-upload"
+                  name="edit-file-upload"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={onFileUpload}
+                  className="sr-only"
+                />
+              </div>
+              
+              {/* Decorative elements */}
+              <div className="absolute top-4 right-4 opacity-20 group-hover:opacity-30 transition-opacity duration-300">
+                <svg className="w-6 h-6 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="absolute bottom-4 left-4 opacity-20 group-hover:opacity-30 transition-opacity duration-300">
+                <svg className="w-4 h-4 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
               </div>
             </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              onChange={handleImageChange}
-              className="hidden"
-            />
-            <span className="text-sm font-medium text-gray-500 mt-3">คลิกที่รูปเพื่ออัพโหลดรูปภาพ</span>
-            {formData.pic?.name && (
-              <p className="text-sm mt-1 text-gray-600 truncate max-w-[300px]">{formData.pic.name}</p>
-            )}
-            {uploadSuccess && (
-              <div className="text-emerald-600 text-sm font-semibold mt-2 text-center flex items-center justify-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                อัปโหลดรูปภาพสำเร็จแล้ว
+
+            {/* แสดงไฟล์ที่อัปโหลด */}
+            {uploadedFiles && uploadedFiles.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-700">ไฟล์ที่เลือก:</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={URL.createObjectURL(file)}
+                        alt={`Preview ${index + 1}`}
+                        className="w-full h-24 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => onRemoveUploadedFile(index)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                      >
+                        ×
+                      </button>
+                      <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 rounded-b-lg truncate">
+                        {file.name}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
+
+            {/* เอาส่วนแสดงตัวอย่างรูปภาพจาก URL ออก และแสดงใน "รูปภาพปัจจุบัน" แทน */}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -510,18 +638,18 @@ export default function EditEquipmentDialog({
           </button>
           <button
             className={`px-5 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200 shadow-sm ${
-              !isFormValid || isUploading
+              !isFormValid || isUploading || isSubmitting
                 ? "bg-blue-300 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700"
             }`}
             onClick={handleSubmit}
-            disabled={!isFormValid || isUploading}
+            disabled={!isFormValid || isUploading || isSubmitting}
             type="button"
           >
-            {isUploading ? (
+            {isUploading || isSubmitting ? (
               <div className="flex items-center gap-2">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                กำลังอัปโหลด...
+                {isSubmitting ? 'กำลังบันทึก...' : 'กำลังอัปโหลด...'}
               </div>
             ) : (
               'บันทึกการเปลี่ยนแปลง'
