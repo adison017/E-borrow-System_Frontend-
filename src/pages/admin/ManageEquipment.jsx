@@ -2397,7 +2397,7 @@ function ManageEquipment() {
               <input
                 id="search"
                 type="text"
-                className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-2xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
+                className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-full text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
                 placeholder="ค้นหารหัส, ชื่อ, หรือรายละเอียด..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -2407,12 +2407,12 @@ function ManageEquipment() {
             <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
               <Button
                 onClick={() => setQrScannerOpen(true)}
-                className="bg-blue-700 hover:bg-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
+                className="bg-blue-700 hover:bg-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 rounded-full flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case"
               >
                 <QrCodeIcon className="w-4 h-4" />
                 สแกน QR
               </Button>
-              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case" onClick={handleExportExcel}>
+              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-full flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case" onClick={handleExportExcel}>
                 {isExporting ? (
                   <>
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
@@ -2431,19 +2431,19 @@ function ManageEquipment() {
         {/* Management Buttons Section */}
           <div className="mb-3 flex flex-wrap justify-center gap-4 mt-4">
             <Button
-              className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 px-6 py-3 text-base font-semibold normal-case transform hover:scale-105 transition-all duration-200 border-0"
+              className="bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 p-3 normal-case transform hover:scale-105 transition-all duration-200 border-0"
               onClick={() => setManageCategoryOpen(true)}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
               </svg>
               จัดการหมวดหมู่
             </Button>
             <Button
-               className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 px-6 py-3 text-base font-semibold normal-case transform hover:scale-105 transition-all duration-200 border-0"
+               className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 p-3 normal-case transform hover:scale-105 transition-all duration-200 border-0"
                onClick={() => setPreviewAllQRCodesOpen(true)}
              >
-               <ArrowDownTrayIcon className="w-6 h-6" />
+               <ArrowDownTrayIcon className="w-5 h-5" />
                QR Code ครุภัณฑ์ทั้งหมด
              </Button>
           </div>
@@ -2576,7 +2576,7 @@ function ManageEquipment() {
                             <Tooltip content="คลิกเพื่อดาวน์โหลด QR Code">
                               <div
                                 className="bg-white p-1 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-purple-300 transition-all duration-200"
-                                onClick={() => handlePrintQRCode(item)}
+                                onClick={(e) => { e.stopPropagation(); handlePrintQRCode(item); }}
                               >
                                 <QRCode
                                   value={item_code}
@@ -2600,31 +2600,31 @@ function ManageEquipment() {
                         <td className="px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex gap-1 justify-center">
                             <Tooltip content="พิมพ์ QR Code">
-                              <IconButton variant="text" color="purple" className="bg-purple-50 hover:bg-purple-100" onClick={() => handlePrintQRCode(item)}>
+                              <IconButton variant="text" color="purple" className="bg-purple-50 hover:bg-purple-100" onClick={(e) => { e.stopPropagation(); handlePrintQRCode(item); }}>
                                 <PrinterIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
                             {(status === 'ชำรุด' || status === 'ไม่อนุมัติซ่อม') && (
                               <Tooltip content="แจ้งซ่อม">
-                                <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100" onClick={() => handleRepairRequest(item)}>
+                                <IconButton variant="text" color="blue" className="bg-blue-50 hover:bg-blue-100" onClick={(e) => { e.stopPropagation(); handleRepairRequest(item); }}>
                                   <WrenchIcon className="h-4 w-4" />
                                 </IconButton>
                               </Tooltip>
                             )}
                             {status === 'กำลังซ่อม' && (
                               <Tooltip content="ตรวจรับครุภัณฑ์">
-                                <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100" onClick={() => handleInspectEquipment(item)}>
+                                <IconButton variant="text" color="green" className="bg-green-50 hover:bg-green-100" onClick={(e) => { e.stopPropagation(); handleInspectEquipment(item); }}>
                                   <CheckCircleIcon className="h-4 w-4" />
                                 </IconButton>
                               </Tooltip>
                             )}
                             <Tooltip content="แก้ไข">
-                              <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100" onClick={() => handleEditClick(item)}>
+                              <IconButton variant="text" color="amber" className="bg-amber-50 hover:bg-amber-100" onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}>
                                 <PencilIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>
                             <Tooltip content="ลบ">
-                              <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100" onClick={() => handleDeleteClick(item)}>
+                              <IconButton variant="text" color="red" className="bg-red-50 hover:bg-red-100" onClick={(e) => { e.stopPropagation(); handleDeleteClick(item); }}>
                                 <TrashIcon className="h-4 w-4" />
                               </IconButton>
                             </Tooltip>

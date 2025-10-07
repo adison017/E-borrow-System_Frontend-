@@ -497,7 +497,7 @@ function ManageUser() {
                   <input
                     id="search"
                     type="text"
-                    className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-2xl text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
+                    className="w-full h-10 pl-10 pr-4 py-2.5 border border-gray-300 rounded-full text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm placeholder-gray-400"
                     placeholder="ค้นหารหัสนิสิต, ชื่อ, อีเมล, ตำแหน่ง หรือสาขา..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -506,7 +506,7 @@ function ManageUser() {
               </div>
             </div>
             <div className="flex flex-shrink-0 gap-x-3 w-full md:w-auto justify-start md:justify-end">
-              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-xl flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case" onClick={handleExportExcel}>
+              <Button variant="outlined" className="border-gray-300 text-gray-700 hover:bg-gray-100 shadow-sm rounded-full flex items-center gap-2 px-4 py-2 text-sm font-medium normal-case" onClick={handleExportExcel}>
                 {isExporting ? (
                   <>
                     <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
@@ -527,21 +527,21 @@ function ManageUser() {
           {/* Management Buttons Section */}
           <div className="mb-3 flex flex-wrap justify-center gap-4 mt-4">
             <Button
-              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 px-6 py-3 text-base font-semibold normal-case transform hover:scale-105 transition-all duration-200 border-0"
+              className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 p-3 normal-case transform hover:scale-105 transition-all duration-200 border-0"
               onClick={() => !isSubmitting && setManageBranchOpen(true)}
               disabled={isSubmitting}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
               จัดการสาขา
             </Button>
             <Button
-              className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 px-6 py-3 text-base font-semibold normal-case transform hover:scale-105 transition-all duration-200 border-0"
+              className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg hover:shadow-xl rounded-full flex items-center gap-2 p-3  normal-case transform hover:scale-105 transition-all duration-200 border-0"
               onClick={() => !isSubmitting && setManagePositionOpen(true)}
               disabled={isSubmitting}
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
               จัดการตำแหน่ง

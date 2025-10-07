@@ -1,4 +1,6 @@
+import { BiMessageSquareDetail } from "react-icons/bi"; 
 import {
+  ArrowPathIcon,
   BuildingOfficeIcon,
   CalendarIcon,
   ChevronDownIcon,
@@ -19,6 +21,7 @@ import { MdClose } from 'react-icons/md';
 import { RiShoppingBasketFill } from "react-icons/ri";
 import { API_BASE, UPLOAD_BASE, authFetch } from '../../../utils/api';
 import BorrowDetailsViewDialog from './BorrowDetailsViewDialog';
+import RepairApprovalDialog from './RepairApprovalDialog';
 
 const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
@@ -32,10 +35,17 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedBorrow, setSelectedBorrow] = useState(null);
   const [showBorrowDialog, setShowBorrowDialog] = useState(false);
+  const [repairHistory, setRepairHistory] = useState([]);
+  const [loadingRepair, setLoadingRepair] = useState(false);
+  const [selectedRepair, setSelectedRepair] = useState(null);
+  const [showRepairDialog, setShowRepairDialog] = useState(false);
+  const [repairStatusFilter, setRepairStatusFilter] = useState('all');
+  const [showRepairFilters, setShowRepairFilters] = useState(false);
 
   useEffect(() => {
     if (open && equipment?.item_code) {
       fetchBorrowHistory();
+      fetchRepairHistory();
     }
   }, [open, equipment?.item_code]);
 
@@ -200,6 +210,69 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
     setShowBorrowDialog(true);
   };
 
+  const fetchRepairHistory = async () => {
+    if (!equipment?.item_code) return;
+
+    setLoadingRepair(true);
+    try {
+      const url = `${API_BASE}/equipment/${equipment.item_code}/repair-history`;
+      const response = await authFetch(url);
+
+      if (response && response.ok) {
+        const data = await response.json();
+        setRepairHistory(Array.isArray(data) ? data : []);
+      } else {
+        console.warn('Failed to fetch repair history', response && response.status);
+        setRepairHistory([]);
+      }
+    } catch (error) {
+      console.error('Error fetching repair history:', error);
+      setRepairHistory([]);
+    } finally {
+      setLoadingRepair(false);
+    }
+  };
+
+  const handleRepairClick = (repairItem) => {
+    setSelectedRepair(repairItem);
+    setShowRepairDialog(true);
+  };
+
+  const getRepairStatusBadge = (status) => {
+    switch (status) {
+      case "approved":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-blue-50 text-blue-800 border-blue-200">
+            <ArrowPathIcon className="w-3 h-3" /> กำลังซ่อม
+          </span>
+        );
+      case "completed":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-green-50 text-green-800 border-green-200">
+            <CheckCircleSolidIcon className="w-3 h-3" /> เสร็จสิ้น
+          </span>
+        );
+      case "incomplete":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-gray-50 text-gray-800 border-gray-200">
+            <ExclamationTriangleIcon className="w-3 h-3" /> ไม่สำเร็จ
+          </span>
+        );
+      case "rejected":
+        return (
+          <span className="px-2 py-1 inline-flex items-center gap-1 text-xs leading-4 font-semibold rounded-full border bg-red-50 text-red-800 border-red-200">
+            <ExclamationTriangleIcon className="w-3 h-3" /> ปฏิเสธ
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2 py-1 inline-flex text-xs leading-4 font-semibold rounded-full border bg-gray-50 text-gray-800 border-gray-200">
+            {status}
+          </span>
+        );
+    }
+  };
+
   if (!open || !equipment) return null;
 
   const getStatusColor = (status) => {
@@ -273,8 +346,8 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
         {/* Content */}
         <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-140px)] bg-white">
         {/* Image Section */}
-              <div className="rounded-2xl p-3 sm:p-6 transition-all duration-300 mb-15 sm:mb-16 w-full max-h-64 sm:max-h-96 max-w-80 sm:max-w-96 mx-auto shadow-2xl">
-                <div className="aspect-square bg-white rounded-xl overflow-hidden group relative h-full ">
+              <div className="rounded-2xl p-3 sm:p-6 transition-all duration-300 mb-6 w-full mx-auto shadow-2xl">
+                <div className="bg-white rounded-xl overflow-hidden group relative" style={{ height: '400px' }}>
                   <img
                     src={equipment.pic?.startsWith('http')
                       ? equipment.pic
@@ -324,8 +397,9 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
               {/* Equipment Information */}
               <div className="bg-white rounded-2xl border-4 border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-lg font-bold text-white bg-blue-600 p-3 rounded-full flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-2 justify-center bg-blue-600 p-3 rounded-2xl mb-3">
+                    <BiMessageSquareDetail className="text-white w-5 h-5" />
+                    <h3 className="text-lg font-bold text-white">
                       รายละเอียดครุภัณฑ์
                     </h3>
                   </div>
@@ -333,7 +407,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                     {/* Price */}
                     {equipment.price && (
                       <div className="px-4">
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-3 mb-1">
                           <CurrencyDollarIcon className="w-5 h-5 text-blue-600" />
                           <span className="text-sm font-semibold text-blue-800">มูลค่า</span>
                         </div>
@@ -354,15 +428,26 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                       </div>
                     )}
 
-                    {/* Storage Location */}
-                    {equipment.room_name && (
+                    {/* Description */}
+                    {equipment.description && (
                       <div className="px-4">
                         <div className="flex items-center gap-3 mb-3">
+                          <DocumentTextIcon className="w-5 h-5 text-blue-600" />
+                          <span className="text-sm font-semibold text-blue-800">รายละเอียด</span>
+                        </div>
+                        <p className="text-sm text-gray-800 leading-relaxed ml-8">{equipment.description}</p>
+                      </div>
+                    )}
+
+                    {/* Storage Location - Moved to bottom */}
+                    {equipment.room_name && (
+                      <div className="px-4 pt-4 bg-blue-50 p-5 rounded-4xl shadow-lg border-2 border-blue-200">
+                        <div className="flex items-center justify-center gap-3 mb-3">
                           <MapPinIcon className="w-5 h-5 text-blue-600" />
                           <span className="text-sm font-semibold text-blue-800">สถานที่จัดเก็บ</span>
                         </div>
-                        <div className="flex items-center gap-4 ml-8">
-                          <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-blue-200 shadow-md">
+                        <div className="flex flex-col items-center">
+                          <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-blue-200 shadow-md mb-3">
                             <img
                               src={(() => {
                                 if (!equipment.room_image_url) return "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
@@ -383,7 +468,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                               onError={(e) => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
                             />
                           </div>
-                          <div>
+                          <div className="text-center">
                             <p className="font-semibold text-blue-900 text-base">{equipment.room_name}</p>
                             {equipment.room_address && (
                               <p className="text-sm text-blue-700 mt-1">{equipment.room_address}</p>
@@ -392,23 +477,12 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                         </div>
                       </div>
                     )}
-
-                    {/* Description */}
-                    {equipment.description && (
-                      <div className="px-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <DocumentTextIcon className="w-5 h-5 text-blue-600" />
-                          <span className="text-sm font-semibold text-blue-800">รายละเอียด</span>
-                        </div>
-                        <p className="text-sm text-gray-800 leading-relaxed ml-8">{equipment.description}</p>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Side - Borrow History */}
+            {/* Right Side - Borrow & Repair History */}
             <div className="flex-1 lg:flex-2 space-y-4 sm:space-y-6">
               {/* Borrow History Section */}
               <div className="bg-blue-50 rounded-2xl border border-blue-200 shadow-lg hover:shadow-xl transition-all duration-300">
@@ -434,7 +508,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                       </button>
                 
                       {showFilters && (
-                        <div className="absolute right-0 mt-3 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-blue-200 z-10 animate-in slide-in-from-top-2 duration-300">
+                        <div className="absolute  sm:left-auto sm:right-0 mt-3 w-72 sm:w-80 bg-white rounded-2xl shadow-2xl border border-blue-200 z-10 animate-in slide-in-from-top-2 duration-300">
                           <div className="p-6 space-y-4">
                             {/* Header */}
                             <div className="flex items-center justify-between border-b border-blue-200 pb-3">
@@ -540,7 +614,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                           <div 
                             key={item.borrow_id || index}
                             onClick={() => handleBorrowClick(item)}
-                            className="bg-white px-3 sm:px-7 py-3 sm:py-4 rounded-2xl sm:rounded-4xl border border-blue-200 hover:border-blue-300  transition-all duration-300 cursor-pointer group hover:bg-white transform hover:scale-[1.02]"
+                            className="bg-white px-3 sm:px-7 py-3 sm:py-4 rounded-2xl sm:rounded-4xl border border-blue-200 hover:border-blue-300 transition-all duration-300 cursor-pointer group "
                           >
                             <div className="flex items-center justify-between mb-3">
                               <div className="flex items-center gap-3">
@@ -600,6 +674,145 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                       )}
                     </div>
                   )}
+              </div>
+
+              {/* Repair History Section */}
+              <div className="bg-amber-50 rounded-2xl border border-amber-200 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="p-3 sm:p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+                    <h3 className="text-base sm:text-lg font-bold text-amber-900 flex items-center gap-2 sm:gap-3">
+                      <svg className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      ประวัติการซ่อม
+                    </h3>
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowRepairFilters(!showRepairFilters)}
+                        className="bg-white border border-amber-300 hover:border-amber-400 hover:bg-white px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold text-amber-800 flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-300 group"
+                      >
+                        <FunnelIcon className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                        กรอง
+                        {showRepairFilters ? <ChevronUpIcon className="w-4 h-4" /> : <ChevronDownIcon className="w-4 h-4" />}
+                      </button>
+                      
+                      {showRepairFilters && (
+                        <div className="absolute sm:left-auto sm:right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-amber-200 z-10 animate-in slide-in-from-top-2 duration-300">
+                          <div className="p-4 space-y-2">
+                            <div className="flex items-center justify-between border-b border-amber-200 pb-2 mb-2">
+                              <h4 className="font-bold text-amber-900 text-sm">สถานะ</h4>
+                              {repairStatusFilter !== 'all' && (
+                                <button
+                                  onClick={() => setRepairStatusFilter('all')}
+                                  className="text-xs text-amber-600 hover:text-amber-800 bg-amber-100 hover:bg-amber-200 px-2 py-1 rounded-full transition-all duration-200"
+                                >
+                                  ล้าง
+                                </button>
+                              )}
+                            </div>
+                            {[
+                              { value: 'all', label: 'ทั้งหมด', color: 'gray' },
+                              { value: 'approved', label: 'กำลังซ่อม', color: 'blue' },
+                              { value: 'completed', label: 'เสร็จสิ้น', color: 'green' },
+                              { value: 'incomplete', label: 'ไม่สำเร็จ', color: 'gray' }
+                            ].map(option => (
+                              <button
+                                key={option.value}
+                                onClick={() => setRepairStatusFilter(option.value)}
+                                className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-xl transition-all duration-200 hover:scale-105 ${
+                                  repairStatusFilter === option.value 
+                                    ? `bg-${option.color}-100 text-${option.color}-700 font-semibold shadow-md` 
+                                    : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                                }`}
+                              >
+                                <span className={`h-2.5 w-2.5 rounded-full bg-${option.color}-500`}></span>
+                                <span>{option.label}</span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+            
+                  {loadingRepair ? (
+                    <div className="text-center py-8">
+                      <div className="w-8 h-8 border-3 border-amber-300 border-t-amber-600 rounded-full animate-spin mx-auto mb-3 shadow-lg"></div>
+                      <p className="text-amber-700 text-sm font-medium bg-white/60 px-4 py-2 rounded-full inline-block">กำลังโหลดประวัติ...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 max-h-60 sm:max-h-80 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-amber-300 scrollbar-track-amber-100">
+                      {repairHistory.filter(item => {
+                        const validStatuses = ['approved', 'completed', 'incomplete'].includes(item.status);
+                        const matchesFilter = repairStatusFilter === 'all' || item.status === repairStatusFilter;
+                        return validStatuses && matchesFilter;
+                      }).length > 0 ? (
+                        repairHistory.filter(item => {
+                          const validStatuses = ['approved', 'completed', 'incomplete'].includes(item.status);
+                          const matchesFilter = repairStatusFilter === 'all' || item.status === repairStatusFilter;
+                          return validStatuses && matchesFilter;
+                        }).map((item, index) => (
+                          <div 
+                            key={item.id || index}
+                            onClick={() => handleRepairClick(item)}
+                            className="bg-white px-3 sm:px-7 py-3 sm:py-4 rounded-2xl sm:rounded-4xl border border-amber-200 hover:border-amber-300 transition-all duration-300 cursor-pointer group "
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="flex items-center gap-3">
+                                <div className="relative">
+                                  <img
+                                    src={item.requester?.avatar ? 
+                                      (item.requester.avatar.startsWith('http') ? item.requester.avatar : `${UPLOAD_BASE}/uploads/user/${item.requester.avatar}`) 
+                                      : '/profile.png'
+                                    }
+                                    alt={item.requester?.name}
+                                    className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-md group-hover:scale-110 transition-transform duration-300"
+                                    onError={(e) => { e.target.src = '/profile.png'; }}
+                                  />
+                                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-amber-500 rounded-full border-2 border-white"></div>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-gray-900 text-sm group-hover:text-amber-700 transition-colors duration-300">{item.requester?.name || 'ไม่ระบุ'}</p>
+                                  <p className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full font-mono">{item.repair_code}</p>
+                                </div>
+                              </div>
+                              {getRepairStatusBadge(item.status)}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs mb-3">
+                              <div className="bg-amber-50 px-7 sm:px-7 py-2 sm:py-3 rounded-full border border-amber-200">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                                  <span className="text-amber-700 font-semibold">วันที่แจ้งซ่อม</span>
+                                </div>
+                                <span className="font-semibold text-amber-900">{new Date(item.request_date).toLocaleDateString('th-TH')}</span>
+                              </div>
+                              <div className="bg-green-50 px-7 sm:px-7 py-2 sm:py-3 rounded-full border border-green-200">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span className="text-green-700 font-semibold">ค่าใช้จ่าย</span>
+                                </div>
+                                <span className="font-semibold text-green-900">฿{Number(item.estimated_cost || 0).toLocaleString('th-TH')}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12">
+                          <div className="w-16 h-16 bg-amber-200 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                            <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <p className="text-amber-700 text-base font-semibold mb-2">ไม่พบประวัติการซ่อม</p>
+                          <p className="text-amber-600 text-sm">ครุภัณฑ์นี้ยังไม่เคยมีการแจ้งซ่อม</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -695,9 +908,26 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
           setSelectedBorrow(null);
         }}
       />
+
+      {/* Repair Details Dialog */}
+      <RepairApprovalDialog
+        open={showRepairDialog}
+        onClose={() => {
+          setShowRepairDialog(false);
+          setSelectedRepair(null);
+        }}
+        repairRequest={selectedRepair}
+        onApprove={() => {
+          fetchRepairHistory();
+          setShowRepairDialog(false);
+        }}
+        onReject={() => {
+          fetchRepairHistory();
+          setShowRepairDialog(false);
+        }}
+      />
       </div>
       </div>
-    </div>
   );
 };
 
