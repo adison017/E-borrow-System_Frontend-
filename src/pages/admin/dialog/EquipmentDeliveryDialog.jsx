@@ -22,6 +22,36 @@ import DocumentViewer from '../../../components/DocumentViewer';
 import { UPLOAD_BASE, API_BASE } from '../../../utils/api';
 
 const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
+    // ฟังก์ชันสำหรับจัดการรูปภาพหลายรูป
+    const getFirstImageUrl = (item) => {
+        const fallback = `${UPLOAD_BASE}/equipment/${item.item_code || item.code}.jpg`;
+        const pic = item.pic || item.image;
+        if (!pic) return fallback;
+        if (typeof pic === 'string') {
+            // Try parse JSON array
+            if (pic.trim().startsWith('[') || pic.trim().startsWith('{')) {
+                try {
+                    const parsed = JSON.parse(pic);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        const firstUrl = parsed[0];
+                        if (typeof firstUrl === 'string') {
+                            if (firstUrl.startsWith('http')) return firstUrl;
+                            if (firstUrl.startsWith('/uploads')) return `${UPLOAD_BASE}${firstUrl}`;
+                            const clean = firstUrl.replace(/^\/?uploads\//, '');
+                            return `${UPLOAD_BASE}/uploads/${clean}`;
+                        }
+                    }
+                } catch (e) {
+                    // fallthrough
+                }
+            }
+            // Single string URL or local path
+            if (pic.startsWith('http')) return pic;
+            if (pic.startsWith('/uploads')) return `${UPLOAD_BASE}${pic}`;
+            return fallback;
+        }
+        return fallback;
+    };
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [deliveryNote, setDeliveryNote] = useState("");
     const [isWebcamDialogOpen, setIsWebcamDialogOpen] = useState(false);
@@ -408,7 +438,7 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
                                                             <td className="px-4 py-4 text-center">
                                                                 <div className="w-16 h-16 rounded-xl overflow-hidden flex items-center justify-center mx-auto border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-sm">
                                                                     <img
-                                                                        src={item.pic?.startsWith('http') ? item.pic : `${UPLOAD_BASE}/equipment/${item.item_code || item.code}.jpg`}
+                                                                        src={getFirstImageUrl(item)}
                                                                         alt={item.name}
                                                                         className="max-w-full max-h-full object-contain p-2"
                                                                         onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}

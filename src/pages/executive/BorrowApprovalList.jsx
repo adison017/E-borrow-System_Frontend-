@@ -12,6 +12,37 @@ import BorrowDetailsDialog from "./dialogs/BorrowDetailsDialog";
 import { useBadgeCounts } from '../../hooks/useSocket';
 
 export default function BorrowApprovalList() {
+  // ฟังก์ชันสำหรับจัดการรูปภาพหลายรูป
+  const getFirstImageUrl = (equipment) => {
+    if (!equipment) return '/placeholder-equipment.png';
+    const fallback = `${UPLOAD_BASE}/equipment/${equipment.item_code || equipment.code}.jpg`;
+    const pic = equipment.pic || equipment.image;
+    if (!pic) return fallback;
+    if (typeof pic === 'string') {
+      // Try parse JSON array
+      if (pic.trim().startsWith('[') || pic.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(pic);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const firstUrl = parsed[0];
+            if (typeof firstUrl === 'string') {
+              if (firstUrl.startsWith('http')) return firstUrl;
+              if (firstUrl.startsWith('/uploads')) return `${UPLOAD_BASE}${firstUrl}`;
+              const clean = firstUrl.replace(/^\/?uploads\//, '');
+              return `${UPLOAD_BASE}/uploads/${clean}`;
+            }
+          }
+        } catch (e) {
+          // fallthrough
+        }
+      }
+      // Single string URL or local path
+      if (pic.startsWith('http')) return pic;
+      if (pic.startsWith('/uploads')) return `${UPLOAD_BASE}${pic}`;
+      return fallback;
+    }
+    return fallback;
+  };
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -262,8 +293,9 @@ export default function BorrowApprovalList() {
                         <div className="flex-shrink-0 h-12 w-12 rounded-lg">
                           <img
                             className="h-full w-full object-contain"
-                            src={Array.isArray(request.equipment) && request.equipment[0]?.pic ? `${request.equipment[0].pic.startsWith('http') ? request.equipment[0].pic : '/lo.png'}` : '/placeholder-equipment.png'}
+                            src={Array.isArray(request.equipment) && request.equipment[0] ? getFirstImageUrl(request.equipment[0]) : '/placeholder-equipment.png'}
                             alt={Array.isArray(request.equipment) && request.equipment[0]?.name}
+                            onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
                           />
                         </div>
                         <div className="ml-3">

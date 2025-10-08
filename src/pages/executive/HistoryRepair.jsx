@@ -15,6 +15,36 @@ import { API_BASE, UPLOAD_BASE } from '../../utils/api';
 import { useBadgeCounts } from '../../hooks/useSocket';
 
 export default function HistoryRepair() {
+  // ฟังก์ชันสำหรับจัดการรูปภาพหลายรูป
+  const getFirstImageUrl = (equipment) => {
+    const fallback = "/lo.png";
+    const image = equipment?.image;
+    if (!image) return fallback;
+    if (typeof image === 'string') {
+      // Try parse JSON array
+      if (image.trim().startsWith('[') || image.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(image);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const firstUrl = parsed[0];
+            if (typeof firstUrl === 'string') {
+              if (firstUrl.startsWith('http')) return firstUrl;
+              if (firstUrl.startsWith('/uploads')) return `${UPLOAD_BASE}${firstUrl}`;
+              const clean = firstUrl.replace(/^\/?uploads\//, '');
+              return `${UPLOAD_BASE}/uploads/${clean}`;
+            }
+          }
+        } catch (e) {
+          // fallthrough
+        }
+      }
+      // Single string URL or local path
+      if (image.startsWith('http')) return image;
+      if (image.startsWith('/uploads')) return `${UPLOAD_BASE}${image}`;
+      return `${UPLOAD_BASE}/uploads/equipment/${image}`;
+    }
+    return fallback;
+  };
   const [repairRequests, setRepairRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -346,7 +376,7 @@ export default function HistoryRepair() {
                         <div className="flex-shrink-0 h-15 w-15">
                           <img
                             className="h-full w-full object-contain rounded-lg"
-                            src={request.equipment?.image ? (typeof request.equipment.image === 'string' && request.equipment.image.startsWith('http') ? request.equipment.image : `${UPLOAD_BASE}/uploads/equipment/${request.equipment.image}`) : (request.equipment_pic_filename ? `${UPLOAD_BASE}/uploads/equipment/${request.equipment_pic_filename}` : "/lo.png")}
+                            src={getFirstImageUrl(request.equipment)}
                             alt={request.equipment?.name || request.equipment_name}
                             onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
                           />
