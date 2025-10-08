@@ -38,8 +38,9 @@ import * as XLSX from 'xlsx';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { jsPDF } from 'jspdf';
+import axios from '../../utils/axios';
 import Notification from "../../components/Notification";
-import { addEquipment, deleteEquipment, getEquipment, getRepairRequestsByItemId, updateEquipment, uploadImage } from "../../utils/api";
+import { addEquipment, deleteEquipment, getEquipment, getRepairRequestsByItemId, updateEquipment, uploadImage, API_BASE } from "../../utils/api";
 import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
 import DeleteEquipmentDialog from "./dialog/DeleteEquipmentDialog";
 import EditEquipmentDialog from "./dialog/EditEquipmentDialog";
@@ -134,6 +135,13 @@ function ManageEquipment() {
   const [isExporting, setIsExporting] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedEquipmentForDetail, setSelectedEquipmentForDetail] = useState(null);
+  
+  // เพิ่ม state สำหรับการจัดการรูปภาพหลายรูป
+  const [imageUrls, setImageUrls] = useState(['']);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [imageUrlsEdit, setImageUrlsEdit] = useState([]);
+  const [isDeletingImage, setIsDeletingImage] = useState(false);
+  
   const itemsPerPage = 5;
 
   // ฟังก์ชันรวมคำอธิบายแจ้งเตือน (เหมือน ManageUser.jsx)
@@ -187,6 +195,12 @@ function ManageEquipment() {
         return { message: "เกิดข้อผิดพลาดในการลบหมวดหมู่", type: "error" };
       case "category_fetch_error":
         return { message: "เกิดข้อผิดพลาดในการดึงข้อมูลหมวดหมู่", type: "error" };
+      case "image_delete_success":
+        return { message: "✅ ลบรูปภาพเรียบร้อยแล้ว", type: "success" };
+      case "image_delete_error":
+        return { message: "❌ เกิดข้อผิดพลาดในการลบรูปภาพ", type: "error" };
+      case "info":
+        return { message: action, type: "info" };
       default:
         return { message: action, type: "info" };
     }
@@ -201,6 +215,99 @@ function ManageEquipment() {
       toast.error(message);
     } else {
       toast.info(message);
+    }
+  };
+
+  // ฟังก์ชันสำหรับการจัดการรูปภาพหลายรูป
+  const parseImageUrls = (imageUrlString) => {
+    if (!imageUrlString) return [];
+    try {
+      const urls = JSON.parse(imageUrlString);
+      return Array.isArray(urls) ? urls : [imageUrlString];
+    } catch {
+      return [imageUrlString];
+    }
+  };
+
+  const addImageUrl = () => {
+    if (imageUrls.length >= 10) {
+      notifyEquipmentAction("error", "ไม่สามารถเพิ่มรูปภาพได้เกิน 10 รูป");
+      return;
+    }
+    setImageUrls([...imageUrls, '']);
+  };
+
+  const removeImageUrl = (index) => {
+    const newUrls = imageUrls.filter((_, i) => i !== index);
+    setImageUrls(newUrls.length > 0 ? newUrls : ['']);
+  };
+
+  const updateImageUrl = (index, value) => {
+    const newUrls = [...imageUrls];
+    newUrls[index] = value;
+    setImageUrls(newUrls);
+  };
+
+  const handleFileUpload = (event) => {
+    const files = Array.from(event.target.files);
+
+    if (uploadedFiles.length + files.length > 10) {
+      notifyEquipmentAction("error", "ไม่สามารถอัปโหลดรูปภาพได้เกิน 10 รูป");
+      return;
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+    const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
+
+    if (invalidFiles.length > 0) {
+      notifyEquipmentAction("error", "รองรับเฉพาะไฟล์รูปภาพ (JPEG, JPG, PNG, GIF, WEBP)");
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    const oversizedFiles = files.filter(file => file.size > maxSize);
+
+    if (oversizedFiles.length > 0) {
+      notifyEquipmentAction("error", "ขนาดไฟล์ต้องไม่เกิน 5MB");
+      return;
+    }
+
+    setUploadedFiles(prev => [...prev, ...files]);
+    event.target.value = '';
+  };
+
+  const removeUploadedFile = (index) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeOldImage = async (idx) => {
+    if (isDeletingImage) {
+      return;
+    }
+
+    try {
+      const imageUrl = imageUrlsEdit[idx];
+
+      if (imageUrl && imageUrl.includes('cloudinary.com')) {
+        const token = localStorage.getItem('token');
+        setIsDeletingImage(true);
+        notifyEquipmentAction("info", "⏳ กำลังลบรูปภาพจาก Cloudinary...");
+
+        // สำหรับครุภัณฑ์ใช้ item_code แทน room_code
+        await axios.delete(`${API_BASE}/equipment/${selectedEquipment.item_code}/images/image_${idx + 1}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        setImageUrlsEdit(prev => prev.filter((_, i) => i !== idx));
+        notifyEquipmentAction("image_delete_success");
+      } else {
+        setImageUrlsEdit(prev => prev.filter((_, i) => i !== idx));
+        notifyEquipmentAction("image_delete_success");
+      }
+    } catch (error) {
+      notifyEquipmentAction("image_delete_error");
+    } finally {
+      setIsDeletingImage(false);
     }
   };
 
@@ -247,11 +354,17 @@ function ManageEquipment() {
 
   const handleEditClick = (equipment) => {
     setSelectedEquipment(equipment);
+    // เตรียมข้อมูลรูปภาพสำหรับการแก้ไข
+    const imageUrls = parseImageUrls(equipment.pic);
+    setImageUrlsEdit(imageUrls);
     setEditDialogOpen(true);
   };
 
   // ฟังก์ชั่นสำหรับเปิด dialog เพิ่มครุภัณฑ์
   const openAddEquipmentDialog = () => {
+    // รีเซ็ตข้อมูลรูปภาพ
+    setImageUrls(['']);
+    setUploadedFiles([]);
     setAddDialogOpen(true);
   };
 
@@ -265,12 +378,58 @@ function ManageEquipment() {
   };
 
   // ฟังก์ชั่นบันทึกครุภัณฑ์ใหม่
-  const handleAddEquipment = (data) => {
-    let dataToSave = { ...data };
-    // ให้แน่ใจว่ามี item_id
-    dataToSave.item_id = dataToSave.item_id || dataToSave.id;
-    delete dataToSave.id;
-    addEquipment(dataToSave).then(() => getEquipment().then(setEquipmentList));
+  const handleAddEquipment = async (data) => {
+    try {
+      let dataToSave = { ...data };
+      
+      // อัปโหลดรูปภาพไฟล์ไปยัง Cloudinary
+      const uploadedImageUrls = [];
+      
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        notifyEquipmentAction("info", "กำลังอัปโหลดรูปภาพไปยัง Cloudinary...");
+        
+        for (const file of uploadedFiles) {
+          try {
+            const uploadedUrl = await uploadImage(file);
+            if (uploadedUrl) {
+              uploadedImageUrls.push(uploadedUrl);
+            }
+          } catch (error) {
+            console.error('Error uploading image:', error);
+            notifyEquipmentAction("error", `เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ: ${file.name}`);
+          }
+        }
+      }
+      
+      // รวม URL รูปภาพทั้งหมด (จาก URL input และไฟล์ที่อัปโหลด)
+      const allImageUrls = [
+        ...(imageUrls || []).filter(url => url && url.trim() !== ''),
+        ...uploadedImageUrls
+      ];
+      
+      // บันทึก URL รูปภาพเป็น JSON string ในฟิลด์ pic
+      if (allImageUrls.length > 0) {
+        dataToSave.pic = JSON.stringify(allImageUrls);
+      } else {
+        dataToSave.pic = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
+      }
+      
+      // ให้แน่ใจว่ามี item_id
+      dataToSave.item_id = dataToSave.item_id || dataToSave.id;
+      delete dataToSave.id;
+      
+      await addEquipment(dataToSave);
+      await getEquipment().then(setEquipmentList);
+      
+      // รีเซ็ต state ของรูปภาพ
+      setImageUrls(['']);
+      setUploadedFiles([]);
+      
+      notifyEquipmentAction("add_success");
+    } catch (error) {
+      console.error('Error adding equipment:', error);
+      notifyEquipmentAction("add_error");
+    }
   };
 
   // ฟังก์ชันสำหรับ export Excel
@@ -2562,12 +2721,23 @@ function ManageEquipment() {
                       <tr key={item_code} className="hover:bg-gray-50 cursor-pointer" onClick={() => handleRowClick(item)}>
                         <td className="px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex items-center justify-center">
-                            <img
-                              className="h-16 w-16 object-cover rounded-lg shadow-sm"
-                              src={pic || "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"}
-                              alt={name}
-                              onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
-                            />
+                            {(() => {
+                              const imageUrls = parseImageUrls(pic);
+                              return imageUrls.length > 0 ? (
+                                <img
+                                  className="h-16 w-16 object-cover rounded-lg shadow-sm"
+                                  src={imageUrls[0].startsWith('http') ? imageUrls[0] : `${API_BASE.replace('/api', '')}${imageUrls[0]}`}
+                                  alt={name}
+                                  onError={e => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
+                                />
+                              ) : (
+                                <img
+                                  className="h-16 w-16 object-cover rounded-lg shadow-sm"
+                                  src="https://cdn-icons-png.flaticon.com/512/3474/3474360.png"
+                                  alt={name}
+                                />
+                              );
+                            })()}
                           </div>
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-center">
@@ -2763,16 +2933,39 @@ function ManageEquipment() {
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
           equipmentData={selectedEquipment}
+          imageUrls={imageUrlsEdit}
+          setImageUrls={setImageUrlsEdit}
+          uploadedFiles={uploadedFiles}
+          setUploadedFiles={setUploadedFiles}
+          onRemoveOldImage={removeOldImage}
+          isDeletingImage={isDeletingImage}
+          onFileUpload={handleFileUpload}
+          onRemoveUploadedFile={removeUploadedFile}
           onSave={async (updatedData) => {
             try {
               let dataToSave = { ...updatedData };
-              // ใช้ item_id เป็น canonical identifier สำหรับการอัปเดต
-              if (dataToSave.pic instanceof File) {
-                dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
+              
+              // จัดการรูปภาพหลายรูป
+              if (uploadedFiles.length > 0 || imageUrlsEdit.length > 0) {
+                const allImageUrls = [...imageUrlsEdit];
+                
+                // อัปโหลดไฟล์ใหม่
+                for (const file of uploadedFiles) {
+                  const uploadedUrl = await uploadImage(file, dataToSave.item_code);
+                  allImageUrls.push(uploadedUrl);
+                }
+                
+                // บันทึกเป็น JSON string
+                dataToSave.pic = JSON.stringify(allImageUrls.filter(url => url && url.trim() !== ''));
               }
+              
               await updateEquipment(selectedEquipment.item_id, dataToSave);
               getEquipment().then(setEquipmentList);
               notifyEquipmentAction("edit", dataToSave.name);
+              
+              // รีเซ็ตข้อมูลรูปภาพ
+              setUploadedFiles([]);
+              setImageUrlsEdit([]);
             } catch (error) {
               console.error('Error updating equipment:', error);
               notifyEquipmentAction("edit_error");
@@ -2784,6 +2977,15 @@ function ManageEquipment() {
         <AddEquipmentDialog
           open={addDialogOpen}
           onClose={() => setAddDialogOpen(false)}
+          imageUrls={imageUrls}
+          setImageUrls={setImageUrls}
+          uploadedFiles={uploadedFiles}
+          setUploadedFiles={setUploadedFiles}
+          onAddImageUrl={addImageUrl}
+          onRemoveImageUrl={removeImageUrl}
+          onUpdateImageUrl={updateImageUrl}
+          onFileUpload={handleFileUpload}
+          onRemoveUploadedFile={removeUploadedFile}
           initialFormData={{
             item_code: generateNextEquipmentId(equipmentList),
             name: "",
@@ -2797,12 +2999,28 @@ function ManageEquipment() {
           onSave={async (newEquipment) => {
             try {
               let dataToSave = { ...newEquipment };
-              if (dataToSave.pic instanceof File) {
-                dataToSave.pic = await uploadImage(dataToSave.pic, dataToSave.item_code);
+              
+              // จัดการรูปภาพหลายรูป
+              if (uploadedFiles.length > 0 || imageUrls.some(url => url && url.trim() !== '')) {
+                const allImageUrls = [...imageUrls.filter(url => url && url.trim() !== '')];
+                
+                // อัปโหลดไฟล์ใหม่
+                for (const file of uploadedFiles) {
+                  const uploadedUrl = await uploadImage(file, dataToSave.item_code);
+                  allImageUrls.push(uploadedUrl);
+                }
+                
+                // บันทึกเป็น JSON string
+                dataToSave.pic = JSON.stringify(allImageUrls);
               }
+              
               await addEquipment(dataToSave);
               getEquipment().then(setEquipmentList);
               notifyEquipmentAction("add", dataToSave.name);
+              
+              // รีเซ็ตข้อมูลรูปภาพ
+              setImageUrls(['']);
+              setUploadedFiles([]);
             } catch (error) {
               console.error('Error adding equipment:', error);
               notifyEquipmentAction("add_error");

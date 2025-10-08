@@ -5,7 +5,8 @@ import { MdAdd, MdLocationOn, MdPrivacyTip, MdRemove, MdSearch, MdShoppingCart, 
 // import { globalUserData } from '../../components/Header';
 import Notification from '../../components/Notification';
 import { useBadgeCounts } from '../../hooks/useSocket';
-import { API_BASE, authFetch, getCategories, getEquipment, updateEquipmentStatus } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
+import { API_BASE, UPLOAD_BASE, authFetch, getCategories, getEquipment, updateEquipmentStatus } from '../../utils/api'; // เพิ่ม updateEquipmentStatus
+import { isSecureContext, checkGeolocationAvailability, getHttpWarningMessage } from '../../utils/securityUtils';
 import locationTracker from '../../utils/locationTracker';
 import BorrowDialog from './dialogs/BorrowDialog';
 import EquipmentDetailDialog from './dialogs/EquipmentDetailDialog';
@@ -76,8 +77,23 @@ const Home = () => {
 
   // ฟังก์ชันตรวจสอบ location permission
   const checkLocationPermission = async () => {
-    if (!navigator.geolocation) {
+    const availability = checkGeolocationAvailability();
+    
+    if (!availability.available) {
       setLocationPermission('not_supported');
+      setLocationError(availability.reason);
+      
+      // แสดงข้อความแจ้งเตือนสำหรับ HTTP
+      if (!isSecureContext()) {
+        const warning = getHttpWarningMessage('location');
+        setNotification({
+          show: true,
+          title: warning.title,
+          message: warning.message,
+          type: warning.type,
+          duration: 8000
+        });
+      }
       return;
     }
 
@@ -101,9 +117,22 @@ const Home = () => {
     setIsRequestingPermission(true);
     setLocationError(null);
 
-    if (!navigator.geolocation) {
-      setLocationError('GPS ไม่รองรับในอุปกรณ์นี้');
+    const availability = checkGeolocationAvailability();
+    if (!availability.available) {
+      setLocationError(availability.reason);
       setIsRequestingPermission(false);
+      
+      // แสดงข้อความแจ้งเตือนสำหรับ HTTP
+      if (!isSecureContext()) {
+        const warning = getHttpWarningMessage('location');
+        setNotification({
+          show: true,
+          title: warning.title,
+          message: warning.message,
+          type: warning.type,
+          duration: 8000
+        });
+      }
       return;
     }
 
@@ -1176,7 +1205,35 @@ const Home = () => {
                             <div className="relative p-6 pb-4">
                               <div className="relative overflow-hidden rounded-2xl bg-white transition-all duration-500">
                                 <img
-                                  src={equipment.image}
+                                  src={(() => {
+                                    const fallback = `${UPLOAD_BASE}/equipment/${equipment.code}.jpg`;
+                                    const pic = equipment.image;
+                                    if (!pic) return fallback;
+                                    if (typeof pic === 'string') {
+                                      // Try parse JSON array
+                                      if (pic.trim().startsWith('[') || pic.trim().startsWith('{')) {
+                                        try {
+                                          const parsed = JSON.parse(pic);
+                                          if (Array.isArray(parsed) && parsed.length > 0) {
+                                            const firstUrl = parsed[0];
+                                            if (typeof firstUrl === 'string') {
+                                              if (firstUrl.startsWith('http')) return firstUrl;
+                                              if (firstUrl.startsWith('/uploads')) return `${UPLOAD_BASE}${firstUrl}`;
+                                              const clean = firstUrl.replace(/^\/?uploads\//, '');
+                                              return `${UPLOAD_BASE}/uploads/${clean}`;
+                                            }
+                                          }
+                                        } catch (e) {
+                                          // fallthrough
+                                        }
+                                      }
+                                      // Single string URL or local path
+                                      if (pic.startsWith('http')) return pic;
+                                      if (pic.startsWith('/uploads')) return `${UPLOAD_BASE}${pic}`;
+                                      return fallback;
+                                    }
+                                    return fallback;
+                                  })()}
                                   alt={equipment.name}
                                   className="w-full h-48 object-contain transition-transform duration-500 group-hover:scale-105"
                                 />
@@ -1288,7 +1345,35 @@ const Home = () => {
                             {/* Image */}
                             <div className="flex-shrink-0">
                               <img
-                                src={equipment.image}
+                                src={(() => {
+                                  const fallback = `${UPLOAD_BASE}/equipment/${equipment.code}.jpg`;
+                                  const pic = equipment.image;
+                                  if (!pic) return fallback;
+                                  if (typeof pic === 'string') {
+                                    // Try parse JSON array
+                                    if (pic.trim().startsWith('[') || pic.trim().startsWith('{')) {
+                                      try {
+                                        const parsed = JSON.parse(pic);
+                                        if (Array.isArray(parsed) && parsed.length > 0) {
+                                          const firstUrl = parsed[0];
+                                          if (typeof firstUrl === 'string') {
+                                            if (firstUrl.startsWith('http')) return firstUrl;
+                                            if (firstUrl.startsWith('/uploads')) return `${UPLOAD_BASE}${firstUrl}`;
+                                            const clean = firstUrl.replace(/^\/?uploads\//, '');
+                                            return `${UPLOAD_BASE}/uploads/${clean}`;
+                                          }
+                                        }
+                                      } catch (e) {
+                                        // fallthrough
+                                      }
+                                    }
+                                    // Single string URL or local path
+                                    if (pic.startsWith('http')) return pic;
+                                    if (pic.startsWith('/uploads')) return `${UPLOAD_BASE}${pic}`;
+                                    return fallback;
+                                  }
+                                  return fallback;
+                                })()}
                                 alt={equipment.name}
                                 className="w-20 h-20 object-contain rounded-xl bg-gray-50"
                               />

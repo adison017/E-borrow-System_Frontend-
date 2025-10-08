@@ -381,7 +381,34 @@ function EquipmentList() {
                         <div className="flex items-center justify-center">
                           <img
                             className="h-12 w-12 object-cover rounded-lg shadow-sm"
-                            src={pic?.startsWith('http') ? pic : `${UPLOAD_BASE}/equipment/${item_code}.jpg`}
+                            src={(() => {
+                              const fallback = `${UPLOAD_BASE}/equipment/${item_code}.jpg`;
+                              if (!pic) return fallback;
+                              if (typeof pic === 'string') {
+                                // Try parse JSON array
+                                if (pic.trim().startsWith('[') || pic.trim().startsWith('{')) {
+                                  try {
+                                    const parsed = JSON.parse(pic);
+                                    if (Array.isArray(parsed) && parsed.length > 0) {
+                                      const firstUrl = parsed[0];
+                                      if (typeof firstUrl === 'string') {
+                                        if (firstUrl.startsWith('http')) return firstUrl;
+                                        if (firstUrl.startsWith('/uploads')) return `${UPLOAD_BASE}${firstUrl}`;
+                                        const clean = firstUrl.replace(/^\/?uploads\//, '');
+                                        return `${UPLOAD_BASE}/uploads/${clean}`;
+                                      }
+                                    }
+                                  } catch (e) {
+                                    // fallthrough
+                                  }
+                                }
+                                // Single string URL or local path
+                                if (pic.startsWith('http')) return pic;
+                                if (pic.startsWith('/uploads')) return `${UPLOAD_BASE}${pic}`;
+                                return fallback;
+                              }
+                              return fallback;
+                            })()}
                             alt={name}
                             onError={(e) => {
                               e.target.onerror = null;
