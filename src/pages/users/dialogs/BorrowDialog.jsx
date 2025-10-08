@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { FaCalendarAlt } from "react-icons/fa";
 import { MdClose } from "react-icons/md";
+import { UPLOAD_BASE } from '../../../utils/api';
 
 const BorrowDialog = ({
   showBorrowDialog,
@@ -17,6 +18,37 @@ const BorrowDialog = ({
   showImageModal,
   locationPermission // เพิ่ม prop สำหรับ location permission
 }) => {
+  // ฟังก์ชันสำหรับจัดการรูปภาพหลายรูป
+  const getFirstImageUrl = (equipment) => {
+    const fallback = `${UPLOAD_BASE}/equipment/${equipment.item_code || equipment.code}.jpg`;
+    const pic = equipment.image || equipment.pic;
+    if (!pic) return fallback;
+    if (typeof pic === 'string') {
+      // Try parse JSON array
+      if (pic.trim().startsWith('[') || pic.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(pic);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const firstUrl = parsed[0];
+            if (typeof firstUrl === 'string') {
+              if (firstUrl.startsWith('http')) return firstUrl;
+              if (firstUrl.startsWith('/uploads')) return `${UPLOAD_BASE}${firstUrl}`;
+              const clean = firstUrl.replace(/^\/?uploads\//, '');
+              return `${UPLOAD_BASE}/uploads/${clean}`;
+            }
+          }
+        } catch (e) {
+          // fallthrough
+        }
+      }
+      // Single string URL or local path
+      if (pic.startsWith('http')) return pic;
+      if (pic.startsWith('/uploads')) return `${UPLOAD_BASE}${pic}`;
+      return fallback;
+    }
+    return fallback;
+  };
+
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -337,12 +369,16 @@ const BorrowDialog = ({
                       <div key={item_code} className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded-lg transition-colors">
                         <div
                           className="w-8 h-8 rounded-lg overflow-hidden cursor-pointer flex-shrink-0"
-                          onClick={() => showImageModal(equipment.image)}
+                          onClick={() => showImageModal(getFirstImageUrl(equipment))}
                         >
                           <img
-                            src={equipment.image}
+                            src={getFirstImageUrl(equipment)}
                             alt={equipment.name}
                             className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = '/lo.png';
+                            }}
                           />
                         </div>
                         <div className="flex-1 min-w-0">

@@ -20,6 +20,36 @@ export default function RepairRequestDialog({
   equipment,
   onSubmit
 }) {
+  // ฟังก์ชันสำหรับจัดการรูปภาพหลายรูป
+  const getFirstImageUrl = (equipment) => {
+    const fallback = "/lo.png";
+    const pic = equipment?.pic;
+    if (!pic) return fallback;
+    if (typeof pic === 'string') {
+      // Try parse JSON array
+      if (pic.trim().startsWith('[') || pic.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(pic);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const firstUrl = parsed[0];
+            if (typeof firstUrl === 'string') {
+              if (firstUrl.startsWith('http')) return firstUrl;
+              if (firstUrl.startsWith('/uploads')) return `${UPLOAD_BASE}${firstUrl}`;
+              const clean = firstUrl.replace(/^\/?uploads\//, '');
+              return `${UPLOAD_BASE}/uploads/${clean}`;
+            }
+          }
+        } catch (e) {
+          // fallthrough
+        }
+      }
+      // Single string URL or local path
+      if (pic.startsWith('http')) return pic;
+      if (pic.startsWith('/uploads')) return `${UPLOAD_BASE}${pic}`;
+      return `${UPLOAD_BASE}/uploads/${pic}`;
+    }
+    return fallback;
+  };
   const [formData, setFormData] = useState({
     description: '',
     estimatedCost: '',
@@ -462,7 +492,7 @@ console.log(generateRepairCode()); // ตัวอย่าง: RP-1234567890
                           <div className="flex flex-col items-center gap-4">
                             <div className="w-30 h-30 rounded-xl overflow-hidden flex items-center justify-center border-2 border-blue-200 shadow-sm">
                               <img
-                                src={equipment.pic ? (typeof equipment.pic === 'string' && equipment.pic.startsWith('http') ? equipment.pic : `${UPLOAD_BASE}/uploads/${equipment.pic}`) : "/lo.png"}
+                                src={getFirstImageUrl(equipment)}
                                 alt={equipment.name}
                                 className="max-w-full max-h-full object-contain p-2"
                                 onError={e => { e.target.onerror = null; e.target.src = '/lo.png'; }}
