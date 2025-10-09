@@ -104,7 +104,13 @@ export const useSocket = () => {
 
 // Hook สำหรับ badge counts
 export const useBadgeCounts = () => {
-  const eventListenersRef = useRef(new Map());
+  let eventListenersRef;
+  try {
+    eventListenersRef = useRef(new Map());
+  } catch (error) {
+    console.error('Error in useBadgeCounts hook:', error);
+    return { subscribeToBadgeCounts: () => () => {} };
+  }
 
   const subscribeToBadgeCounts = useCallback((callback) => {
     try {

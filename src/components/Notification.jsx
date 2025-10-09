@@ -20,6 +20,11 @@ const Notification = ({
     if (show) {
       setVisible(true);
       setAnimateOut(false);
+      const scrollY = window.scrollY;
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.overflow = 'hidden';
       if (duration > 0) {
         timerRef.current = setTimeout(() => {
           handleClose();
@@ -27,25 +32,42 @@ const Notification = ({
       }
     } else if (visible) {
       setAnimateOut(true);
-      // รอให้ animation ออกจบก่อน unmount
       const timeout = setTimeout(() => {
         setVisible(false);
         setAnimateOut(false);
-      }, 200); // ต้องตรงกับ duration ของ fadeOutScale
+        const scrollY = document.body.style.top;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        document.body.style.overflow = '';
+        window.scrollTo(0, parseInt(scrollY || '0') * -1);
+      }, 200);
       return () => clearTimeout(timeout);
     }
     return () => {
       clearTimeout(timerRef.current);
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      if (scrollY) window.scrollTo(0, parseInt(scrollY || '0') * -1);
     };
-  }, [show, duration]);
+  }, [show, duration, visible]);
 
   const handleClose = () => {
     setAnimateOut(true);
     setTimeout(() => {
       setVisible(false);
       setAnimateOut(false);
+      const scrollY = document.body.style.top;
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      document.body.style.overflow = '';
+      window.scrollTo(0, parseInt(scrollY || '0') * -1);
       onClose && onClose();
-    }, 200); // duration ของ fadeOutScale
+    }, 200);
   };
 
   if (!visible) return null;
@@ -101,7 +123,13 @@ const Notification = ({
           animation: fadeOutScale 0.25s cubic-bezier(0.4,0,0.2,1);
         }
       `}</style>
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn px-4">
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 animate-fadeIn px-4"
+        onWheel={(e) => e.preventDefault()}
+        onTouchMove={(e) => e.preventDefault()}
+        onScroll={(e) => e.preventDefault()}
+        style={{ overflow: 'hidden', touchAction: 'none' }}
+      >
         <div
           ref={notificationRef}
           className={`relative bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 pb-8 sm:pb-10 w-full max-w-[90vw] sm:max-w-[420px] md:max-w-[450px] lg:max-w-[500px] shadow-2xl border ${getNotificationStyle()} transition-all duration-300 ${animateOut ? 'animate-fadeOutScale' : 'animate-fadeInScale'}`}

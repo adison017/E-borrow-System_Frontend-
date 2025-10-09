@@ -42,7 +42,6 @@ import axios from '../../utils/axios';
 import Notification from "../../components/Notification";
 import { addEquipment, deleteEquipment, getEquipment, getRepairRequestsByItemId, updateEquipment, uploadImage, API_BASE } from "../../utils/api";
 import AddEquipmentDialog from "./dialog/AddEquipmentDialog";
-import DeleteEquipmentDialog from "./dialog/DeleteEquipmentDialog";
 import EditEquipmentDialog from "./dialog/EditEquipmentDialog";
 import EquipmentDetailDialog from "./dialog/EquipmentDetailDialog";
 import InspectRepairedEquipmentDialog from './dialog/InspectRepairedEquipmentDialog';
@@ -111,7 +110,7 @@ const statusConfig = {
 
 function ManageEquipment() {
   const [equipmentList, setEquipmentList] = useState([]);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [showDeleteNotification, setShowDeleteNotification] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -162,9 +161,9 @@ function ManageEquipment() {
       case "fetch_error":
         return { message: "เกิดข้อผิดพลาดในการดึงข้อมูลครุภัณฑ์", type: "error" };
       case "export_success":
-        return { message: "✅ ส่งออก Excel เรียบร้อยแล้ว", type: "success" };
+        return { message: "ส่งออก Excel เรียบร้อยแล้ว", type: "success" };
       case "export_error":
-        return { message: "❌ เกิดข้อผิดพลาดในการส่งออก Excel", type: "error" };
+        return { message: "เกิดข้อผิดพลาดในการส่งออก Excel", type: "error" };
       case "repair_request":
         return { message: `ส่งคำขอซ่อมครุภัณฑ์ ${extra} เรียบร้อยแล้ว`, type: "success" };
       case "repair_request_error":
@@ -196,13 +195,9 @@ function ManageEquipment() {
       case "category_fetch_error":
         return { message: "เกิดข้อผิดพลาดในการดึงข้อมูลหมวดหมู่", type: "error" };
       case "image_delete_success":
-        return { message: "✅ ลบรูปภาพเรียบร้อยแล้ว", type: "success" };
+        return { message: "ลบรูปภาพเรียบร้อยแล้ว", type: "success" };
       case "image_delete_error":
-        return { message: "❌ เกิดข้อผิดพลาดในการลบรูปภาพ", type: "error" };
-      case "info":
-        return { message: action, type: "info" };
-      default:
-        return { message: action, type: "info" };
+        return { message: "เกิดข้อผิดพลาดในการลบรูปภาพ", type: "error" };
     }
   };
 
@@ -330,22 +325,19 @@ function ManageEquipment() {
 
   const handleDeleteClick = (equipment) => {
     setSelectedEquipment(equipment);
-    setDeleteDialogOpen(true);
+    setShowDeleteNotification(true);
   };
 
-  // ฟังก์ชั่นสำหรับลบ
   const confirmDelete = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
-    notifyEquipmentAction("info", "⏳ กำลังลบครุภัณฑ์...");
     try {
       await deleteEquipment(selectedEquipment.item_code);
       getEquipment().then(setEquipmentList);
-      setDeleteDialogOpen(false);
+      setShowDeleteNotification(false);
       notifyEquipmentAction("delete", selectedEquipment.name);
       setSelectedEquipment(null);
     } catch (error) {
-      // Error deleting equipment
       notifyEquipmentAction("delete_error");
     } finally {
       setIsSubmitting(false);
@@ -2849,12 +2841,18 @@ function ManageEquipment() {
           </div>
         </CardFooter>
 
-        {/* Delete Confirmation Modal */}
-        <DeleteEquipmentDialog
-          open={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-          selectedEquipment={selectedEquipment}
-          onConfirm={confirmDelete}
+        {/* Delete Confirmation Notification */}
+        <Notification
+          show={showDeleteNotification}
+          title="ยืนยันการลบครุภัณฑ์"
+          message={selectedEquipment ? `คุณแน่ใจว่าต้องการลบครุภัณฑ์` : ''}
+          type="warning"
+          duration={0}
+          onClose={() => setShowDeleteNotification(false)}
+          actions={[
+            { label: 'ยกเลิก', onClick: () => setShowDeleteNotification(false) },
+            { label: 'ยืนยันการลบ', onClick: confirmDelete }
+          ]}
         />
 
         {/* Print QR Code Preview Dialog */}

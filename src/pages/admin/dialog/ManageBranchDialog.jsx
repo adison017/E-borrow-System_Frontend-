@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
 import "../../../styles/animations.css";
 import { API_BASE, authFetch } from "../../../utils/api";
-import DeleteBranchDialog from "./DeleteBranchDialog";
+import Notification from "../../../components/Notification";
 
 export default function ManageBranchDialog({ open, onClose, onSaved, onNotify }) {
   const [branches, setBranches] = useState([]);
@@ -241,12 +241,21 @@ export default function ManageBranchDialog({ open, onClose, onSaved, onNotify })
             )}
         </div>
       </div>
-      {/* Delete confirmation dialog */}
-      <DeleteBranchDialog
-        open={deleteOpen}
+      {/* Delete confirmation notification */}
+      <Notification
+        show={deleteOpen}
+        title="ยืนยันการลบสาขา"
+        message={(() => {
+          const branch = branches.find(b => b.branch_id === selectedBranchId);
+          return branch ? `คุณแน่ใจว่าต้องการลบสาขานี้หรือไม่?\n${branch.branch_name}` : '';
+        })()}
+        type="warning"
+        duration={0}
         onClose={() => { setDeleteOpen(false); setSelectedBranchId(null); }}
-        selectedBranch={branches.find(b => b.branch_id === selectedBranchId)}
-        onConfirm={handleConfirmDelete}
+        actions={[
+          { label: 'ยกเลิก', onClick: () => { setDeleteOpen(false); setSelectedBranchId(null); } },
+          { label: 'ยืนยันการลบ', onClick: handleConfirmDelete }
+        ]}
       />
     </div>
   );
