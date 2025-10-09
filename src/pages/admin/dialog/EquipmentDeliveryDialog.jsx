@@ -34,6 +34,17 @@ const EquipmentDeliveryDialog = ({ borrow, isOpen, onClose, onConfirm }) => {
     const deliveryPhotoWebcamRef = useRef(null);
 
     useEffect(() => {
+        if (isOpen || isWebcamDialogOpen || isDeliveryPhotoDialogOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [isOpen, isWebcamDialogOpen, isDeliveryPhotoDialogOpen]);
+
+    useEffect(() => {
         if (isOpen && borrow) {
             setDeliveryNote(borrow.delivery_note || "");
             if (borrow.status === "approved" && borrow.signature_image) {

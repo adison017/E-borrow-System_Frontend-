@@ -15,6 +15,8 @@ const getCategoryColor = (category) => {
   }
 };
 
+import { useEffect } from 'react';
+
 const NewsFormDialog = ({
   showModal,
   setShowModal,
@@ -26,6 +28,17 @@ const NewsFormDialog = ({
   // Available categories - can be fetched or defined here/passed as prop
   categories = ['ประกาศ', 'การบำรุงรักษา', 'อุปกรณ์ใหม่', 'กิจกรรม']
 }) => {
+  useEffect(() => {
+    if (showModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showModal]);
+
   if (!showModal) {
     return null;
   }

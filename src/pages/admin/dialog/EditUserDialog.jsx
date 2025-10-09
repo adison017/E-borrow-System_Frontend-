@@ -55,6 +55,17 @@ export default function EditUserDialog({ open, onClose, userData, onSave }) {
   });
 
   useEffect(() => {
+    if (open || showPin) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open, showPin]);
+
+  useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {

@@ -1,6 +1,18 @@
 import { getAvatarSrc } from '../../../utils/image';
+import { useEffect } from 'react';
 
 const UserDetailDialog = ({ isOpen, onClose, selectedUser }) => {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (

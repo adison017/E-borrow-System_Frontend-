@@ -167,24 +167,32 @@ export default function BorrowDetailsDialog({
   };
 
   useEffect(() => {
-    if (open && borrowRequest?.borrow_id) {
-      setApprovalNotes("");
-      setIsSubmitting(false);
-      setActionType(null);
-      setShowConfirm(false);
-      setShowRejectDialog(false);
-      setRejectReason("");
-      setFormErrors({ rejectReason: "" });
-      setDetailsLoading(true);
-      getBorrowById(borrowRequest.borrow_id)
-        .then(data => {
-          setBorrowDetails(data);
-          setDetailsLoading(false);
-        })
-        .catch(() => setDetailsLoading(false));
+    if (open) {
+      document.body.style.overflow = 'hidden';
+      if (borrowRequest?.borrow_id) {
+        setApprovalNotes("");
+        setIsSubmitting(false);
+        setActionType(null);
+        setShowConfirm(false);
+        setShowRejectDialog(false);
+        setRejectReason("");
+        setFormErrors({ rejectReason: "" });
+        setDetailsLoading(true);
+        getBorrowById(borrowRequest.borrow_id)
+          .then(data => {
+            setBorrowDetails(data);
+            setDetailsLoading(false);
+          })
+          .catch(() => setDetailsLoading(false));
+      } else {
+        setBorrowDetails(null);
+      }
     } else {
-      setBorrowDetails(null);
+      document.body.style.overflow = 'unset';
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [open, borrowRequest?.borrow_id]);
 
   if (!open) return null;

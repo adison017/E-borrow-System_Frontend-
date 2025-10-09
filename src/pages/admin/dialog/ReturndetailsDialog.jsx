@@ -758,7 +758,7 @@ const ReturnDetailsDialog = ({ returnItem, isOpen, onClose, paymentDetails }) =>
         </div>
 
       {/* Enhanced Footer */}
-      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-full sticky bottom-0">
+      <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-5 rounded-full sticky bottom-0 mb-3 left-1 right-1 mx-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           {/* Status info on left */}
           <div className="flex items-center gap-3">

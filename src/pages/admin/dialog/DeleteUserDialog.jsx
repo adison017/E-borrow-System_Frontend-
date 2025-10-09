@@ -17,6 +17,17 @@ export default function DeleteUserDialog({
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    if (open || pinOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open, pinOpen]);
+
+  useEffect(() => {
     // Get current user from localStorage
     const userStr = localStorage.getItem('user');
     if (userStr) {

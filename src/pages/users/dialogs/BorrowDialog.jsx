@@ -103,6 +103,7 @@ const BorrowDialog = ({
   // Autofill borrowDate เป็นวันพรุ่งนี้เมื่อ dialog ถูกเปิด
   useEffect(() => {
     if (showBorrowDialog) {
+      document.body.style.overflow = 'hidden';
       const tomorrow = getTomorrowTH();
       if (!borrowData.borrowDate || borrowData.borrowDate !== tomorrow) {
         setBorrowData(prev => ({
@@ -110,7 +111,12 @@ const BorrowDialog = ({
           borrowDate: tomorrow
         }));
       }
+    } else {
+      document.body.style.overflow = 'unset';
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
     // eslint-disable-next-line
   }, [showBorrowDialog]);
 

@@ -11,6 +11,8 @@ export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify 
   const [name, setName] = useState("");
   const [categoryCode, setCategoryCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
 
   const handleClose = () => {
     setName("");
@@ -19,6 +21,17 @@ export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify 
     setLoading(false);
     onClose && onClose();
   };
+
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open]);
 
   useEffect(() => {
     if (open) fetchCategories();
@@ -116,9 +129,6 @@ export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify 
     setDeleteOpen(true);
   };
 
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
-
   const handleConfirmDelete = async () => {
     if (!selectedCategoryId) return;
     try {
@@ -137,7 +147,7 @@ export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn">
+    <div className="fixed inset-0 bg-black/60 bg-opacity-50 flex items-center justify-center z-50 animate-fadeIn overflow-hidden">
       <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-auto transform animate-slideUp">
         <div className="flex justify-between items-center p-6 border-b border-gray-100">
           <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">

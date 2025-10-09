@@ -1,36 +1,8 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import socketService from '../utils/socketService';
 
 export const useSocket = () => {
-  // ตรวจสอบว่า React context พร้อมหรือไม่
-  try {
-    if (typeof window === 'undefined') {
-      return {
-        on: () => {},
-        off: () => {},
-        emit: () => {},
-        isConnected: () => false,
-        isAuthenticated: () => false,
-        authenticate: async () => false,
-        socket: null
-      };
-    }
-
-    // ตรวจสอบว่า React hooks พร้อมหรือไม่
-    if (typeof useRef !== 'function' || typeof useCallback !== 'function' || typeof useEffect !== 'function') {
-      console.warn('React hooks not available in useSocket');
-      return {
-        on: () => {},
-        off: () => {},
-        emit: () => {},
-        isConnected: () => false,
-        isAuthenticated: () => false,
-        authenticate: async () => false,
-        socket: null
-      };
-    }
-
-    const eventListenersRef = useRef(new Map());
+  const eventListenersRef = useRef(new Map());
 
   // Connect on mount with token and keep it across reconnects
   useEffect(() => {
@@ -119,100 +91,66 @@ export const useSocket = () => {
     };
   }, []);
 
-    return {
-      on,
-      off,
-      emit,
-      isConnected,
-      isAuthenticated,
-      authenticate,
-      socket: socketService.getSocket()
-    };
-  } catch (error) {
-    console.error('Error in useSocket hook:', error);
-    return {
-      on: () => {},
-      off: () => {},
-      emit: () => {},
-      isConnected: () => false,
-      isAuthenticated: () => false,
-      authenticate: async () => false,
-      socket: null
-    };
-  }
+  return {
+    on,
+    off,
+    emit,
+    isConnected,
+    isAuthenticated,
+    authenticate,
+    socket: socketService.getSocket()
+  };
 };
 
 // Hook สำหรับ badge counts
 export const useBadgeCounts = () => {
-  // ตรวจสอบว่า React context พร้อมหรือไม่
-  try {
-    if (typeof window === 'undefined') {
-      return {
-        subscribeToBadgeCounts: () => () => {}
-      };
-    }
+  const eventListenersRef = useRef(new Map());
 
-    // ตรวจสอบว่า React hooks พร้อมหรือไม่
-    if (typeof useRef !== 'function' || typeof useCallback !== 'function' || typeof useEffect !== 'function') {
-      console.warn('React hooks not available in useBadgeCounts');
-      return {
-        subscribeToBadgeCounts: () => () => {}
-      };
-    }
+  const subscribeToBadgeCounts = useCallback((callback) => {
+    try {
+      socketService.on('badgeCountsUpdated', callback);
 
-    const eventListenersRef = useRef(new Map());
-
-    const subscribeToBadgeCounts = useCallback((callback) => {
-      try {
-        socketService.on('badgeCountsUpdated', callback);
-
-        // เก็บ reference สำหรับ cleanup
-        if (!eventListenersRef.current.has('badgeCountsUpdated')) {
-          eventListenersRef.current.set('badgeCountsUpdated', new Set());
-        }
-        eventListenersRef.current.get('badgeCountsUpdated').add(callback);
-
-        return () => {
-          socketService.off('badgeCountsUpdated', callback);
-
-          const listeners = eventListenersRef.current.get('badgeCountsUpdated');
-          if (listeners) {
-            listeners.delete(callback);
-            if (listeners.size === 0) {
-              eventListenersRef.current.delete('badgeCountsUpdated');
-            }
-          }
-        };
-      } catch (error) {
-        console.error('Error in subscribeToBadgeCounts:', error);
-        return () => {};
+      // เก็บ reference สำหรับ cleanup
+      if (!eventListenersRef.current.has('badgeCountsUpdated')) {
+        eventListenersRef.current.set('badgeCountsUpdated', new Set());
       }
-    }, []);
+      eventListenersRef.current.get('badgeCountsUpdated').add(callback);
 
-    // Cleanup เมื่อ component unmount
-    useEffect(() => {
       return () => {
-        try {
-          // ลบ event listeners ทั้งหมดที่ component นี้เพิ่ม
-          if (eventListenersRef.current) {
-            eventListenersRef.current.forEach((listeners, event) => {
-              listeners.forEach(callback => {
-                socketService.off(event, callback);
-              });
-            });
-            eventListenersRef.current.clear();
+        socketService.off('badgeCountsUpdated', callback);
+
+        const listeners = eventListenersRef.current.get('badgeCountsUpdated');
+        if (listeners) {
+          listeners.delete(callback);
+          if (listeners.size === 0) {
+            eventListenersRef.current.delete('badgeCountsUpdated');
           }
-        } catch (error) {
-          console.error('Error in useBadgeCounts cleanup:', error);
         }
       };
-    }, []);
+    } catch (error) {
+      console.error('Error in subscribeToBadgeCounts:', error);
+      return () => {};
+    }
+  }, []);
 
-    return { subscribeToBadgeCounts };
-  } catch (error) {
-    console.error('Error in useBadgeCounts hook:', error);
-    return {
-      subscribeToBadgeCounts: () => () => {}
+  // Cleanup เมื่อ component unmount
+  useEffect(() => {
+    return () => {
+      try {
+        // ลบ event listeners ทั้งหมดที่ component นี้เพิ่ม
+        if (eventListenersRef.current) {
+          eventListenersRef.current.forEach((listeners, event) => {
+            listeners.forEach(callback => {
+              socketService.off(event, callback);
+            });
+          });
+          eventListenersRef.current.clear();
+        }
+      } catch (error) {
+        console.error('Error in useBadgeCounts cleanup:', error);
+      }
     };
-  }
+  }, []);
+
+  return { subscribeToBadgeCounts };
 };
