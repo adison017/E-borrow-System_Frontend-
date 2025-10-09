@@ -144,11 +144,17 @@ export default function RepairApprovalDialog({
     setActiveImageIndex(0);
   }, [repairImages]);
 
-  // Fetch admin users when dialog opens
+  // Fetch admin users when dialog opens and prevent background scroll
   useEffect(() => {
     if (open) {
+      document.body.style.overflow = 'hidden';
       fetchAdminUsers();
+    } else {
+      document.body.style.overflow = 'unset';
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [open]);
 
   const fetchAdminUsers = async () => {

@@ -403,6 +403,18 @@ const BorrowingRequestDialog = ({ request, onClose, onConfirmReceipt, onPayFine,
     }
   };
 
+  // ป้องกันการเลื่อน background เมื่อเปิด dialog
+  useEffect(() => {
+    if (request || showSuccessAlert) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [request, showSuccessAlert]);
+
   // ถ้า dialogShouldClose เป็น true และ afterClose มี ให้ปิด dialog จริง
   useEffect(() => {
     if (dialogShouldClose && afterClose) {

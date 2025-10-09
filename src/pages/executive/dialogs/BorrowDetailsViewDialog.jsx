@@ -175,21 +175,29 @@ const BorrowDetailsViewDialog = ({ borrowItem, isOpen, onClose }) => {
 
   // Fetch detailed borrow data when dialog opens
   useEffect(() => {
-    if (isOpen && borrowItem?.borrow_id) {
-      setLoading(true);
-      getBorrowById(borrowItem.borrow_id)
-        .then(data => {
-          console.log('Detailed borrow data:', data);
-          setDetailedBorrowItem(data);
-        })
-        .catch(error => {
-          console.warn('Could not fetch detailed borrow data:', error);
-          setDetailedBorrowItem(borrowItem);
-        })
-        .finally(() => setLoading(false));
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      if (borrowItem?.borrow_id) {
+        setLoading(true);
+        getBorrowById(borrowItem.borrow_id)
+          .then(data => {
+            console.log('Detailed borrow data:', data);
+            setDetailedBorrowItem(data);
+          })
+          .catch(error => {
+            console.warn('Could not fetch detailed borrow data:', error);
+            setDetailedBorrowItem(borrowItem);
+          })
+          .finally(() => setLoading(false));
+      } else {
+        setDetailedBorrowItem(null);
+      }
     } else {
-      setDetailedBorrowItem(null);
+      document.body.style.overflow = 'unset';
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen, borrowItem?.borrow_id]);
 
   // Move the early return after all hooks and functions are declared

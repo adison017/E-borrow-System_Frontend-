@@ -11,6 +11,17 @@ export default function DeleteBranchDialog({ open, onClose, selectedBranch, onCo
   const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
+    if (open || pinOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open, pinOpen]);
+
+  useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) {
       try {

@@ -61,6 +61,17 @@ export default function InspectRepairedEquipmentDialog({
   const [repairRequests, setRepairRequests] = useState([]);
   const [loadingRepairRequests, setLoadingRepairRequests] = useState(false);
 
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open]);
+
   // Fetch repair requests when equipment changes
   useEffect(() => {
     if (open && equipment?.item_id) {

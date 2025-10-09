@@ -20,11 +20,14 @@ const QRScannerDialog = ({ isOpen, onClose, onEquipmentFound }) => {
 
   useEffect(() => {
     if (isOpen) {
+      document.body.style.overflow = 'hidden';
       initializeScanner();
     } else {
+      document.body.style.overflow = 'unset';
       stopScanner();
     }
     return () => {
+      document.body.style.overflow = 'unset';
       stopScanner();
     };
   }, [isOpen, preferredFacingMode]);
@@ -256,7 +259,7 @@ const QRScannerDialog = ({ isOpen, onClose, onEquipmentFound }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/60 backdrop-blur-sm p-2 sm:p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-[9999] bg-black/60 backdrop-blur-sm p-2 sm:p-4 overflow-hidden">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col mx-2 sm:mx-0">
         {/* Header */}
         <div className="flex-shrink-0 bg-gradient-to-r from-blue-500 to-blue-600 rounded-t-2xl p-3 sm:p-4 text-white">

@@ -65,9 +65,15 @@ const BorrowDetailsDialog = ({ borrow, isOpen, onClose, onApprove, onReject }) =
     // Reset rejectReason and showRejectReason when dialog is opened
     useEffect(() => {
         if (isOpen) {
+            document.body.style.overflow = 'hidden';
             setRejectReason("");
             setShowRejectReason(false);
+        } else {
+            document.body.style.overflow = 'unset';
         }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
     }, [isOpen]);
 
     if (!isOpen || !borrow) return null;

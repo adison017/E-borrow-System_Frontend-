@@ -2742,7 +2742,7 @@ function ManageEquipment() {
                         </td>
                         <td className="px-3 py-4 whitespace-nowrap text-center">
                           <div className="flex flex-col items-center justify-center space-y-2">
-                            <span className="text-sm font-bold text-gray-900">{item_code}</span>
+                            <span className="text-xs font-bold text-gray-900">{item_code}</span>
                             <Tooltip content="คลิกเพื่อดาวน์โหลด QR Code">
                               <div
                                 className="bg-white p-1 rounded-lg shadow-sm border border-gray-200 cursor-pointer hover:shadow-md hover:border-purple-300 transition-all duration-200"
@@ -2759,8 +2759,8 @@ function ManageEquipment() {
                             </Tooltip>
                           </div>
                         </td>
-                        <td className="px-3 py-4 whitespace-nowrap text-md text-gray-900 font-medium">{name}</td>
-                        <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-700">{category}</td>
+                        <td className="px-3 py-4 text-sm text-gray-900 max-w-xs break-words">{name}</td>
+                        <td className="px-3 py-4 text-sm text-gray-700 max-w-[120px] break-words">{category}</td>
                         <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-900 text-center">{quantity}{unit ? ` ${unit}` : ''}</td>
                         <td className="px-3 py-4 whitespace-nowrap text-center text-gray-700">
                           <span className={`px-3 py-1 inline-flex justify-center leading-5 font-semibold rounded-full border text-sm ${statusConfig[status]?.backgroundColor || "bg-gray-200"} ${statusConfig[status]?.borderColor || "border-gray-200"} text-${statusConfig[status]?.color || "gray"}-800`}>

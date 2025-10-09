@@ -27,8 +27,14 @@ const DamageManagementDialog = ({ isOpen, onClose, borrowItem, onSubmit }) => {
   // โหลดข้อมูล damage levels เมื่อเปิด dialog
   useEffect(() => {
     if (isOpen) {
+      document.body.style.overflow = 'hidden';
       fetchDamageLevels();
+    } else {
+      document.body.style.overflow = 'unset';
     }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen]);
 
   const fetchDamageLevels = async () => {

@@ -46,6 +46,17 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
   const [showRepairFilters, setShowRepairFilters] = useState(false);
 
   useEffect(() => {
+    if (open || imageModalOpen || roomImageModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [open, imageModalOpen, roomImageModalOpen]);
+
+  useEffect(() => {
     if (open && equipment?.item_code) {
       fetchBorrowHistory();
       fetchRepairHistory();
@@ -341,10 +352,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
             <div className="flex items-start gap-3 sm:gap-6">
               <div className="w-12 h-12 sm:w-16 sm:h-16 bg-white/20 rounded-full overflow-hidden shadow-lg backdrop-blur-sm border border-white/30">
                 <img
-                  src={equipment.pic?.startsWith('http')
-                    ? equipment.pic
-                    : `${UPLOAD_BASE}/equipment/${equipment.item_code}.jpg`
-                  }
+                  src={imageUrls[0]}
                   alt={equipment.name}
                   className="w-full h-full object-cover"
                   onError={(e) => {
@@ -387,33 +395,9 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
         <div className="p-3 sm:p-6 overflow-y-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-140px)] bg-white">
         {/* Image Section */}
               <div className="rounded-2xl p-3 sm:p-6 transition-all duration-300 mb-6 w-full mx-auto shadow-2xl">
-                <div className="bg-white rounded-xl overflow-hidden group relative h-[260px] sm:h-[340px] md:h-[400px] flex">
-                  {/* Left vertical thumbnails */}
-                  {imageUrls.length > 1 && (
-                    <div className="w-20 sm:w-24 md:w-28 h-full border-r border-gray-200 bg-white/60 p-2 overflow-y-auto">
-                      <div className="flex flex-col gap-2">
-                        {imageUrls.map((url, idx) => (
-                          <button
-                            key={idx}
-                            className={`relative group rounded-md overflow-hidden border ${idx === currentImageIndex ? 'border-blue-500' : 'border-gray-200'} hover:border-blue-400`}
-                            onClick={() => { setCurrentImageIndex(idx); }}
-                            title={`ดูภาพที่ ${idx + 1}`}
-                          >
-                            <img
-                              src={url}
-                              alt={`preview-${idx + 1}`}
-                              className="w-full h-14 object-cover"
-                              onError={(e) => { e.target.onerror = null; e.target.src = '/lo.png'; }}
-                            />
-                            <span className="absolute bottom-1 right-1 bg-black/50 text-white text-[10px] px-1 rounded">{idx + 1}/{imageUrls.length}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
+                <div className="bg-white rounded-xl overflow-hidden group">
                   {/* Main image area */}
-                  <div className="flex-1 relative">
+                  <div className="relative h-[260px] sm:h-[340px] md:h-[400px]">
                     <img
                       src={imageUrls[currentImageIndex]}
                       alt={equipment.name}
@@ -430,20 +414,37 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                         equipment.status === 'พร้อมใช้งาน' ? 'bg-green-100 text-green-800 border-green-300' :
                         equipment.status === 'ชำรุด' ? 'bg-red-100 text-red-800 border-red-300' :
                         equipment.status === 'กำลังซ่อม' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
-                        equipment.status === 'รออนุมัติซ่อม' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                        equipment.status === 'รออนุมัติซ่อม' ? 'bg-yellow-100 text-yellow-800 border-yellow-300' :
                         equipment.status === 'ถูกยืม' ? 'bg-blue-100 text-blue-800 border-blue-300' : 'bg-gray-100 text-gray-800 border-gray-300'
                       }`}>
                         {equipment.status || 'ไม่ระบุสถานะ'}
                       </span>
                     </div>
-                    {/* Borrow Count Badge */}
-                    <div className="absolute top-1 right-1">
-                      <div className="bg-white px-3 py-1.5 rounded-full shadow-lg border border-gray-200 flex items-center gap-2">
-                        <p className="text-xs font-semibold text-gray-800">จำนวนการยืม</p>
-                        <span className="text-xs font-semibold text-gray-800">{borrowHistory.filter(item => item.status === 'completed').length}</span>
+                  </div>
+
+                  {/* Bottom horizontal thumbnails */}
+                  {imageUrls.length > 1 && (
+                    <div className="bg-white/60 p-2">
+                      <div className="flex gap-2 overflow-x-auto justify-center mt-5">
+                        {imageUrls.map((url, idx) => (
+                          <button
+                            key={idx}
+                            className={`relative flex-shrink-0 rounded-md overflow-hidden border-2 ${idx === currentImageIndex ? 'border-blue-500' : 'border-gray-200'} hover:border-blue-400 transition-all`}
+                            onClick={() => { setCurrentImageIndex(idx); }}
+                            title={`ดูภาพที่ ${idx + 1}`}
+                          >
+                            <img
+                              src={url}
+                              alt={`preview-${idx + 1}`}
+                              className="w-16 h-16 sm:w-20 sm:h-20 object-cover"
+                              onError={(e) => { e.target.onerror = null; e.target.src = '/lo.png'; }}
+                            />
+                            <span className="absolute bottom-1 right-1 bg-black/50 text-white text-[10px] px-1 rounded">{idx + 1}/{imageUrls.length}</span>
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
                 <div className="text-center mt-4">
                   <p className="text-sm text-gray-600 bg-white px-4 py-2 rounded-full inline-flex items-center gap-2 shadow-sm">
