@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
 import "../../../styles/animations.css";
 import { API_BASE, authFetch } from "../../../utils/api";
-import DeletePositionDialog from "./DeletePositionDialog";
+import Notification from "../../../components/Notification";
 
 export default function ManagePositionDialog({ open, onClose, onSaved, onNotify }) {
   const [positions, setPositions] = useState([]);
@@ -232,12 +232,21 @@ export default function ManagePositionDialog({ open, onClose, onSaved, onNotify 
             )}
         </div>
       </div>
-      {/* Delete confirmation dialog */}
-      <DeletePositionDialog
-        open={deleteOpen}
+      {/* Delete confirmation notification */}
+      <Notification
+        show={deleteOpen}
+        title="ยืนยันการลบตำแหน่ง"
+        message={(() => {
+          const pos = positions.find(p => p.position_id === selectedPositionId);
+          return pos ? `คุณแน่ใจว่าต้องการลบตำแหน่งนี้หรือไม่?\n${pos.position_name}` : '';
+        })()}
+        type="warning"
+        duration={0}
         onClose={() => { setDeleteOpen(false); setSelectedPositionId(null); }}
-        selectedPosition={positions.find(p => p.position_id === selectedPositionId)}
-        onConfirm={handleConfirmDelete}
+        actions={[
+          { label: 'ยกเลิก', onClick: () => { setDeleteOpen(false); setSelectedPositionId(null); } },
+          { label: 'ยืนยันการลบ', onClick: handleConfirmDelete }
+        ]}
       />
     </div>
   );

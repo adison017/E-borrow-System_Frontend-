@@ -203,10 +203,12 @@ const AuthSystem = (props) => {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
     // fetch จังหวัด/อำเภอ/ตำบล จาก github
     fetch('https://raw.githubusercontent.com/kongvut/thai-province-data/refs/heads/master/api/latest/province_with_district_and_sub_district.json')
       .then(res => res.json())
       .then(data => {
+        if (!isMounted) return;
         setProvinces(data || []);
         // โหลดอำเภอเริ่มต้นตามจังหวัดเริ่มต้น
         const initialProvince = (data || []).find(p => p.name === registerData.province || p.name_th === registerData.province);
@@ -218,16 +220,17 @@ const AuthSystem = (props) => {
           }
         }
       }).catch(() => {
-        setProvinces([]);
+        if (isMounted) setProvinces([]);
       });
     // fetch positions
     axios.get(`${API_BASE}/users/positions`)
-      .then(res => setPositions(res.data))
-      .catch(() => setPositions([]));
+      .then(res => { if (isMounted) setPositions(res.data); })
+      .catch(() => { if (isMounted) setPositions([]); });
     // fetch branches
     axios.get(`${API_BASE}/users/branches`)
-      .then(res => setBranches(res.data))
-      .catch(() => setBranches([]));
+      .then(res => { if (isMounted) setBranches(res.data); })
+      .catch(() => { if (isMounted) setBranches([]); });
+    return () => { isMounted = false; };
   }, []);
 
   // Inline validation: ตรวจสอบรหัสผ่านตรงกันทันที
@@ -358,30 +361,29 @@ const AuthSystem = (props) => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
 
-    // ปิดการตรวจสอบการบล็อกเพื่อการทดสอบ
-    // if (loginAttempts.blockedUntil && Date.now() < loginAttempts.blockedUntil) {
-    //   const remainingMinutes = Math.ceil((loginAttempts.blockedUntil - Date.now()) / 1000 / 60);
-    //   setNotification({
-    //     show: true,
-    //     type: 'error',
-    //     title: 'บัญชีถูกบล็อกชั่วคราว',
-    //     message: `บัญชีถูกบล็อกชั่วคราว กรุณาลองใหม่ใน ${remainingMinutes} นาที`,
-    //     onClose: () => setNotification(n => ({ ...n, show: false }))
-    //   });
-    //   return;
-    // }
+     if (loginAttempts.blockedUntil && Date.now() < loginAttempts.blockedUntil) {
+       const remainingMinutes = Math.ceil((loginAttempts.blockedUntil - Date.now()) / 1000 / 60);
+       setNotification({
+         show: true,
+         type: 'error',
+         title: 'บัญชีถูกบล็อกชั่วคราว',
+         message: `บัญชีถูกบล็อกชั่วคราว กรุณาลองใหม่ใน ${remainingMinutes} นาที`,
+         onClose: () => setNotification(n => ({ ...n, show: false }))
+       });
+       return;
+     }
 
-    // ปิดการตรวจสอบจำนวนครั้งที่เหลือเพื่อการทดสอบ
-    // if (loginAttempts.remaining <= 0) {
-    //   setNotification({
-    //     show: true,
-    //     type: 'error',
-    //     title: 'เกินจำนวนครั้งที่กำหนด',
-    //     message: 'คุณได้ลองเข้าสู่ระบบครบ 3 ครั้งแล้ว กรุณารอ 2 นาทีแล้วลองใหม่',
-    //     onClose: () => setNotification(n => ({ ...n, show: false }))
-    //   });
-    //   return;
-    // }
+
+     if (loginAttempts.remaining <= 0) {
+       setNotification({
+         show: true,
+         type: 'error',
+         title: 'เกินจำนวนครั้งที่กำหนด',
+         message: 'คุณได้ลองเข้าสู่ระบบครบ 3 ครั้งแล้ว กรุณารอ 2 นาทีแล้วลองใหม่',
+         onClose: () => setNotification(n => ({ ...n, show: false }))
+       });
+       return;
+     }
 
     setIsLoading(true);
     try {
@@ -469,17 +471,15 @@ const AuthSystem = (props) => {
     }
   };
 
-  // ฟังก์ชันจัดการ login error (ปิดการนับครั้งเพื่อการทดสอบ)
   const handleLoginError = (message) => {
-    // ปิดการนับครั้งและบล็อกบัญชีเพื่อการทดสอบ
-    // const newRemaining = Math.max(0, loginAttempts.remaining - 1);
-    // const newBlockedUntil = newRemaining === 0 ? Date.now() + (2 * 60 * 1000) : null;
+     const newRemaining = Math.max(0, loginAttempts.remaining - 1);
+     const newBlockedUntil = newRemaining === 0 ? Date.now() + (2 * 60 * 1000) : null;
 
-    // setLoginAttempts({
-    //   remaining: newRemaining,
-    //   blockedUntil: newBlockedUntil,
-    //   lastAttempt: Date.now()
-    // });
+     setLoginAttempts({
+       remaining: newRemaining,
+       blockedUntil: newBlockedUntil,
+       lastAttempt: Date.now()
+     });
 
       setNotification({
         show: true,

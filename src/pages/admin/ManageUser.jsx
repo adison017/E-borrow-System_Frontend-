@@ -31,7 +31,7 @@ import { saveAs } from 'file-saver';
 import * as XLSX from 'xlsx';
 import { API_BASE, UPLOAD_BASE } from '../../utils/api';
 import AddUserDialog from "./dialog/AddUserDialog";
-import DeleteUserDialog from "./dialog/DeleteUserDialog";
+import Notification from '../../components/Notification';
 import EditUserDialog from "./dialog/EditUserDialog";
 import ManageBranchDialog from "./dialog/ManageBranchDialog";
 import ManagePositionDialog from "./dialog/ManagePositionDialog";
@@ -66,7 +66,7 @@ const getAuthHeaders = () => {
 
 function ManageUser() {
   const [userList, setUserList] = useState([]);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [showDeleteNotification, setShowDeleteNotification] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -287,7 +287,7 @@ function ManageUser() {
 
   const handleDeleteClick = async (user) => {
     setSelectedUser(user);
-    setDeleteDialogOpen(true);
+    setShowDeleteNotification(true);
   };
 
   const confirmDelete = async () => {
@@ -300,13 +300,11 @@ function ManageUser() {
 
       if (!response.data) throw new Error('ลบผู้ใช้ไม่สำเร็จ');
 
-      // Update the list immediately
       setUserList(prevList => prevList.filter(item => item.user_id !== selectedUser.user_id));
-      setDeleteDialogOpen(false);
+      setShowDeleteNotification(false);
       setSelectedUser(null);
       notifyUserAction("delete", selectedUser.Fullname);
     } catch (error) {
-      // Error deleting user
       notifyUserAction('delete_error');
     } finally {
       setIsSubmitting(false);
@@ -862,12 +860,18 @@ function ManageUser() {
             </Button>
           </div>
         </CardFooter>
-        {/* Delete Confirmation Modal */}
-        <DeleteUserDialog
-          open={deleteDialogOpen}
-          onClose={() => setDeleteDialogOpen(false)}
-          selectedUser={selectedUser}
-          onConfirm={confirmDelete}
+        {/* Delete Confirmation Notification */}
+        <Notification
+          show={showDeleteNotification}
+          title="ยืนยันการลบผู้ใช้งาน"
+          message={selectedUser ? `คุณแน่ใจว่าต้องการลบผู้ใช้งานนี้หรือไม่?` : ''}
+          type="warning"
+          duration={0}
+          onClose={() => setShowDeleteNotification(false)}
+          actions={[
+            { label: 'ยกเลิก', onClick: () => setShowDeleteNotification(false) },
+            { label: 'ยืนยันการลบ', onClick: confirmDelete }
+          ]}
         />
         {/* Edit Dialog Modal */}
         <EditUserDialog

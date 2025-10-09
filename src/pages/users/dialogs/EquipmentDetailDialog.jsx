@@ -18,6 +18,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [roomImageModalOpen, setRoomImageModalOpen] = useState(false);
+  const [currentRoomImageIndex, setCurrentRoomImageIndex] = useState(0);
   const [borrowHistory, setBorrowHistory] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -313,7 +314,7 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
                               })()}
                               alt="room"
                               className="w-full h-full object-cover cursor-pointer hover:scale-110 transition-transform duration-300"
-                              onClick={() => setRoomImageModalOpen(true)}
+                              onClick={() => { setCurrentRoomImageIndex(0); setRoomImageModalOpen(true); }}
                               onError={(e) => { e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png"; }}
                             />
                           </div>
@@ -471,50 +472,68 @@ const EquipmentDetailDialog = ({ open, onClose, equipment }) => {
       )}
 
       {/* Room Image Modal */}
-      {roomImageModalOpen && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
-          <div className="relative max-w-[90vw] max-h-[90vh]">
-            <button
-              onClick={() => setRoomImageModalOpen(false)}
-              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors p-2 rounded-full hover:bg-white/20"
-            >
-              <MdClose className="w-8 h-8" />
-            </button>
-            <img
-              src={(() => {
-                if (!equipment.room_image_url) return "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
-                try {
-                  const urls = JSON.parse(equipment.room_image_url);
-                  return Array.isArray(urls) && urls[0]
-                    ? (urls[0].startsWith('http') ? urls[0] : `${UPLOAD_BASE}${urls[0]}`)
-                    : "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
-                } catch {
-                  return equipment.room_image_url && equipment.room_image_url.startsWith('http')
-                    ? equipment.room_image_url
-                    : `${UPLOAD_BASE}${equipment.room_image_url}`;
-                }
-              })()}
-              alt={equipment.room_name}
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
-              }}
-            />
-           <div className="absolute -bottom-16 left-0 right-0 text-center">
-              <p className="text-white text-lg font-medium">ห้องจัดเก็บ: {equipment.room_name}</p>
-              {equipment.room_address && (
-                <p className="text-gray-300 text-sm">{equipment.room_address}</p>
-              )}
+      {roomImageModalOpen && (() => {
+        const getRoomImageUrls = () => {
+          if (!equipment.room_image_url) return ["https://cdn-icons-png.flaticon.com/512/3474/3474360.png"];
+          try {
+            const urls = JSON.parse(equipment.room_image_url);
+            if (Array.isArray(urls) && urls.length > 0) {
+              return urls.map(u => u.startsWith('http') ? u : `${UPLOAD_BASE}${u}`);
+            }
+          } catch {}
+          return equipment.room_image_url.startsWith('http') 
+            ? [equipment.room_image_url] 
+            : [`${UPLOAD_BASE}${equipment.room_image_url}`];
+        };
+        const roomImageUrls = getRoomImageUrls();
+        return (
+          <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[60] p-4">
+            <div className="relative max-w-[90vw] max-h-[90vh] mb-10">
+              <button
+                onClick={() => setRoomImageModalOpen(false)}
+                className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors p-2 rounded-full hover:bg-white/20"
+              >
+                <MdClose className="w-8 h-8" />
+              </button>
+              <img
+                src={roomImageUrls[currentRoomImageIndex]}
+                alt={equipment.room_name || equipment.location}
+                className="max-w-[85vw] max-h-[75vh] object-contain rounded-lg shadow-2xl"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "https://cdn-icons-png.flaticon.com/512/3474/3474360.png";
+                }}
+              />
+              <div className="absolute -bottom-16 left-0 right-0 text-center">
+                <p className="text-white text-lg font-medium">ห้องจัดเก็บ: {equipment.room_name || equipment.location}</p>
+                {equipment.room_address && (
+                  <p className="text-gray-300 text-sm">{equipment.room_address}</p>
+                )}
+                {roomImageUrls.length > 1 && (
+                  <p className="text-gray-300 text-sm">ภาพ {currentRoomImageIndex + 1}/{roomImageUrls.length}</p>
+                )}
+              </div>
             </div>
+            <div 
+              className="absolute inset-0 -z-10" 
+              onClick={() => setRoomImageModalOpen(false)}
+            />
+            {roomImageUrls.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/40 rounded-xl p-2 flex gap-2 max-w-[90vw] overflow-x-auto">
+                {roomImageUrls.map((url, idx) => (
+                  <button
+                    key={idx}
+                    className={`w-14 h-14 rounded-md overflow-hidden border ${idx === currentRoomImageIndex ? 'border-white' : 'border-transparent'} hover:opacity-80`}
+                    onClick={() => setCurrentRoomImageIndex(idx)}
+                  >
+                    <img src={url} alt={`room-thumb-${idx + 1}`} className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-          {/* Click outside to close */}
-          <div 
-            className="absolute inset-0 -z-10" 
-            onClick={() => setRoomImageModalOpen(false)}
-          />
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 };

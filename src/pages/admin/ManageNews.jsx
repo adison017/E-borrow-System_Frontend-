@@ -20,7 +20,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { createNews, deleteNewsApi, getNews, updateNewsApi } from '../../utils/api';
 import { uploadMultipleFilesToCloudinary } from '../../utils/cloudinaryUtils';
-import DeleteNewsDialog from './dialog/DeleteNewsDialog';
+import Notification from '../../components/Notification';
 import NewsFormDialog from './dialog/NewsFormDialog';
 
 // Get category icon
@@ -214,7 +214,7 @@ const ManageNews = () => {
   const [showModal, setShowModal] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showDeleteNotification, setShowDeleteNotification] = useState(false);
   const [newsToDelete, setNewsToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -296,6 +296,24 @@ const ManageNews = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageReorder = (fromIndex, toIndex) => {
+    setPendingImages((prev) => {
+      if (!Array.isArray(prev) || prev.length === 0) return prev;
+      const newImages = [...prev];
+      const [moved] = newImages.splice(fromIndex, 1);
+      newImages.splice(toIndex, 0, moved);
+      return newImages;
+    });
+    setPreviewUrls((prev) => {
+      if (!Array.isArray(prev)) return prev;
+      const newUrls = [...prev];
+      const [moved] = newUrls.splice(fromIndex, 1);
+      newUrls.splice(toIndex, 0, moved);
+      setFormData((f) => ({ ...f, image_url: newUrls }));
+      return newUrls;
+    });
   };
 
   useEffect(() => {
@@ -403,7 +421,7 @@ const ManageNews = () => {
 
   const handleDelete = (item) => {
     setNewsToDelete(item);
-    setShowDeleteModal(true);
+    setShowDeleteNotification(true);
   };
 
   const confirmDelete = async () => {
@@ -411,7 +429,7 @@ const ManageNews = () => {
       try {
         await deleteNewsApi(newsToDelete.id);
         setNewsItems(prevItems => prevItems.filter(item => item.id !== newsToDelete.id));
-        setShowDeleteModal(false);
+        setShowDeleteNotification(false);
         setNewsToDelete(null);
         notifyNewsAction("delete");
       } catch (err) {
@@ -748,14 +766,21 @@ const ManageNews = () => {
         formData={formData}
         handleInputChange={handleInputChange}
         isSubmitting={isSubmitting}
+        onImageReorder={handleImageReorder}
       />
 
-      {/* Delete Confirmation Dialog */}
-      <DeleteNewsDialog
-        open={showDeleteModal}
-        onClose={() => setShowDeleteModal(false)}
-        selectedNews={newsToDelete}
-        onConfirm={confirmDelete}
+      {/* Delete Confirmation Notification */}
+      <Notification
+        show={showDeleteNotification}
+        title="ยืนยันการลบข่าวสาร"
+        message={`คุณแน่ใจว่าต้องการลบข่าวสารนี้หรือไม่?`}
+        type="warning"
+        duration={0}
+        onClose={() => setShowDeleteNotification(false)}
+        actions={[
+          { label: 'ยกเลิก', onClick: () => setShowDeleteNotification(false) },
+          { label: 'ยืนยันการลบ', onClick: confirmDelete }
+        ]}
       />
 
       {/* Floating Add News Button */}

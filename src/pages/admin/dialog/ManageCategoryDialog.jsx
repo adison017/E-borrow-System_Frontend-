@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { MdClose } from "react-icons/md";
 import "../../../styles/animations.css";
 import { getCategories, addCategory, updateCategory, deleteCategory } from "../../../utils/api";
-import DeleteCategoryDialog from "./DeleteCategoryDialog";
+import Notification from "../../../components/Notification";
 
 export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify }) {
   const [categories, setCategories] = useState([]);
@@ -265,12 +265,21 @@ export default function ManageCategoryDialog({ open, onClose, onSaved, onNotify 
             )}
         </div>
       </div>
-      {/* Delete confirmation dialog */}
-      <DeleteCategoryDialog
-        open={deleteOpen}
+      {/* Delete confirmation notification */}
+      <Notification
+        show={deleteOpen}
+        title="ยืนยันการลบหมวดหมู่"
+        message={(() => {
+          const cat = categories.find(c => c.category_id === selectedCategoryId);
+          return cat ? `คุณแน่ใจว่าต้องการลบหมวดหมู่\n${cat.name}\nรหัส: ${cat.category_code}\n\nการลบหมวดหมู่นี้จะส่งผลกระทบต่อรายการที่เกี่ยวข้อง` : '';
+        })()}
+        type="warning"
+        duration={0}
         onClose={() => { setDeleteOpen(false); setSelectedCategoryId(null); }}
-        selectedCategory={categories.find(c => c.category_id === selectedCategoryId)}
-        onConfirm={handleConfirmDelete}
+        actions={[
+          { label: 'ยกเลิก', onClick: () => { setDeleteOpen(false); setSelectedCategoryId(null); } },
+          { label: 'ยืนยันการลบ', onClick: handleConfirmDelete }
+        ]}
       />
     </div>
   );
